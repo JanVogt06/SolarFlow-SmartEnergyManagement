@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Fronius Solar Monitor - Objektorientierte Version
-Ein modulares System zur Überwachung von Fronius Solaranlagen.
-"""
-
 import requests
 import json
 import time
