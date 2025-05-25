@@ -1,0 +1,1 @@
+echo "requests>=2.31.0" > requirements.txt
