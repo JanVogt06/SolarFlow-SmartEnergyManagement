@@ -305,7 +305,7 @@ def main():
         # Monitor erstellen und starten
         monitor = SolarMonitor(config)
 
-        # Einfache Anzeige wenn gewünscht
+        # Einfache Anzeige, wenn gewünscht
         if args.simple:
             print("Simple Mode aktiviert - Einzeilige Ausgabe")
             try:
