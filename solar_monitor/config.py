@@ -28,6 +28,12 @@ class Config:
     # Batterie
     BATTERY_IDLE_THRESHOLD: float = float(os.getenv("BATTERY_IDLE_THRESHOLD", "10"))  # Watt
 
+    # API-Optionen
+    CHECK_API_VERSION: bool = os.getenv("CHECK_API_VERSION", "False").lower() == "true"
+
+    # Display
+    ENABLE_COLORS: bool = os.getenv("ENABLE_COLORS", "True").lower() == "true"
+
     # Batterie-Ladestand Farbschwellwerte
     BATTERY_SOC_HIGH_THRESHOLD: float = float(os.getenv("BATTERY_SOC_HIGH_THRESHOLD", "80"))  # Grün ab diesem Wert
     BATTERY_SOC_MEDIUM_THRESHOLD: float = float(os.getenv("BATTERY_SOC_MEDIUM_THRESHOLD", "30"))  # Gelb ab diesem Wert
@@ -35,12 +41,6 @@ class Config:
     # Autarkie-Farben Schwellwerte
     AUTARKY_HIGH_THRESHOLD: float = float(os.getenv("AUTARKY_HIGH_THRESHOLD", "75"))  # Grün ab diesem Wert
     AUTARKY_MEDIUM_THRESHOLD: float = float(os.getenv("AUTARKY_MEDIUM_THRESHOLD", "50"))  # Gelb ab diesem Wert
-
-    # API-Optionen
-    CHECK_API_VERSION: bool = os.getenv("CHECK_API_VERSION", "False").lower() == "true"
-
-    # Display
-    ENABLE_COLORS: bool = os.getenv("ENABLE_COLORS", "True").lower() == "true"
 
     # PV-Leistung Farbschwellwerte (optional für zukünftige Verwendung)
     PV_POWER_HIGH_THRESHOLD: float = float(os.getenv("PV_POWER_HIGH_THRESHOLD", "3000"))  # Watt - Grün ab diesem Wert
