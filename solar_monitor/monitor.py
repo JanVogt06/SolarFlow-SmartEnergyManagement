@@ -143,9 +143,6 @@ class SolarMonitor:
                         # Daten loggen
                         if self.data_logger:
                             self.data_logger.log_data(data)
-                            # Rotiere Log-Datei wenn nötig
-                            if self.stats['updates'] % 100 == 0:
-                                self.data_logger.rotate_if_needed()
                     else:
                         consecutive_errors += 1
                         self.stats['errors'] += 1
