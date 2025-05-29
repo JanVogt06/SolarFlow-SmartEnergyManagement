@@ -28,6 +28,21 @@ class DisplayFormatter:
         self.config = config
         self.enable_colors = config.ENABLE_COLORS
 
+    def format_value(self, label: str, value: float, unit: str, width: int = 25) -> str:
+        """
+        Formatiert einen Wert für die Anzeige.
+
+        Args:
+            label: Beschriftung
+            value: Anzuzeigender Wert
+            unit: Einheit
+            width: Breite des Label-Feldes
+
+        Returns:
+            Formatierter String
+        """
+        return f"{label:<{width}} {value:>10.0f} {unit}"
+
     def get_autarky_color(self, autarky_rate: float) -> str:
         """
         Gibt die Farbe basierend auf dem Autarkiegrad zurück.
@@ -48,20 +63,65 @@ class DisplayFormatter:
         else:
             return self.COLOR_RED
 
-    def format_value(self, label: str, value: float, unit: str, width: int = 25) -> str:
+    def get_battery_soc_color(self, battery_soc: float) -> str:
         """
-        Formatiert einen Wert für die Anzeige.
+        Gibt die Farbe basierend auf dem Batterie-Ladestand zurück.
 
         Args:
-            label: Beschriftung
-            value: Anzuzeigender Wert
-            unit: Einheit
-            width: Breite des Label-Feldes
+            battery_soc: Batterie-Ladestand in Prozent
 
         Returns:
-            Formatierter String
+            ANSI-Farbcode oder leerer String
         """
-        return f"{label:<{width}} {value:>10.0f} {unit}"
+        if not self.enable_colors:
+            return ""
+
+        if battery_soc >= self.config.BATTERY_SOC_HIGH_THRESHOLD:
+            return self.COLOR_GREEN
+        elif battery_soc >= self.config.BATTERY_SOC_MEDIUM_THRESHOLD:
+            return self.COLOR_YELLOW
+        else:
+            return self.COLOR_RED
+
+    def get_pv_power_color(self, pv_power: float) -> str:
+        """
+        Gibt die Farbe basierend auf der PV-Leistung zurück.
+
+        Args:
+            pv_power: PV-Leistung in Watt
+
+        Returns:
+            ANSI-Farbcode oder leerer String
+        """
+        if not self.enable_colors:
+            return ""
+
+        if pv_power >= self.config.PV_POWER_HIGH_THRESHOLD:
+            return self.COLOR_GREEN
+        elif pv_power >= self.config.PV_POWER_MEDIUM_THRESHOLD:
+            return self.COLOR_YELLOW
+        else:
+            return self.COLOR_RED
+
+    def get_surplus_color(self, surplus_power: float) -> str:
+        """
+        Gibt die Farbe basierend auf dem Überschuss zurück.
+
+        Args:
+            surplus_power: Überschuss-Leistung in Watt
+
+        Returns:
+            ANSI-Farbcode oder leerer String
+        """
+        if not self.enable_colors:
+            return ""
+
+        if surplus_power >= self.config.SURPLUS_HIGH_THRESHOLD:
+            return self.COLOR_GREEN
+        elif surplus_power >= self.config.SURPLUS_MEDIUM_THRESHOLD:
+            return self.COLOR_YELLOW
+        else:
+            return self.COLOR_BLUE  # Blau für wenig Überschuss
 
     def display_data(self, data: SolarData) -> None:
         """
@@ -116,17 +176,9 @@ class DisplayFormatter:
 
         # Batterie-Ladestand
         if data.battery_soc is not None:
-            # Farbe basierend auf Ladestand
-            if self.enable_colors:
-                if data.battery_soc >= 80:
-                    color = self.COLOR_GREEN
-                elif data.battery_soc >= 30:
-                    color = self.COLOR_YELLOW
-                else:
-                    color = self.COLOR_RED
-                print(f"{'Batterie-Ladestand:':<25} {color}{data.battery_soc:>10.0f} %{self.COLOR_RESET}")
-            else:
-                print(self.format_value("Batterie-Ladestand:", data.battery_soc, "%"))
+            color = self.get_battery_soc_color(data.battery_soc)
+            reset = self.COLOR_RESET if self.enable_colors else ""
+            print(f"{'Batterie-Ladestand:':<25} {color}{data.battery_soc:>10.0f} %{reset}")
 
     def _display_calculated_values(self, data: SolarData) -> None:
         """
@@ -142,7 +194,7 @@ class DisplayFormatter:
         print(f"{'Autarkiegrad:':<25} {color}{data.autarky_rate:>10.1f} %{reset}")
 
         # Zusätzliche Informationen
-        if data.surplus_power > 100:  # Nur anzeigen wenn signifikant
+        if data.surplus_power > self.config.SURPLUS_DISPLAY_THRESHOLD:
             print(f"{'Verfügbarer Überschuss:':<25} {data.surplus_power:>10.0f} W")
 
     def display_simple(self, data: SolarData) -> None:

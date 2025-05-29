@@ -35,13 +35,14 @@ class FroniusAPI:
             'storage_data': '/solar_api/v1/GetStorageRealtimeData.cgi'
         }
 
-    def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    def _make_request(self, endpoint: str, params: Optional[Dict] = None, suppress_404: bool = False) -> Optional[Dict[str, Any]]:
         """
         Führt einen HTTP-Request aus und gibt JSON zurück.
 
         Args:
             endpoint: API-Endpunkt
             params: Optionale Query-Parameter
+            suppress_404: Wenn True, werden 404-Fehler nur als DEBUG geloggt
 
         Returns:
             JSON-Response oder None bei Fehler
@@ -53,6 +54,12 @@ class FroniusAPI:
             response.raise_for_status()
             return response.json()
 
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404 and suppress_404:
+                self.logger.debug(f"Endpunkt nicht gefunden: {url}")
+            else:
+                self.logger.error(f"API-Fehler: {e}")
+            return None
         except requests.exceptions.Timeout:
             self.logger.error(f"Timeout bei Anfrage an {url}")
             return None
@@ -166,7 +173,7 @@ class FroniusAPI:
         Returns:
             Dictionary mit Inverter-Infos oder None
         """
-        return self._make_request(self.endpoints['inverter_info'])
+        return self._make_request(self.endpoints['inverter_info'], suppress_404=True)
 
     def get_api_version(self) -> Optional[str]:
         """
@@ -182,7 +189,8 @@ class FroniusAPI:
         ]
 
         for endpoint in version_endpoints:
-            data = self._make_request(endpoint)
+            # 404-Fehler sind hier erwartet und werden nur als DEBUG geloggt
+            data = self._make_request(endpoint, suppress_404=True)
             if data and 'APIVersion' in data:
                 return data['APIVersion']
 

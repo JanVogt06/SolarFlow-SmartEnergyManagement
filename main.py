@@ -6,12 +6,20 @@ Verwendung:
     python main.py                    # Standard-Ausführung
     python main.py --ip 192.168.1.100 # Mit anderer IP
     python main.py --interval 10      # Mit anderem Update-Intervall
+    python main.py --timeout 10       # Mit anderem Timeout
     python main.py --no-colors        # Ohne Farben
+    python main.py --simple           # Einzeilige Ausgabe
+    python main.py --no-logging       # Ohne CSV-Datei
+    python main.py --log-file my.log  # Eigene Log-Datei
+    python main.py --data-file data.csv # Eigene Daten-CSV
+    python main.py --log-level DEBUG  # Debug-Level
+    python main.py --version          # Version anzeigen
     python main.py --help             # Hilfe anzeigen
 """
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 # Füge das Projekt-Verzeichnis zum Python-Path hinzu
@@ -30,9 +38,33 @@ Beispiele:
   python main.py                          # Standard-Ausführung
   python main.py --ip 192.168.178.100     # Andere IP-Adresse
   python main.py --interval 10            # Update alle 10 Sekunden
+  python main.py --timeout 10             # Längerer Timeout für langsame Verbindungen
   python main.py --no-colors              # Ohne farbige Ausgabe
+  python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
   python main.py --no-logging             # Ohne CSV-Logging
+  python main.py --log-file my.log        # Eigene Log-Datei
+  python main.py --data-file data.csv     # Eigene Daten-CSV
   python main.py --log-level DEBUG        # Debug-Modus
+  python main.py --log-level WARNING      # Nur Warnungen und Fehler
+  python main.py --version                # Version anzeigen
+
+Kombinationen:
+  python main.py --ip 192.168.1.100 --interval 10 --no-colors
+  python main.py --log-level WARNING --no-logging
+  python main.py --data-file /path/to/solar_$(date +%%Y%%m%%d).csv
+
+Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
+  export FRONIUS_IP=192.168.178.100
+  export UPDATE_INTERVAL=10
+  export LOG_LEVEL=WARNING
+  export ENABLE_COLORS=false
+  export ENABLE_DATA_LOGGING=false
+  python main.py
+
+Tipps:
+  - Verwende --log-level WARNING um die API-Version-Fehler zu unterdrücken
+  - Mit --no-logging sparst du Speicherplatz wenn du keine Historie brauchst
+  - Die Daten-CSV kann in Excel oder mit pandas analysiert werden
         """
     )
 
@@ -152,9 +184,16 @@ def main():
 
         # Einfache Anzeige wenn gewünscht
         if args.simple:
-            # TODO: Implementiere simple mode
-            print("Simple Mode noch nicht implementiert")
-            return
+            print("Simple Mode aktiviert - Einzeilige Ausgabe")
+            try:
+                while True:
+                    data = monitor.get_current_data()
+                    if data:
+                        monitor.display.display_simple(data)
+                    time.sleep(config.UPDATE_INTERVAL)
+            except KeyboardInterrupt:
+                print("\nSimple Mode beendet.")
+                return
 
         # Normal starten
         monitor.start()
