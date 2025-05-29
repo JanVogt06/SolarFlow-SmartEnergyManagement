@@ -3,24 +3,138 @@
 Fronius Solar Monitor - Haupteinstiegspunkt
 
 Verwendung:
-    python main.py                    # Standard-Ausführung
-    python main.py --ip 192.168.1.100 # Mit anderer IP
-    python main.py --interval 10      # Mit anderem Update-Intervall
-    python main.py --timeout 10       # Mit anderem Timeout
-    python main.py --no-colors        # Ohne Farben
-    python main.py --simple           # Einzeilige Ausgabe
-    python main.py --no-logging       # Ohne CSV-Datei
-    python main.py --log-file my.log  # Eigene Log-Datei
-    python main.py --data-file data.csv # Eigene Daten-CSV
-    python main.py --log-level DEBUG  # Debug-Level
-    python main.py --version          # Version anzeigen
-    python main.py --help             # Hilfe anzeigen
+    python main.py                       # Standard-Ausführung
+    python main.py --ip 192.168.1.100    # Mit anderer IP
+    python main.py --interval 10         # Mit anderem Update-Intervall
+    python main.py --timeout 10          # Mit anderem Timeout
+    python main.py --no-colors           # Ohne Farben
+    python main.py --simple              # Einzeilige Ausgabe
+    python main.py --no-logging          # Ohne CSV-Datei
+    python main.py --log-file my.log     # Eigene Log-Datei
+    python main.py --data-file data.csv  # Eigene Daten-CSV
+    python main.py --log-level DEBUG     # Debug-Level
+    python main.py --skip-check          # Dependency-Check überspringen
+    python main.py --version             # Version anzeigen
+    python main.py --help                # Hilfe anzeigen
 """
 
 import argparse
 import sys
 import time
+import subprocess
+import importlib.util
 from pathlib import Path
+
+# DEPENDENCY CHECK
+REQUIRED_DEPENDENCIES = {
+    'requests': 'requests>=2.31.0',
+    # Hier können später weitere Dependencies hinzugefügt werden:
+    # 'pandas': 'pandas>=1.5.0',
+    # 'numpy': 'numpy>=1.24.0',
+    # 'matplotlib': 'matplotlib>=3.5.0',
+    # 'influxdb': 'influxdb>=5.3.0',
+    # 'paho-mqtt': 'paho-mqtt>=1.6.0',
+}
+
+
+def check_single_dependency(module_name, pip_package):
+    """
+    Prüft ob ein einzelnes Modul installiert ist.
+
+    Args:
+        module_name: Name des Python-Moduls zum Importieren
+        pip_package: Package-Name mit Version für pip install
+
+    Returns:
+        bool: True wenn installiert, False sonst
+    """
+    return importlib.util.find_spec(module_name) is not None
+
+
+def install_dependency(pip_package):
+    """
+    Installiert ein einzelnes Package.
+
+    Args:
+        pip_package: Package-Name mit Version für pip install
+
+    Returns:
+        bool: True bei erfolgreicher Installation, False sonst
+    """
+    try:
+        print(f"Installiere {pip_package}...")
+        subprocess.check_call(
+            [sys.executable, '-m', 'pip', 'install', pip_package],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def check_dependencies(skip_check=False):
+    """Prüft und installiert fehlende Dependencies"""
+    if skip_check:
+        return True
+
+    # Sammle fehlende Dependencies
+    missing_deps = []
+    for module_name, pip_package in REQUIRED_DEPENDENCIES.items():
+        if not check_single_dependency(module_name, pip_package):
+            missing_deps.append((module_name, pip_package))
+
+    # Wenn alle Dependencies installiert sind
+    if not missing_deps:
+        return True
+
+    # Zeige fehlende Dependencies
+    print("Fehlende Pakete gefunden:")
+    for module_name, pip_package in missing_deps:
+        print(f"  - {module_name} ({pip_package})")
+
+    # Frage nach automatischer Installation
+    try:
+        response = input("\nSollen die fehlenden Pakete automatisch installiert werden? (j/n): ")
+        if response.lower() in ['j', 'ja', 'y', 'yes', '']:
+            print("\nInstalliere fehlende Pakete...")
+
+            # Installiere alle fehlenden Dependencies
+            failed_installs = []
+            for module_name, pip_package in missing_deps:
+                if not install_dependency(pip_package):
+                    failed_installs.append(pip_package)
+
+            if failed_installs:
+                print("\nFehler bei der Installation folgender Pakete:")
+                for package in failed_installs:
+                    print(f"  - {package}")
+                print("\nBitte installieren Sie diese manuell mit:")
+                print(f"  pip install {' '.join(failed_installs)}")
+                return False
+
+            # Alle Installationen erfolgreich
+            print("\nAlle Pakete erfolgreich installiert!")
+
+            # Cache invalidieren für neue Imports
+            import importlib
+            importlib.invalidate_caches()
+
+            return True
+        else:
+            print("\nInstallation übersprungen.")
+            print("Bitte installieren Sie die fehlenden Pakete manuell mit:")
+            print(f"  pip install {' '.join(pip_pkg for _, pip_pkg in missing_deps)}")
+            return False
+
+    except KeyboardInterrupt:
+        print("\nInstallation abgebrochen.")
+        return False
+
+
+# Prüfe Dependencies bevor weitere Imports
+if not check_dependencies('--skip-check' in sys.argv):
+    sys.exit(1)
 
 # Füge das Projekt-Verzeichnis zum Python-Path hinzu
 sys.path.insert(0, str(Path(__file__).parent))
@@ -46,6 +160,7 @@ Beispiele:
   python main.py --data-file data.csv     # Eigene Daten-CSV
   python main.py --log-level DEBUG        # Debug-Modus
   python main.py --log-level WARNING      # Nur Warnungen und Fehler
+  python main.py --skip-check             # Dependency-Check überspringen
   python main.py --version                # Version anzeigen
 
 Kombinationen:
@@ -65,6 +180,7 @@ Tipps:
   - Verwende --log-level WARNING um die API-Version-Fehler zu unterdrücken
   - Mit --no-logging sparst du Speicherplatz wenn du keine Historie brauchst
   - Die Daten-CSV kann in Excel oder mit pandas analysiert werden
+  - Mit --skip-check kannst du die Dependency-Prüfung überspringen
         """
     )
 
@@ -126,6 +242,13 @@ Tipps:
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         default='INFO',
         help='Log-Level für Konsole und Datei (Standard: INFO)'
+    )
+
+    # System
+    parser.add_argument(
+        '--skip-check',
+        action='store_true',
+        help='Überspringe automatische Dependency-Prüfung'
     )
 
     # Sonstiges
