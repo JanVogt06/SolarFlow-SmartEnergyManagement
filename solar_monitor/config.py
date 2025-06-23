@@ -22,8 +22,17 @@ class Config:
     LOG_FILE: str = os.getenv("LOG_FILE", "solar_monitor.log")
 
     # Daten-Logging
-    DATA_LOG_FILE: str = os.getenv("DATA_LOG_FILE", "solar_data.csv")
+    DATA_LOG_DIR: str = os.getenv("DATA_LOG_DIR", "Datalogs")  # Ordner für Log-Dateien
+    DATA_LOG_BASE_NAME: str = os.getenv("DATA_LOG_BASE_NAME", "solar_data")  # Basis-Name ohne .csv
+    DATA_LOG_FILE: str = os.getenv("DATA_LOG_FILE", "solar_data.csv")  # Deprecated - nur für Kompatibilität
     ENABLE_DATA_LOGGING: bool = os.getenv("ENABLE_DATA_LOGGING", "True").lower() == "true"
+
+    # CSV Format Optionen
+    CSV_DELIMITER: str = os.getenv("CSV_DELIMITER", ";")  # ; für Excel DE, , für international
+    CSV_USE_GERMAN_HEADERS: bool = os.getenv("USE_GERMAN_HEADERS", "True").lower() == "true"
+    CSV_ENCODING: str = os.getenv("CSV_ENCODING", "utf-8")  # utf-8, latin-1, cp1252 für Windows
+    CSV_DECIMAL_SEPARATOR: str = os.getenv("CSV_DECIMAL_SEPARATOR", ".")  # . oder , für Dezimalzahlen
+    CSV_INCLUDE_INFO_ROW: bool = os.getenv("CSV_INCLUDE_INFO_ROW", "True").lower() == "true"  # Info-Zeile unter Header
 
     # Batterie
     BATTERY_IDLE_THRESHOLD: float = float(os.getenv("BATTERY_IDLE_THRESHOLD", "10"))  # Watt
@@ -51,13 +60,6 @@ class Config:
     SURPLUS_MEDIUM_THRESHOLD: float = float(os.getenv("SURPLUS_MEDIUM_THRESHOLD", "500"))  # Watt - Mittlerer Überschuss
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "100"))  # Watt - Anzeige-Schwelle
 
-    # CSV Format
-    CSV_DELIMITER = ";"
-    CSV_DECIMAL_SEPARATOR = ","
-    CSV_ENCODING = "utf-8"
-    CSV_USE_GERMAN_HEADERS = True
-    CSV_INCLUDE_INFO_ROW = True
-
     @classmethod
     def from_file(cls, filepath: str) -> "Config":
         """Lädt Konfiguration aus einer Datei (zukünftige Erweiterung)"""
@@ -74,6 +76,16 @@ class Config:
 
         if self.BATTERY_IDLE_THRESHOLD < 0:
             raise ValueError("BATTERY_IDLE_THRESHOLD muss positiv sein")
+
+        # Validiere CSV-Optionen
+        if self.CSV_DELIMITER not in [",", ";", "\t", "|"]:
+            raise ValueError("CSV_DELIMITER muss eines von ',', ';', '\\t', '|' sein")
+
+        if self.CSV_DECIMAL_SEPARATOR not in [".", ","]:
+            raise ValueError("CSV_DECIMAL_SEPARATOR muss '.' oder ',' sein")
+
+        if self.CSV_ENCODING not in ["utf-8", "latin-1", "cp1252", "iso-8859-1"]:
+            raise ValueError("CSV_ENCODING muss ein gültiges Encoding sein")
 
         # Validiere Schwellwerte
         if self.AUTARKY_HIGH_THRESHOLD <= self.AUTARKY_MEDIUM_THRESHOLD:

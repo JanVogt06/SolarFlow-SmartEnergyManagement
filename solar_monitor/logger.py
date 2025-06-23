@@ -1,19 +1,19 @@
 """
-Daten-Logging für den Fronius Solar Monitor mit Config-Integration.
+Daten-Logging für den Fronius Solar Monitor mit Session-basierten Dateien.
 """
 
 import csv
 import logging
 import os
 from datetime import datetime
-from typing import List, Optional
+from pathlib import Path
 
 from .models import SolarData
 from .config import Config
 
 
 class DataLogger:
-    """Klasse zum Logging der Solardaten"""
+    """Klasse zum Logging der Solardaten mit Session-basierten Dateien"""
 
     def __init__(self, config: Config):
         """
@@ -23,14 +23,21 @@ class DataLogger:
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.filename = config.DATA_LOG_FILE
         self.logger = logging.getLogger(__name__)
-        self._ensure_header()
 
-    def _ensure_header(self) -> None:
-        """Stellt sicher, dass die CSV-Header existieren"""
-        if not os.path.exists(self.filename):
-            self._write_header()
+        # Erstelle Datalogs-Ordner
+        self.data_dir = Path(config.DATA_LOG_DIR)
+        self.data_dir.mkdir(exist_ok=True)
+
+        # Generiere eindeutigen Dateinamen mit Timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = config.DATA_LOG_BASE_NAME.replace('.csv', '')
+        self.filename = self.data_dir / f"{base_name}_{timestamp}.csv"
+
+        self.logger.info(f"Neue Log-Datei: {self.filename}")
+
+        # Header schreiben
+        self._write_header()
 
     def _write_header(self) -> None:
         """Schreibt die CSV-Header"""
@@ -101,7 +108,11 @@ class DataLogger:
                 if info_row:
                     writer.writerow(info_row)
 
-            self.logger.info(f"CSV-Datei {self.filename} erstellt (Delimiter: '{self.config.CSV_DELIMITER}', Encoding: {self.config.CSV_ENCODING})")
+            self.logger.info(f"CSV-Datei erstellt: {self.filename.name}")
+            self.logger.debug(f"Format: Delimiter='{self.config.CSV_DELIMITER}', "
+                            f"Encoding={self.config.CSV_ENCODING}, "
+                            f"Decimal='{self.config.CSV_DECIMAL_SEPARATOR}'")
+
         except IOError as e:
             self.logger.error(f"Fehler beim Erstellen der CSV-Datei: {e}")
 
@@ -149,43 +160,3 @@ class DataLogger:
                 writer.writerow(row)
         except IOError as e:
             self.logger.error(f"Fehler beim Schreiben der Log-Datei: {e}")
-
-
-# Hilfsfunktion zum Lesen der CSV mit korrekten Einstellungen
-def read_csv_data(config: Config, filename: str = None, last_n_rows: int = None) -> List[dict]:
-    """
-    Liest CSV-Daten mit den korrekten Config-Einstellungen.
-
-    Args:
-        config: Konfigurationsobjekt
-        filename: CSV-Datei (optional, nutzt config.DATA_LOG_FILE wenn None)
-        last_n_rows: Nur die letzten N Zeilen lesen (optional)
-
-    Returns:
-        Liste von Dictionaries mit den Daten
-    """
-    filename = filename or config.DATA_LOG_FILE
-
-    if not os.path.exists(filename):
-        return []
-
-    data = []
-    with open(filename, 'r', encoding=config.CSV_ENCODING) as f:
-        reader = csv.DictReader(f, delimiter=config.CSV_DELIMITER)
-
-        # Überspringe Info-Zeile wenn vorhanden
-        if config.CSV_INCLUDE_INFO_ROW:
-            next(reader, None)
-
-        for row in reader:
-            # Konvertiere Dezimaltrennzeichen zurück
-            if config.CSV_DECIMAL_SEPARATOR == ",":
-                for key, value in row.items():
-                    if value and value != "-":
-                        row[key] = value.replace(",", ".")
-            data.append(row)
-
-    if last_n_rows:
-        return data[-last_n_rows:]
-
-    return data
