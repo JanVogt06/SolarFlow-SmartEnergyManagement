@@ -108,6 +108,18 @@ class DataLogger:
                 if info_row:
                     writer.writerow(info_row)
 
+                # Schreibe Session-Info als Kommentar
+                writer.writerow([])  # Leerzeile
+                session_info = [
+                    f"# Session Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"# Fronius IP: {self.config.FRONIUS_IP}",
+                    f"# Update Interval: {self.config.UPDATE_INTERVAL}s",
+                    f"# CSV Format: Delimiter='{self.config.CSV_DELIMITER}', Decimal='{self.config.CSV_DECIMAL_SEPARATOR}'"
+                ]
+                for info in session_info:
+                    writer.writerow([info])
+                writer.writerow([])  # Leerzeile nach Kommentaren
+
             self.logger.info(f"CSV-Datei erstellt: {self.filename.name}")
             self.logger.debug(f"Format: Delimiter='{self.config.CSV_DELIMITER}', "
                             f"Encoding={self.config.CSV_ENCODING}, "

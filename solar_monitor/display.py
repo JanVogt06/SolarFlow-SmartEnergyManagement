@@ -211,7 +211,6 @@ class DisplayFormatter:
         print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
         print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
 
-        # Überschuss mit Farbe wenn über Anzeigeschwelle
         if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
             surplus_color = self.get_surplus_color(data.surplus_power)
             print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
