@@ -1,4 +1,12 @@
-Zeitstempel;PV-Erzeugung (W);Netz (W);Batterie (W);Hausverbrauch (W);Batterie-Stand (%);Einspeisung (W);Netzbezug (W);Eigenverbrauch (W);Autarkie (%);Überschuss (W)
-Format: YYYY-MM-DD HH:MM:SS;Solarproduktion;Negativ=Einspeisung;Negativ=Laden;Gesamtverbrauch;Ladestand;Ins Netz;Vom Netz;Direktverbrauch;Unabhängigkeit;Verfügbar
-2025-06-23 22:11:49;0;-10;+381;340;77.4;10;0;340;100.0;10
-2025-06-23 22:11:54;0;-10;+367;329;77.4;10;0;329;100.0;10
+Zeitstempel,PV-Erzeugung (W),Netz (W),Batterie (W),Hausverbrauch (W),Batterie-Stand (%),Einspeisung (W),Netzbezug (W),Eigenverbrauch (W),Autarkie (%),Überschuss (W)
+Format: YYYY-MM-DD HH:MM:SS,Solarproduktion,Negativ=Einspeisung,Negativ=Laden,Gesamtverbrauch,Ladestand,Ins Netz,Vom Netz,Direktverbrauch,Unabhängigkeit,Verfügbar
+2025-06-23 22:19:41,0,+2,+387,369,76.3,0,2,367,99.6,0
+2025-06-23 22:19:46,0,+6,+402,375,76.3,0,6,369,98.3,0
+2025-06-23 22:19:51,0,-3,+419,367,76.3,3,0,367,100.0,3
+2025-06-23 22:19:57,0,-1,+404,370,76.3,1,0,370,100.0,1
+2025-06-23 22:20:02,0,+27,+433,406,76.3,0,27,379,93.3,0
+2025-06-23 22:20:15,0,+4,+393,364,76.3,0,4,360,99.0,0
+2025-06-23 22:20:20,0,+8,+406,372,76.3,0,8,365,97.9,0
+2025-06-23 22:20:25,0,+1,+411,370,76.2,0,1,369,99.8,0
+2025-06-23 22:20:30,0,+7,+407,374,76.2,0,7,367,98.2,0
+2025-06-23 22:20:35,0,+4,+403,374,76.2,0,4,370,98.9,0

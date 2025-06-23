@@ -51,6 +51,17 @@ class Config:
     SURPLUS_MEDIUM_THRESHOLD: float = float(os.getenv("SURPLUS_MEDIUM_THRESHOLD", "500"))  # Watt - Mittlerer Überschuss
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "100"))  # Watt - Anzeige-Schwelle
 
+    # CSV Format
+    CSV_DELIMITER = ";"
+    CSV_DECIMAL_SEPARATOR = ","
+    CSV_ENCODING = "utf-8"
+    CSV_USE_GERMAN_HEADERS = True
+    CSV_INCLUDE_INFO_ROW = True
+
+    # International:
+    CSV_DELIMITER = ","
+    CSV_DECIMAL_SEPARATOR = "."
+
     @classmethod
     def from_file(cls, filepath: str) -> "Config":
         """Lädt Konfiguration aus einer Datei (zukünftige Erweiterung)"""

@@ -34,7 +34,7 @@ class SolarMonitor:
         # Data Logger nur wenn aktiviert
         self.data_logger = None
         if self.config.ENABLE_DATA_LOGGING:
-            self.data_logger = DataLogger(self.config.DATA_LOG_FILE)
+            self.data_logger = DataLogger(self.config)
 
         self.running = False
         self._setup_logging()
