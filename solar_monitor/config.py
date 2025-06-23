@@ -58,10 +58,6 @@ class Config:
     CSV_USE_GERMAN_HEADERS = True
     CSV_INCLUDE_INFO_ROW = True
 
-    # International:
-    CSV_DELIMITER = ","
-    CSV_DECIMAL_SEPARATOR = "."
-
     @classmethod
     def from_file(cls, filepath: str) -> "Config":
         """Lädt Konfiguration aus einer Datei (zukünftige Erweiterung)"""
