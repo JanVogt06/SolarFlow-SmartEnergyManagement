@@ -69,8 +69,8 @@ class SolarData:
     @property
     def autarky_rate(self) -> float:
         """Berechnet den Autarkiegrad in Prozent"""
-        if self.load_power > 0:
-            return (self.self_consumption / self.load_power) * 100
+        if self.load_power > 10:  # Mindestens 10W Last
+            return min((self.self_consumption / self.load_power) * 100, 100.0)
         return 0.0
 
     @property
@@ -85,7 +85,7 @@ class SolarData:
 
     @property
     def surplus_power(self) -> float:
-        """Überschussleistung (kann für Gerätesteuerung verwendet werden)"""
+        """Überschussleistung"""
         return self.feed_in_power
 
     def to_dict(self) -> dict:
