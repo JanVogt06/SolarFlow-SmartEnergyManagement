@@ -29,7 +29,7 @@ class Config:
 
     # CSV Format Optionen
     CSV_DELIMITER: str = os.getenv("CSV_DELIMITER", ";")  # ; für Excel DE, , für international
-    CSV_USE_GERMAN_HEADERS: bool = os.getenv("USE_GERMAN_HEADERS", "True").lower() == "true"
+    CSV_USE_GERMAN_HEADERS: bool = os.getenv("CSV_USE_GERMAN_HEADERS", "True").lower() == "true"
     CSV_ENCODING: str = os.getenv("CSV_ENCODING", "utf-8")  # utf-8, latin-1, cp1252 für Windows
     CSV_DECIMAL_SEPARATOR: str = os.getenv("CSV_DECIMAL_SEPARATOR", ".")  # . oder , für Dezimalzahlen
     CSV_INCLUDE_INFO_ROW: bool = os.getenv("CSV_INCLUDE_INFO_ROW", "True").lower() == "true"  # Info-Zeile unter Header
@@ -58,13 +58,7 @@ class Config:
     # Überschuss-Schwellwerte (für Gerätesteuerung)
     SURPLUS_HIGH_THRESHOLD: float = float(os.getenv("SURPLUS_HIGH_THRESHOLD", "2000"))  # Watt - Viel Überschuss
     SURPLUS_MEDIUM_THRESHOLD: float = float(os.getenv("SURPLUS_MEDIUM_THRESHOLD", "500"))  # Watt - Mittlerer Überschuss
-    SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "100"))  # Watt - Anzeige-Schwelle
-
-    @classmethod
-    def from_file(cls, filepath: str) -> "Config":
-        """Lädt Konfiguration aus einer Datei (zukünftige Erweiterung)"""
-        # Placeholder für zukünftige Implementierung
-        return cls()
+    SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
 
     def validate(self) -> bool:
         """Validiert die Konfiguration"""

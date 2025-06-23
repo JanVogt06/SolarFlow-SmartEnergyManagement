@@ -43,6 +43,23 @@ class DisplayFormatter:
         """
         return f"{label:<{width}} {value:>10.0f} {unit}"
 
+    def format_value_with_color(self, label: str, value: float, unit: str, color: str = "", width: int = 25) -> str:
+        """
+        Formatiert einen Wert für die Anzeige mit Farbe.
+
+        Args:
+            label: Beschriftung
+            value: Anzuzeigender Wert
+            unit: Einheit
+            color: ANSI Farbcode
+            width: Breite des Label-Feldes
+
+        Returns:
+            Formatierter String mit Farbe
+        """
+        reset = self.COLOR_RESET if self.enable_colors and color else ""
+        return f"{label:<{width}} {color}{value:>10.0f} {unit}{reset}"
+
     def get_autarky_color(self, autarky_rate: float) -> str:
         """
         Gibt die Farbe basierend auf dem Autarkiegrad zurück.
@@ -135,8 +152,11 @@ class DisplayFormatter:
         print(f"{'Zeitstempel:':<20} {data.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
 
-        # Leistungsdaten
-        print(self.format_value("PV-Erzeugung:", data.pv_power, "W"))
+        # PV-Erzeugung mit Farbe
+        pv_color = self.get_pv_power_color(data.pv_power)
+        print(self.format_value_with_color("PV-Erzeugung:", data.pv_power, "W", pv_color))
+
+        # Hausverbrauch (ohne Farbe)
         print(self.format_value("Hausverbrauch:", data.load_power, "W"))
 
         # Netz
@@ -174,11 +194,10 @@ class DisplayFormatter:
         else:
             print(self.format_value("Batterie-Entladung:", data.battery_discharge_power, "W"))
 
-        # Batterie-Ladestand
+        # Batterie-Ladestand mit Farbe
         if data.battery_soc is not None:
             color = self.get_battery_soc_color(data.battery_soc)
-            reset = self.COLOR_RESET if self.enable_colors else ""
-            print(f"{'Batterie-Ladestand:':<25} {color}{data.battery_soc:>10.0f} %{reset}")
+            print(self.format_value_with_color("Batterie-Ladestand:", data.battery_soc, "%", color))
 
     def _display_calculated_values(self, data: SolarData) -> None:
         """
@@ -187,15 +206,15 @@ class DisplayFormatter:
         Args:
             data: Solardaten
         """
-        color = self.get_autarky_color(data.autarky_rate)
-        reset = self.COLOR_RESET if self.enable_colors else ""
+        # Eigenverbrauch und Autarkie mit Farbe
+        autarky_color = self.get_autarky_color(data.autarky_rate)
+        print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
+        print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
 
-        print(f"{'Eigenverbrauch:':<25} {color}{data.self_consumption:>10.0f} W{reset}")
-        print(f"{'Autarkiegrad:':<25} {color}{data.autarky_rate:>10.1f} %{reset}")
-
-        # Zusätzliche Informationen
-        if data.surplus_power > self.config.SURPLUS_DISPLAY_THRESHOLD:
-            print(f"{'Verfügbarer Überschuss:':<25} {data.surplus_power:>10.0f} W")
+        # Überschuss mit Farbe wenn über Anzeigeschwelle
+        if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
+            surplus_color = self.get_surplus_color(data.surplus_power)
+            print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
 
     def display_simple(self, data: SolarData) -> None:
         """
