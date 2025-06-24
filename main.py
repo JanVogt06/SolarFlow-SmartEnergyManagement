@@ -1,21 +1,6 @@
 #!/usr/bin/env python3
 """
 Fronius Solar Monitor - Haupteinstiegspunkt
-
-Verwendung:
-    python main.py                       # Standard-Ausführung
-    python main.py --ip 192.168.1.100    # Mit anderer IP
-    python main.py --interval 10         # Mit anderem Update-Intervall
-    python main.py --timeout 10          # Mit anderem Timeout
-    python main.py --no-colors           # Ohne Farben
-    python main.py --simple              # Einzeilige Ausgabe
-    python main.py --no-logging          # Ohne CSV-Datei
-    python main.py --log-file my.log     # Eigene Log-Datei
-    python main.py --data-file data.csv  # Eigene Daten-CSV
-    python main.py --log-level DEBUG     # Debug-Level
-    python main.py --skip-check          # Dependency-Check überspringen
-    python main.py --version             # Version anzeigen
-    python main.py --help                # Hilfe anzeigen
 """
 
 import argparse
@@ -163,10 +148,25 @@ Beispiele:
   python main.py --skip-check             # Dependency-Check überspringen
   python main.py --version                # Version anzeigen
 
+CSV-Format Optionen:
+  python main.py --csv-delimiter ";"      # CSV Trennzeichen (Standard: ;)
+  python main.py --csv-encoding utf-8     # CSV Encoding (Standard: utf-8)
+  python main.py --csv-decimal ","        # Dezimaltrennzeichen (Standard: ,)
+  python main.py --csv-english            # Englische CSV-Header
+  python main.py --csv-no-info            # Keine Info-Zeile unter Header
+
+Schwellwerte:
+  python main.py --battery-idle 20        # Batterie Idle-Schwelle in Watt
+  python main.py --autarky-high 80        # Autarkie hoch ab % (grün)
+  python main.py --autarky-medium 40      # Autarkie mittel ab % (gelb)
+  python main.py --battery-soc-high 85    # Batterie SOC hoch ab %
+  python main.py --battery-soc-medium 25  # Batterie SOC mittel ab %
+
 Kombinationen:
   python main.py --ip 192.168.1.100 --interval 10 --no-colors
   python main.py --log-level WARNING --no-logging
   python main.py --data-file /path/to/solar_$(date +%%Y%%m%%d).csv
+  python main.py --csv-delimiter "," --csv-decimal "." --csv-english
 
 Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
   export FRONIUS_IP=192.168.178.100
@@ -244,6 +244,122 @@ Tipps:
         help='Log-Level für Konsole und Datei (Standard: INFO)'
     )
 
+    # CSV Format Optionen
+    parser.add_argument(
+        '--csv-delimiter',
+        type=str,
+        choices=[',', ';', '\t', '|'],
+        help='CSV Trennzeichen (Standard: ;)'
+    )
+
+    parser.add_argument(
+        '--csv-encoding',
+        type=str,
+        choices=['utf-8', 'latin-1', 'cp1252', 'iso-8859-1'],
+        help='CSV Encoding (Standard: utf-8)'
+    )
+
+    parser.add_argument(
+        '--csv-decimal',
+        type=str,
+        choices=['.', ','],
+        help='Dezimaltrennzeichen (Standard: ,)'
+    )
+
+    parser.add_argument(
+        '--csv-english',
+        action='store_true',
+        help='Verwendet englische CSV-Header statt deutsche'
+    )
+
+    parser.add_argument(
+        '--csv-no-info',
+        action='store_true',
+        help='Keine Info-Zeile unter CSV-Header'
+    )
+
+    # Daten-Logging Verzeichnis
+    parser.add_argument(
+        '--data-log-dir',
+        type=str,
+        help='Verzeichnis für Log-Dateien (Standard: Datalogs)'
+    )
+
+    parser.add_argument(
+        '--data-log-base-name',
+        type=str,
+        help='Basis-Name für Log-Dateien (Standard: solar_data)'
+    )
+
+    # Batterie
+    parser.add_argument(
+        '--battery-idle',
+        type=float,
+        help='Batterie Idle-Schwellwert in Watt (Standard: 10)'
+    )
+
+    # API-Optionen
+    parser.add_argument(
+        '--check-api-version',
+        action='store_true',
+        help='Prüft die API-Version beim Start'
+    )
+
+    # Schwellwerte
+    parser.add_argument(
+        '--battery-soc-high',
+        type=float,
+        help='Batterie SOC Schwellwert für grün in %% (Standard: 80)'
+    )
+
+    parser.add_argument(
+        '--battery-soc-medium',
+        type=float,
+        help='Batterie SOC Schwellwert für gelb in %% (Standard: 30)'
+    )
+
+    parser.add_argument(
+        '--autarky-high',
+        type=float,
+        help='Autarkie Schwellwert für grün in %% (Standard: 75)'
+    )
+
+    parser.add_argument(
+        '--autarky-medium',
+        type=float,
+        help='Autarkie Schwellwert für gelb in %% (Standard: 50)'
+    )
+
+    parser.add_argument(
+        '--pv-power-high',
+        type=float,
+        help='PV-Leistung Schwellwert für grün in Watt (Standard: 3000)'
+    )
+
+    parser.add_argument(
+        '--pv-power-medium',
+        type=float,
+        help='PV-Leistung Schwellwert für gelb in Watt (Standard: 1000)'
+    )
+
+    parser.add_argument(
+        '--surplus-high',
+        type=float,
+        help='Überschuss Schwellwert für grün in Watt (Standard: 2000)'
+    )
+
+    parser.add_argument(
+        '--surplus-medium',
+        type=float,
+        help='Überschuss Schwellwert für gelb in Watt (Standard: 500)'
+    )
+
+    parser.add_argument(
+        '--surplus-display',
+        type=float,
+        help='Überschuss Anzeige-Schwellwert in Watt (Standard: 0)'
+    )
+
     # System
     parser.add_argument(
         '--skip-check',
@@ -288,6 +404,65 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
     if args.log_level:
         import logging
         config.LOG_LEVEL = getattr(logging, args.log_level)
+
+    # CSV Format Optionen
+    if args.csv_delimiter:
+        config.CSV_DELIMITER = args.csv_delimiter
+
+    if args.csv_encoding:
+        config.CSV_ENCODING = args.csv_encoding
+
+    if args.csv_decimal:
+        config.CSV_DECIMAL_SEPARATOR = args.csv_decimal
+
+    if args.csv_english:
+        config.CSV_USE_GERMAN_HEADERS = False
+
+    if args.csv_no_info:
+        config.CSV_INCLUDE_INFO_ROW = False
+
+    # Daten-Logging
+    if args.data_log_dir:
+        config.DATA_LOG_DIR = args.data_log_dir
+
+    if args.data_log_base_name:
+        config.DATA_LOG_BASE_NAME = args.data_log_base_name
+
+    # Batterie
+    if args.battery_idle is not None:
+        config.BATTERY_IDLE_THRESHOLD = args.battery_idle
+
+    # API-Optionen
+    if args.check_api_version:
+        config.CHECK_API_VERSION = True
+
+    # Schwellwerte
+    if args.battery_soc_high is not None:
+        config.BATTERY_SOC_HIGH_THRESHOLD = args.battery_soc_high
+
+    if args.battery_soc_medium is not None:
+        config.BATTERY_SOC_MEDIUM_THRESHOLD = args.battery_soc_medium
+
+    if args.autarky_high is not None:
+        config.AUTARKY_HIGH_THRESHOLD = args.autarky_high
+
+    if args.autarky_medium is not None:
+        config.AUTARKY_MEDIUM_THRESHOLD = args.autarky_medium
+
+    if args.pv_power_high is not None:
+        config.PV_POWER_HIGH_THRESHOLD = args.pv_power_high
+
+    if args.pv_power_medium is not None:
+        config.PV_POWER_MEDIUM_THRESHOLD = args.pv_power_medium
+
+    if args.surplus_high is not None:
+        config.SURPLUS_HIGH_THRESHOLD = args.surplus_high
+
+    if args.surplus_medium is not None:
+        config.SURPLUS_MEDIUM_THRESHOLD = args.surplus_medium
+
+    if args.surplus_display is not None:
+        config.SURPLUS_DISPLAY_THRESHOLD = args.surplus_display
 
 
 def main():
