@@ -50,6 +50,7 @@ class DataLogger:
                 "Batterie (W)",  # + = Entladung, - = Ladung
                 "Hausverbrauch (W)",
                 "Batterie-Stand (%)",
+                "Gesamtproduktion (W)",  # NEU
                 "Einspeisung (W)",
                 "Netzbezug (W)",
                 "Eigenverbrauch (W)",
@@ -64,6 +65,7 @@ class DataLogger:
                 "Negativ=Laden",
                 "Gesamtverbrauch",
                 "Ladestand",
+                "PV + Batterie-Entladung",
                 "Ins Netz",
                 "Vom Netz",
                 "Direktverbrauch",
@@ -78,6 +80,7 @@ class DataLogger:
                 "Battery Power (W)",  # + = discharge, - = charge
                 "Load Power (W)",
                 "Battery SOC (%)",
+                "Total Production (W)",
                 "Feed-in Power (W)",
                 "Grid Consumption (W)",
                 "Self Consumption (W)",
@@ -92,6 +95,7 @@ class DataLogger:
                 "Negative=Charging",
                 "Total consumption",
                 "State of charge",
+                "PV + Battery discharge",
                 "To grid",
                 "From grid",
                 "Direct consumption",
@@ -159,6 +163,7 @@ class DataLogger:
             format_number(data.battery_power, with_sign=True) if data.battery_power != 0 else "0",
             format_number(data.load_power),
             format_number(data.battery_soc, decimals=1) if data.battery_soc is not None else "-",
+            format_number(data.total_production),
             format_number(data.feed_in_power),
             format_number(data.grid_consumption),
             format_number(data.self_consumption),

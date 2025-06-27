@@ -74,11 +74,6 @@ class SolarData:
         return 0.0
 
     @property
-    def self_sufficiency_rate(self) -> float:
-        """Alias für autarky_rate"""
-        return self.autarky_rate
-
-    @property
     def total_production(self) -> float:
         """Gesamte Energieproduktion (PV + Batterieentladung)"""
         return self.pv_power + self.battery_discharge_power
@@ -87,19 +82,3 @@ class SolarData:
     def surplus_power(self) -> float:
         """Überschussleistung"""
         return self.feed_in_power
-
-    def to_dict(self) -> dict:
-        """Konvertiert die Daten in ein Dictionary"""
-        return {
-            'timestamp': self.timestamp.isoformat(),
-            'pv_power': self.pv_power,
-            'grid_power': self.grid_power,
-            'battery_power': self.battery_power,
-            'load_power': self.load_power,
-            'battery_soc': self.battery_soc,
-            'feed_in_power': self.feed_in_power,
-            'grid_consumption': self.grid_consumption,
-            'self_consumption': self.self_consumption,
-            'autarky_rate': self.autarky_rate,
-            'surplus_power': self.surplus_power
-        }

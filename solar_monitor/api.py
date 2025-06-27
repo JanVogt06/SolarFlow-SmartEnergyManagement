@@ -30,7 +30,6 @@ class FroniusAPI:
         # API-Endpunkte
         self.endpoints = {
             'power_flow': '/solar_api/v1/GetPowerFlowRealtimeData.fcgi',
-            'inverter_info': '/solar_api/v1/GetInverterInfo.cgi',
             'meter_data': '/solar_api/v1/GetMeterRealtimeData.cgi',
             'storage_data': '/solar_api/v1/GetStorageRealtimeData.cgi'
         }
@@ -165,33 +164,3 @@ class FroniusAPI:
         """
         data = self._make_request(self.endpoints['power_flow'])
         return data is not None
-
-    def get_inverter_info(self) -> Optional[Dict]:
-        """
-        Holt Informationen über den Wechselrichter.
-
-        Returns:
-            Dictionary mit Inverter-Infos oder None
-        """
-        return self._make_request(self.endpoints['inverter_info'], suppress_404=True)
-
-    def get_api_version(self) -> Optional[str]:
-        """
-        Versucht die API-Version zu ermitteln.
-
-        Returns:
-            API-Version als String oder None
-        """
-        # Verschiedene mögliche Endpunkte für API-Version
-        version_endpoints = [
-            '/solar_api/GetAPIVersion.json',
-            '/solar_api/v1/GetAPIVersion.json'
-        ]
-
-        for endpoint in version_endpoints:
-            # 404-Fehler sind hier erwartet und werden nur als DEBUG geloggt
-            data = self._make_request(endpoint, suppress_404=True)
-            if data and 'APIVersion' in data:
-                return data['APIVersion']
-
-        return None

@@ -60,12 +60,13 @@ class DisplayFormatter:
         reset = self.COLOR_RESET if self.enable_colors and color else ""
         return f"{label:<{width}} {color}{value:>10.0f} {unit}{reset}"
 
-    def get_autarky_color(self, autarky_rate: float) -> str:
+    def get_threshold_color(self, value: float, threshold_key: str) -> str:
         """
-        Gibt die Farbe basierend auf dem Autarkiegrad zurück.
+        Generische Methode zur Farbbestimmung basierend auf Schwellwerten.
 
         Args:
-            autarky_rate: Autarkiegrad in Prozent
+            value: Zu prüfender Wert
+            threshold_key: Schlüssel für die Schwellwerte in config.THRESHOLDS
 
         Returns:
             ANSI-Farbcode oder leerer String
@@ -73,72 +74,16 @@ class DisplayFormatter:
         if not self.enable_colors:
             return ""
 
-        if autarky_rate >= self.config.AUTARKY_HIGH_THRESHOLD:
+        thresholds = self.config.THRESHOLDS.get(threshold_key, {})
+        high = thresholds.get('high', float('inf'))
+        medium = thresholds.get('medium', 0)
+
+        if value >= high:
             return self.COLOR_GREEN
-        elif autarky_rate >= self.config.AUTARKY_MEDIUM_THRESHOLD:
+        elif value >= medium:
             return self.COLOR_YELLOW
         else:
             return self.COLOR_RED
-
-    def get_battery_soc_color(self, battery_soc: float) -> str:
-        """
-        Gibt die Farbe basierend auf dem Batterie-Ladestand zurück.
-
-        Args:
-            battery_soc: Batterie-Ladestand in Prozent
-
-        Returns:
-            ANSI-Farbcode oder leerer String
-        """
-        if not self.enable_colors:
-            return ""
-
-        if battery_soc >= self.config.BATTERY_SOC_HIGH_THRESHOLD:
-            return self.COLOR_GREEN
-        elif battery_soc >= self.config.BATTERY_SOC_MEDIUM_THRESHOLD:
-            return self.COLOR_YELLOW
-        else:
-            return self.COLOR_RED
-
-    def get_pv_power_color(self, pv_power: float) -> str:
-        """
-        Gibt die Farbe basierend auf der PV-Leistung zurück.
-
-        Args:
-            pv_power: PV-Leistung in Watt
-
-        Returns:
-            ANSI-Farbcode oder leerer String
-        """
-        if not self.enable_colors:
-            return ""
-
-        if pv_power >= self.config.PV_POWER_HIGH_THRESHOLD:
-            return self.COLOR_GREEN
-        elif pv_power >= self.config.PV_POWER_MEDIUM_THRESHOLD:
-            return self.COLOR_YELLOW
-        else:
-            return self.COLOR_RED
-
-    def get_surplus_color(self, surplus_power: float) -> str:
-        """
-        Gibt die Farbe basierend auf dem Überschuss zurück.
-
-        Args:
-            surplus_power: Überschuss-Leistung in Watt
-
-        Returns:
-            ANSI-Farbcode oder leerer String
-        """
-        if not self.enable_colors:
-            return ""
-
-        if surplus_power >= self.config.SURPLUS_HIGH_THRESHOLD:
-            return self.COLOR_GREEN
-        elif surplus_power >= self.config.SURPLUS_MEDIUM_THRESHOLD:
-            return self.COLOR_YELLOW
-        else:
-            return self.COLOR_BLUE  # Blau für wenig Überschuss
 
     def display_data(self, data: SolarData) -> None:
         """
@@ -153,11 +98,16 @@ class DisplayFormatter:
         print("=" * 60)
 
         # PV-Erzeugung mit Farbe
-        pv_color = self.get_pv_power_color(data.pv_power)
+        pv_color = self.get_threshold_color(data.pv_power, 'pv_power')
         print(self.format_value_with_color("PV-Erzeugung:", data.pv_power, "W", pv_color))
 
         # Hausverbrauch (ohne Farbe)
         print(self.format_value("Hausverbrauch:", data.load_power, "W"))
+
+        # Gesamtproduktion
+        if data.has_battery:
+            total_prod_color = self.get_threshold_color(data.total_production, 'pv_power')
+            print(self.format_value_with_color("Gesamtproduktion:", data.total_production, "W", total_prod_color))
 
         # Netz
         if data.is_feeding_in:
@@ -196,7 +146,7 @@ class DisplayFormatter:
 
         # Batterie-Ladestand mit Farbe
         if data.battery_soc is not None:
-            color = self.get_battery_soc_color(data.battery_soc)
+            color = self.get_threshold_color(data.battery_soc, 'battery_soc')
             print(self.format_value_with_color("Batterie-Ladestand:", data.battery_soc, "%", color))
 
     def _display_calculated_values(self, data: SolarData) -> None:
@@ -207,12 +157,21 @@ class DisplayFormatter:
             data: Solardaten
         """
         # Eigenverbrauch und Autarkie mit Farbe
-        autarky_color = self.get_autarky_color(data.autarky_rate)
+        autarky_color = self.get_threshold_color(data.autarky_rate, 'autarky')
         print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
         print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
 
         if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
-            surplus_color = self.get_surplus_color(data.surplus_power)
+            # Spezielle Farblogik für Überschuss (Blau für wenig)
+            if not self.enable_colors:
+                surplus_color = ""
+            elif data.surplus_power >= self.config.THRESHOLDS['surplus']['high']:
+                surplus_color = self.COLOR_GREEN
+            elif data.surplus_power >= self.config.THRESHOLDS['surplus']['medium']:
+                surplus_color = self.COLOR_YELLOW
+            else:
+                surplus_color = self.COLOR_BLUE  # Blau für wenig Überschuss
+
             print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
 
     def display_simple(self, data: SolarData) -> None:
@@ -227,8 +186,3 @@ class DisplayFormatter:
               f"Last: {data.load_power:>4.0f}W | "
               f"Netz: {data.grid_power:>+5.0f}W | "
               f"Autarkie: {data.autarky_rate:>3.0f}%")
-
-    def clear_screen(self) -> None:
-        """Löscht den Bildschirm (plattformunabhängig)"""
-        import os
-        os.system('clear' if os.name == 'posix' else 'cls')

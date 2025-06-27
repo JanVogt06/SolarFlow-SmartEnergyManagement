@@ -90,12 +90,6 @@ class SolarMonitor:
         else:
             self.logger.warning("Verbindungstest fehlgeschlagen, versuche trotzdem fortzufahren...")
 
-        # Versuche API-Version zu ermitteln (optional)
-        if self.config.CHECK_API_VERSION:
-            api_version = self.api.get_api_version()
-            if api_version:
-                self.logger.info(f"Fronius API Version: {api_version}")
-
         self.stats['start_time'] = time.time()
         self.running = True
 
@@ -175,13 +169,3 @@ class SolarMonitor:
             Aktuelle Solardaten oder None
         """
         return self.api.get_power_flow_data()
-
-    def display_stats(self) -> None:
-        """Zeigt Statistiken an"""
-        if self.stats['start_time']:
-            runtime = time.time() - self.stats['start_time']
-            print(f"\nStatistiken:")
-            print(f"  Laufzeit: {runtime:.0f}s")
-            print(f"  Updates: {self.stats['updates']}")
-            print(f"  Fehler: {self.stats['errors']}")
-            print(f"  Fehlerrate: {self.stats['errors'] / max(1, self.stats['updates']) * 100:.1f}%")

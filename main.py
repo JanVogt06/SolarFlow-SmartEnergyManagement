@@ -175,12 +175,6 @@ Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
   export ENABLE_COLORS=false
   export ENABLE_DATA_LOGGING=false
   python main.py
-
-Tipps:
-  - Verwende --log-level WARNING um die API-Version-Fehler zu unterdrücken
-  - Mit --no-logging sparst du Speicherplatz wenn du keine Historie brauchst
-  - Die Daten-CSV kann in Excel oder mit pandas analysiert werden
-  - Mit --skip-check kannst du die Dependency-Prüfung überspringen
         """
     )
 
@@ -296,13 +290,6 @@ Tipps:
         '--battery-idle',
         type=float,
         help='Batterie Idle-Schwellwert in Watt (Standard: 10)'
-    )
-
-    # API-Optionen
-    parser.add_argument(
-        '--check-api-version',
-        action='store_true',
-        help='Prüft die API-Version beim Start'
     )
 
     # Schwellwerte
@@ -432,34 +419,30 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
     if args.battery_idle is not None:
         config.BATTERY_IDLE_THRESHOLD = args.battery_idle
 
-    # API-Optionen
-    if args.check_api_version:
-        config.CHECK_API_VERSION = True
-
-    # Schwellwerte
+    # Schwellwerte - mit der neuen THRESHOLDS-Struktur
     if args.battery_soc_high is not None:
-        config.BATTERY_SOC_HIGH_THRESHOLD = args.battery_soc_high
+        config.THRESHOLDS['battery_soc']['high'] = args.battery_soc_high
 
     if args.battery_soc_medium is not None:
-        config.BATTERY_SOC_MEDIUM_THRESHOLD = args.battery_soc_medium
+        config.THRESHOLDS['battery_soc']['medium'] = args.battery_soc_medium
 
     if args.autarky_high is not None:
-        config.AUTARKY_HIGH_THRESHOLD = args.autarky_high
+        config.THRESHOLDS['autarky']['high'] = args.autarky_high
 
     if args.autarky_medium is not None:
-        config.AUTARKY_MEDIUM_THRESHOLD = args.autarky_medium
+        config.THRESHOLDS['autarky']['medium'] = args.autarky_medium
 
     if args.pv_power_high is not None:
-        config.PV_POWER_HIGH_THRESHOLD = args.pv_power_high
+        config.THRESHOLDS['pv_power']['high'] = args.pv_power_high
 
     if args.pv_power_medium is not None:
-        config.PV_POWER_MEDIUM_THRESHOLD = args.pv_power_medium
+        config.THRESHOLDS['pv_power']['medium'] = args.pv_power_medium
 
     if args.surplus_high is not None:
-        config.SURPLUS_HIGH_THRESHOLD = args.surplus_high
+        config.THRESHOLDS['surplus']['high'] = args.surplus_high
 
     if args.surplus_medium is not None:
-        config.SURPLUS_MEDIUM_THRESHOLD = args.surplus_medium
+        config.THRESHOLDS['surplus']['medium'] = args.surplus_medium
 
     if args.surplus_display is not None:
         config.SURPLUS_DISPLAY_THRESHOLD = args.surplus_display

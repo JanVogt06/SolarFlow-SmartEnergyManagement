@@ -4,7 +4,7 @@ Konfigurationsmodul für den Fronius Solar Monitor.
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 
 class Config:
@@ -37,28 +37,96 @@ class Config:
     # Batterie
     BATTERY_IDLE_THRESHOLD: float = float(os.getenv("BATTERY_IDLE_THRESHOLD", "10"))  # Watt
 
-    # API-Optionen
-    CHECK_API_VERSION: bool = os.getenv("CHECK_API_VERSION", "False").lower() == "true"
-
     # Display
     ENABLE_COLORS: bool = os.getenv("ENABLE_COLORS", "True").lower() == "true"
 
-    # Batterie-Ladestand Farbschwellwerte
-    BATTERY_SOC_HIGH_THRESHOLD: float = float(os.getenv("BATTERY_SOC_HIGH_THRESHOLD", "80"))  # Grün ab diesem Wert
-    BATTERY_SOC_MEDIUM_THRESHOLD: float = float(os.getenv("BATTERY_SOC_MEDIUM_THRESHOLD", "30"))  # Gelb ab diesem Wert
-
-    # Autarkie-Farben Schwellwerte
-    AUTARKY_HIGH_THRESHOLD: float = float(os.getenv("AUTARKY_HIGH_THRESHOLD", "75"))  # Grün ab diesem Wert
-    AUTARKY_MEDIUM_THRESHOLD: float = float(os.getenv("AUTARKY_MEDIUM_THRESHOLD", "50"))  # Gelb ab diesem Wert
-
-    # PV-Leistung Farbschwellwerte (optional für zukünftige Verwendung)
-    PV_POWER_HIGH_THRESHOLD: float = float(os.getenv("PV_POWER_HIGH_THRESHOLD", "3000"))  # Watt - Grün ab diesem Wert
-    PV_POWER_MEDIUM_THRESHOLD: float = float(os.getenv("PV_POWER_MEDIUM_THRESHOLD", "1000"))  # Watt - Gelb ab diesem Wert
-
-    # Überschuss-Schwellwerte (für Gerätesteuerung)
-    SURPLUS_HIGH_THRESHOLD: float = float(os.getenv("SURPLUS_HIGH_THRESHOLD", "2000"))  # Watt - Viel Überschuss
-    SURPLUS_MEDIUM_THRESHOLD: float = float(os.getenv("SURPLUS_MEDIUM_THRESHOLD", "500"))  # Watt - Mittlerer Überschuss
+    # Überschuss-Anzeige
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
+
+    # Zentrale Schwellwerte für Farbcodierung
+    THRESHOLDS: Dict[str, Dict[str, float]] = {
+        'battery_soc': {
+            'high': float(os.getenv("BATTERY_SOC_HIGH_THRESHOLD", "80")),      # Grün ab diesem Wert
+            'medium': float(os.getenv("BATTERY_SOC_MEDIUM_THRESHOLD", "30"))   # Gelb ab diesem Wert
+        },
+        'autarky': {
+            'high': float(os.getenv("AUTARKY_HIGH_THRESHOLD", "75")),          # Grün ab diesem Wert
+            'medium': float(os.getenv("AUTARKY_MEDIUM_THRESHOLD", "50"))       # Gelb ab diesem Wert
+        },
+        'pv_power': {
+            'high': float(os.getenv("PV_POWER_HIGH_THRESHOLD", "3000")),       # Watt - Grün ab diesem Wert
+            'medium': float(os.getenv("PV_POWER_MEDIUM_THRESHOLD", "1000"))    # Watt - Gelb ab diesem Wert
+        },
+        'surplus': {
+            'high': float(os.getenv("SURPLUS_HIGH_THRESHOLD", "2000")),        # Watt - Viel Überschuss
+            'medium': float(os.getenv("SURPLUS_MEDIUM_THRESHOLD", "500"))      # Watt - Mittlerer Überschuss
+        }
+    }
+
+    # Kompatibilität für alte Konfiguration (Deprecated)
+    @property
+    def BATTERY_SOC_HIGH_THRESHOLD(self):
+        return self.THRESHOLDS['battery_soc']['high']
+
+    @BATTERY_SOC_HIGH_THRESHOLD.setter
+    def BATTERY_SOC_HIGH_THRESHOLD(self, value):
+        self.THRESHOLDS['battery_soc']['high'] = value
+
+    @property
+    def BATTERY_SOC_MEDIUM_THRESHOLD(self):
+        return self.THRESHOLDS['battery_soc']['medium']
+
+    @BATTERY_SOC_MEDIUM_THRESHOLD.setter
+    def BATTERY_SOC_MEDIUM_THRESHOLD(self, value):
+        self.THRESHOLDS['battery_soc']['medium'] = value
+
+    @property
+    def AUTARKY_HIGH_THRESHOLD(self):
+        return self.THRESHOLDS['autarky']['high']
+
+    @AUTARKY_HIGH_THRESHOLD.setter
+    def AUTARKY_HIGH_THRESHOLD(self, value):
+        self.THRESHOLDS['autarky']['high'] = value
+
+    @property
+    def AUTARKY_MEDIUM_THRESHOLD(self):
+        return self.THRESHOLDS['autarky']['medium']
+
+    @AUTARKY_MEDIUM_THRESHOLD.setter
+    def AUTARKY_MEDIUM_THRESHOLD(self, value):
+        self.THRESHOLDS['autarky']['medium'] = value
+
+    @property
+    def PV_POWER_HIGH_THRESHOLD(self):
+        return self.THRESHOLDS['pv_power']['high']
+
+    @PV_POWER_HIGH_THRESHOLD.setter
+    def PV_POWER_HIGH_THRESHOLD(self, value):
+        self.THRESHOLDS['pv_power']['high'] = value
+
+    @property
+    def PV_POWER_MEDIUM_THRESHOLD(self):
+        return self.THRESHOLDS['pv_power']['medium']
+
+    @PV_POWER_MEDIUM_THRESHOLD.setter
+    def PV_POWER_MEDIUM_THRESHOLD(self, value):
+        self.THRESHOLDS['pv_power']['medium'] = value
+
+    @property
+    def SURPLUS_HIGH_THRESHOLD(self):
+        return self.THRESHOLDS['surplus']['high']
+
+    @SURPLUS_HIGH_THRESHOLD.setter
+    def SURPLUS_HIGH_THRESHOLD(self, value):
+        self.THRESHOLDS['surplus']['high'] = value
+
+    @property
+    def SURPLUS_MEDIUM_THRESHOLD(self):
+        return self.THRESHOLDS['surplus']['medium']
+
+    @SURPLUS_MEDIUM_THRESHOLD.setter
+    def SURPLUS_MEDIUM_THRESHOLD(self, value):
+        self.THRESHOLDS['surplus']['medium'] = value
 
     def validate(self) -> bool:
         """Validiert die Konfiguration"""
@@ -82,16 +150,8 @@ class Config:
             raise ValueError("CSV_ENCODING muss ein gültiges Encoding sein")
 
         # Validiere Schwellwerte
-        if self.AUTARKY_HIGH_THRESHOLD <= self.AUTARKY_MEDIUM_THRESHOLD:
-            raise ValueError("AUTARKY_HIGH_THRESHOLD muss größer als AUTARKY_MEDIUM_THRESHOLD sein")
-
-        if self.BATTERY_SOC_HIGH_THRESHOLD <= self.BATTERY_SOC_MEDIUM_THRESHOLD:
-            raise ValueError("BATTERY_SOC_HIGH_THRESHOLD muss größer als BATTERY_SOC_MEDIUM_THRESHOLD sein")
-
-        if self.PV_POWER_HIGH_THRESHOLD <= self.PV_POWER_MEDIUM_THRESHOLD:
-            raise ValueError("PV_POWER_HIGH_THRESHOLD muss größer als PV_POWER_MEDIUM_THRESHOLD sein")
-
-        if self.SURPLUS_HIGH_THRESHOLD <= self.SURPLUS_MEDIUM_THRESHOLD:
-            raise ValueError("SURPLUS_HIGH_THRESHOLD muss größer als SURPLUS_MEDIUM_THRESHOLD sein")
+        for key, thresholds in self.THRESHOLDS.items():
+            if thresholds['high'] <= thresholds['medium']:
+                raise ValueError(f"THRESHOLDS['{key}']['high'] muss größer als THRESHOLDS['{key}']['medium'] sein")
 
         return True
