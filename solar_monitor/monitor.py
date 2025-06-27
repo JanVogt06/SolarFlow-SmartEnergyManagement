@@ -12,6 +12,7 @@ from .display import DisplayFormatter
 from .logger import DataLogger
 from .models import SolarData
 from .daily_stats import DailyStats
+from .daily_stats_logger import DailyStatsLogger
 
 
 class SolarMonitor:
@@ -36,6 +37,11 @@ class SolarMonitor:
         self.data_logger = None
         if self.config.ENABLE_DATA_LOGGING:
             self.data_logger = DataLogger(self.config)
+
+        # Daily Stats Logger
+        self.daily_stats_logger = None
+        if self.config.ENABLE_DAILY_STATS_LOGGING:
+            self.daily_stats_logger = DailyStatsLogger(self.config)
 
         self.running = False
         self._setup_logging()
@@ -122,6 +128,10 @@ class SolarMonitor:
             print("="*60)
             self.display.display_daily_stats(self.daily_stats)
 
+        # Tagesstatistiken beim Beenden speichern
+        if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
+            self.daily_stats_logger.log_daily_stats(self.daily_stats)
+
     def _handle_consecutive_errors(self, consecutive_errors: int, max_errors: int = 5) -> bool:
         """
         Behandelt aufeinanderfolgende Fehler.
@@ -172,6 +182,19 @@ class SolarMonitor:
                         # Daten loggen
                         if self.data_logger:
                             self.data_logger.log_data(data)
+
+                        # Prüfe auf Tageswechsel
+                        current_date = data.timestamp.date()
+                        if self.daily_stats.date != current_date:
+                            # Neuer Tag - speichere die gestrigen Statistiken
+                            if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
+                                self.daily_stats_logger.log_daily_stats(self.daily_stats)
+                                self.logger.info(f"Tagesstatistik für {self.daily_stats.date} gespeichert")
+
+                            # Reset für neuen Tag
+                            self.daily_stats.reset()
+                            self.daily_stats.date = current_date
+                            self.daily_stats.first_update = data.timestamp
 
                         # Tagesstatistiken aktualisieren
                         self.daily_stats.update(data, self.config.UPDATE_INTERVAL)

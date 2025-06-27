@@ -17,7 +17,6 @@ class DisplayFormatter:
     COLOR_RED = '\033[91m'
     COLOR_BLUE = '\033[94m'
     COLOR_RESET = '\033[0m'
-    COLOR_BOLD = '\033[1m'
 
     def __init__(self, config: Config):
         """

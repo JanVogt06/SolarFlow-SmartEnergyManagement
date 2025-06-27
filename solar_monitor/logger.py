@@ -25,9 +25,10 @@ class DataLogger:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-        # Erstelle Datalogs-Ordner
-        self.data_dir = Path(config.DATA_LOG_DIR)
-        self.data_dir.mkdir(exist_ok=True)
+        # Erstelle Verzeichnisstruktur
+        self.base_dir = Path(config.DATA_LOG_DIR)
+        self.data_dir = self.base_dir / config.SOLAR_DATA_DIR
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # Generiere eindeutigen Dateinamen mit Timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -50,7 +51,7 @@ class DataLogger:
                 "Batterie (W)",  # + = Entladung, - = Ladung
                 "Hausverbrauch (W)",
                 "Batterie-Stand (%)",
-                "Gesamtproduktion (W)",  # NEU
+                "Gesamtproduktion (W)",
                 "Einspeisung (W)",
                 "Netzbezug (W)",
                 "Eigenverbrauch (W)",

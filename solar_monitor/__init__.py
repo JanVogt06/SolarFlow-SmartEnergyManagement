@@ -9,6 +9,7 @@ from .display import DisplayFormatter
 from .logger import DataLogger
 from .monitor import SolarMonitor
 from .daily_stats import DailyStats
+from .daily_stats_logger import DailyStatsLogger
 
 __version__ = "1.0.0"
 __author__ = "Jan Vogt"
@@ -20,5 +21,6 @@ __all__ = [
     "DisplayFormatter",
     "DataLogger",
     "SolarMonitor",
-    "DailyStats"
+    "DailyStats",
+    "DailyStatsLogger"
 ]

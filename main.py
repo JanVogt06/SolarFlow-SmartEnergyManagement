@@ -140,7 +140,12 @@ Beispiele:
   python main.py --timeout 10             # Längerer Timeout für langsame Verbindungen
   python main.py --no-colors              # Ohne farbige Ausgabe
   python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
+Logging und Verzeichnisse:
   python main.py --no-logging             # Ohne CSV-Logging
+  python main.py --no-daily-stats-logging # Ohne Tagesstatistik-CSV
+  python main.py --data-log-dir MyLogs    # Eigenes Hauptverzeichnis
+  python main.py --solar-data-dir Solar   # Eigenes Solardaten-Verzeichnis
+  python main.py --daily-stats-dir Stats  # Eigenes Statistik-Verzeichnis
   python main.py --no-daily-stats         # Ohne periodische Tagesstatistiken
   python main.py --daily-stats-interval 3600  # Tagesstatistiken jede Stunde
   python main.py --log-file my.log        # Eigene Log-Datei
@@ -176,6 +181,9 @@ Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
   export LOG_LEVEL=WARNING
   export ENABLE_COLORS=false
   export ENABLE_DATA_LOGGING=false
+  export ENABLE_DAILY_STATS_LOGGING=false
+  export SOLAR_DATA_DIR=MySolarData
+  export DAILY_STATS_DIR=MyDailyStats
   python main.py
         """
     )
@@ -278,13 +286,31 @@ Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
     parser.add_argument(
         '--data-log-dir',
         type=str,
-        help='Verzeichnis für Log-Dateien (Standard: Datalogs)'
+        help='Hauptverzeichnis für Log-Dateien (Standard: Datalogs)'
+    )
+
+    parser.add_argument(
+        '--solar-data-dir',
+        type=str,
+        help='Unterverzeichnis für Solardaten (Standard: Solardata)'
+    )
+
+    parser.add_argument(
+        '--daily-stats-dir',
+        type=str,
+        help='Unterverzeichnis für Tagesstatistiken (Standard: Dailystats)'
     )
 
     parser.add_argument(
         '--data-log-base-name',
         type=str,
         help='Basis-Name für Log-Dateien (Standard: solar_data)'
+    )
+
+    parser.add_argument(
+        '--no-daily-stats-logging',
+        action='store_true',
+        help='Deaktiviert das CSV-Logging der Tagesstatistiken'
     )
 
     # Batterie
@@ -427,8 +453,17 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
     if args.data_log_dir:
         config.DATA_LOG_DIR = args.data_log_dir
 
+    if args.solar_data_dir:
+        config.SOLAR_DATA_DIR = args.solar_data_dir
+
+    if args.daily_stats_dir:
+        config.DAILY_STATS_DIR = args.daily_stats_dir
+
     if args.data_log_base_name:
         config.DATA_LOG_BASE_NAME = args.data_log_base_name
+
+    if args.no_daily_stats_logging:
+        config.ENABLE_DAILY_STATS_LOGGING = False
 
     # Batterie
     if args.battery_idle is not None:

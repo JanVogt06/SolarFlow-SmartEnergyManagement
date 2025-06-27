@@ -22,10 +22,14 @@ class Config:
     LOG_FILE: str = os.getenv("LOG_FILE", "solar_monitor.log")
 
     # Daten-Logging
-    DATA_LOG_DIR: str = os.getenv("DATA_LOG_DIR", "Datalogs")  # Ordner für Log-Dateien
-    DATA_LOG_BASE_NAME: str = os.getenv("DATA_LOG_BASE_NAME", "solar_data")  # Basis-Name ohne .csv
+    DATA_LOG_DIR: str = os.getenv("DATA_LOG_DIR", "Datalogs")  # Haupt-Ordner für Log-Dateien
+    SOLAR_DATA_DIR: str = os.getenv("SOLAR_DATA_DIR", "Solardata")  # Unterordner für Solardaten
+    DAILY_STATS_DIR: str = os.getenv("DAILY_STATS_DIR", "Dailystats")  # Unterordner für Tagesstatistiken
+    DATA_LOG_BASE_NAME: str = os.getenv("DATA_LOG_BASE_NAME", "solar_data")  # Basis-Name für Solardaten
+    DAILY_STATS_BASE_NAME: str = os.getenv("DAILY_STATS_BASE_NAME", "daily_stats")  # Basis-Name für Tagesstatistiken
     DATA_LOG_FILE: str = os.getenv("DATA_LOG_FILE", "solar_data.csv")  # Deprecated - nur für Kompatibilität
     ENABLE_DATA_LOGGING: bool = os.getenv("ENABLE_DATA_LOGGING", "True").lower() == "true"
+    ENABLE_DAILY_STATS_LOGGING: bool = os.getenv("ENABLE_DAILY_STATS_LOGGING", "True").lower() == "true"
 
     # CSV Format Optionen
     CSV_DELIMITER: str = os.getenv("CSV_DELIMITER", ";")  # ; für Excel DE, , für international
