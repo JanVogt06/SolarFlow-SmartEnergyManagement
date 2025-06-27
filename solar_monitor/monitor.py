@@ -110,6 +110,26 @@ class SolarMonitor:
                              f"Updates: {self.stats['updates']}, "
                              f"Fehler: {self.stats['errors']}")
 
+    def _handle_consecutive_errors(self, consecutive_errors: int, max_errors: int = 5) -> bool:
+        """
+        Behandelt aufeinanderfolgende Fehler.
+
+        Args:
+            consecutive_errors: Anzahl der aufeinanderfolgenden Fehler
+            max_errors: Maximale Anzahl erlaubter Fehler
+
+        Returns:
+            True wenn fortfahren, False wenn abbrechen
+        """
+        self.stats['errors'] += 1
+        self.logger.warning(
+            f"Keine Daten empfangen (Fehler {consecutive_errors}/{max_errors})")
+
+        if consecutive_errors >= max_errors:
+            self.logger.error("Zu viele aufeinanderfolgende Fehler. Beende Monitor.")
+            return False
+        return True
+
     def run(self) -> None:
         """Hauptschleife des Monitors"""
         self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
@@ -139,12 +159,9 @@ class SolarMonitor:
                             self.data_logger.log_data(data)
                     else:
                         consecutive_errors += 1
-                        self.stats['errors'] += 1
-                        self.logger.warning(
-                            f"Keine Daten empfangen (Fehler {consecutive_errors}/{max_consecutive_errors})")
 
-                        if consecutive_errors >= max_consecutive_errors:
-                            self.logger.error("Zu viele aufeinanderfolgende Fehler. Beende Monitor.")
+                        # Fehlerbehandlung in eigener Methode
+                        if not self._handle_consecutive_errors(consecutive_errors, max_consecutive_errors):
                             break
 
                     # Warte bis zum nächsten Update
