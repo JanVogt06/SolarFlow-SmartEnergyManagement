@@ -11,6 +11,7 @@ from .config import Config
 from .display import DisplayFormatter
 from .logger import DataLogger
 from .models import SolarData
+from .daily_stats import DailyStats
 
 
 class SolarMonitor:
@@ -46,6 +47,10 @@ class SolarMonitor:
             'start_time': None,
             'last_update': None
         }
+
+        # Tagesstatistiken
+        self.daily_stats = DailyStats()
+        self.last_stats_display = None  # Zeitpunkt der letzten Statistik-Anzeige
 
     def _setup_logging(self) -> None:
         """Konfiguriert das System-Logging"""
@@ -110,6 +115,13 @@ class SolarMonitor:
                              f"Updates: {self.stats['updates']}, "
                              f"Fehler: {self.stats['errors']}")
 
+        # Tagesstatistiken beim Beenden anzeigen
+        if self.config.SHOW_DAILY_STATS and self.daily_stats.first_update:
+            print("\n" + "="*60)
+            print("ABSCHLUSS-STATISTIK")
+            print("="*60)
+            self.display.display_daily_stats(self.daily_stats)
+
     def _handle_consecutive_errors(self, consecutive_errors: int, max_errors: int = 5) -> bool:
         """
         Behandelt aufeinanderfolgende Fehler.
@@ -133,6 +145,9 @@ class SolarMonitor:
     def run(self) -> None:
         """Hauptschleife des Monitors"""
         self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
+        if self.config.SHOW_DAILY_STATS:
+            interval_min = self.config.DAILY_STATS_INTERVAL / 60
+            self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
 
         consecutive_errors = 0
         max_consecutive_errors = 5
@@ -157,6 +172,17 @@ class SolarMonitor:
                         # Daten loggen
                         if self.data_logger:
                             self.data_logger.log_data(data)
+
+                        # Tagesstatistiken aktualisieren
+                        self.daily_stats.update(data, self.config.UPDATE_INTERVAL)
+
+                        # Tagesstatistiken periodisch anzeigen
+                        if self.config.SHOW_DAILY_STATS:
+                            if self.last_stats_display is None:
+                                self.last_stats_display = time.time()
+                            elif time.time() - self.last_stats_display >= self.config.DAILY_STATS_INTERVAL:
+                                self.display.display_daily_stats(self.daily_stats)
+                                self.last_stats_display = time.time()
                     else:
                         consecutive_errors += 1
 
@@ -186,3 +212,12 @@ class SolarMonitor:
             Aktuelle Solardaten oder None
         """
         return self.api.get_power_flow_data()
+
+    def get_daily_stats(self) -> DailyStats:
+        """
+        Gibt die aktuellen Tagesstatistiken zurück.
+
+        Returns:
+            Tagesstatistiken
+        """
+        return self.daily_stats

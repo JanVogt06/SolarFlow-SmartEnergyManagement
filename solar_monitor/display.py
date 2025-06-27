@@ -5,6 +5,7 @@ Anzeigeformatierung für den Fronius Solar Monitor.
 from typing import Optional
 from .models import SolarData
 from .config import Config
+from .daily_stats import DailyStats
 
 
 class DisplayFormatter:
@@ -28,7 +29,7 @@ class DisplayFormatter:
         self.config = config
         self.enable_colors = config.ENABLE_COLORS
 
-    def format_value(self, label: str, value: float, unit: str, width: int = 25) -> str:
+    def format_value(self, label: str, value: float, unit: str, width: int = 25, decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige.
 
@@ -37,13 +38,17 @@ class DisplayFormatter:
             value: Anzuzeigender Wert
             unit: Einheit
             width: Breite des Label-Feldes
+            decimals: Anzahl Nachkommastellen
 
         Returns:
             Formatierter String
         """
-        return f"{label:<{width}} {value:>10.0f} {unit}"
+        if decimals == 0:
+            return f"{label:<{width}} {value:>10.0f} {unit}"
+        else:
+            return f"{label:<{width}} {value:>10.{decimals}f} {unit}"
 
-    def format_value_with_color(self, label: str, value: float, unit: str, color: str = "", width: int = 25) -> str:
+    def format_value_with_color(self, label: str, value: float, unit: str, color: str = "", width: int = 25, decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige mit Farbe.
 
@@ -53,12 +58,16 @@ class DisplayFormatter:
             unit: Einheit
             color: ANSI Farbcode
             width: Breite des Label-Feldes
+            decimals: Anzahl Nachkommastellen
 
         Returns:
             Formatierter String mit Farbe
         """
         reset = self.COLOR_RESET if self.enable_colors and color else ""
-        return f"{label:<{width}} {color}{value:>10.0f} {unit}{reset}"
+        if decimals == 0:
+            return f"{label:<{width}} {color}{value:>10.0f} {unit}{reset}"
+        else:
+            return f"{label:<{width}} {color}{value:>10.{decimals}f} {unit}{reset}"
 
     def get_threshold_color(self, value: float, threshold_key: str) -> str:
         """
@@ -186,3 +195,57 @@ class DisplayFormatter:
               f"Last: {data.load_power:>4.0f}W | "
               f"Netz: {data.grid_power:>+5.0f}W | "
               f"Autarkie: {data.autarky_rate:>3.0f}%")
+
+    def display_daily_stats(self, stats: DailyStats) -> None:
+        """
+        Zeigt die Tagesstatistiken an.
+
+        Args:
+            stats: Anzuzeigende Tagesstatistiken
+        """
+        print("\n" + "=" * 60)
+        print(f"{'TAGESSTATISTIK':<20} {stats.date.strftime('%d.%m.%Y')}")
+        print("=" * 60)
+
+        # Energiewerte
+        print("\nEnergie heute:")
+        print(self.format_value("PV-Produktion:", stats.pv_energy, "kWh", width=25, decimals=2))
+        print(self.format_value("Verbrauch:", stats.consumption_energy, "kWh", width=25, decimals=2))
+        print(self.format_value("Eigenverbrauch:", stats.self_consumption_energy, "kWh", width=25, decimals=2))
+        print(self.format_value("Einspeisung:", stats.feed_in_energy, "kWh", width=25, decimals=2))
+        print(self.format_value("Netzbezug:", stats.grid_energy, "kWh", width=25, decimals=2))
+
+        # Batterie wenn vorhanden
+        if stats.battery_charge_energy > 0 or stats.battery_discharge_energy > 0:
+            print(self.format_value("Batterie geladen:", stats.battery_charge_energy, "kWh", width=25, decimals=2))
+            print(self.format_value("Batterie entladen:", stats.battery_discharge_energy, "kWh", width=25, decimals=2))
+
+        # Maximale Leistungswerte
+        print("\nMaximale Leistung:")
+        pv_max_color = self.get_threshold_color(stats.pv_power_max, 'pv_power')
+        print(self.format_value_with_color("PV-Leistung:", stats.pv_power_max, "W", pv_max_color))
+        print(self.format_value("Verbrauch:", stats.consumption_power_max, "W"))
+
+        if stats.surplus_power_max > 0:
+            surplus_color = self.get_threshold_color(stats.surplus_power_max, 'surplus')
+            print(self.format_value_with_color("Überschuss:", stats.surplus_power_max, "W", surplus_color))
+
+        # Batterie Min/Max
+        if stats.battery_soc_min is not None and stats.battery_soc_max is not None:
+            print(f"\nBatterie-Ladestand:")
+            min_color = self.get_threshold_color(stats.battery_soc_min, 'battery_soc')
+            max_color = self.get_threshold_color(stats.battery_soc_max, 'battery_soc')
+            print(f"  Min: {min_color}{stats.battery_soc_min:>5.1f}%{self.COLOR_RESET if self.enable_colors else ''} | "
+                  f"Max: {max_color}{stats.battery_soc_max:>5.1f}%{self.COLOR_RESET if self.enable_colors else ''}")
+
+        # Durchschnitte und Berechnungen
+        print("\nKennzahlen:")
+        autarky_color = self.get_threshold_color(stats.autarky_avg, 'autarky')
+        print(self.format_value_with_color("Ø Autarkiegrad:", stats.autarky_avg, "%", autarky_color, decimals=1))
+
+        # Autarkie basierend auf Energiewerten
+        energy_autarky_color = self.get_threshold_color(stats.self_sufficiency_rate, 'autarky')
+        print(self.format_value_with_color("Energie-Autarkie:", stats.self_sufficiency_rate, "%", energy_autarky_color, decimals=1))
+
+        print(f"\nLaufzeit: {stats.runtime_hours:.1f} Stunden")
+        print("=" * 60)

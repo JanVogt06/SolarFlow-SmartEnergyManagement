@@ -141,6 +141,8 @@ Beispiele:
   python main.py --no-colors              # Ohne farbige Ausgabe
   python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
   python main.py --no-logging             # Ohne CSV-Logging
+  python main.py --no-daily-stats         # Ohne periodische Tagesstatistiken
+  python main.py --daily-stats-interval 3600  # Tagesstatistiken jede Stunde
   python main.py --log-file my.log        # Eigene Log-Datei
   python main.py --data-file data.csv     # Eigene Daten-CSV
   python main.py --log-level DEBUG        # Debug-Modus
@@ -354,6 +356,19 @@ Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
         help='Überspringe automatische Dependency-Prüfung'
     )
 
+    # Tagesstatistiken
+    parser.add_argument(
+        '--no-daily-stats',
+        action='store_true',
+        help='Deaktiviert die periodische Anzeige der Tagesstatistiken'
+    )
+
+    parser.add_argument(
+        '--daily-stats-interval',
+        type=int,
+        help='Intervall für Tagesstatistik-Anzeige in Sekunden (Standard: 1800 = 30 Min)'
+    )
+
     # Sonstiges
     parser.add_argument(
         '--version',
@@ -446,6 +461,13 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
 
     if args.surplus_display is not None:
         config.SURPLUS_DISPLAY_THRESHOLD = args.surplus_display
+
+    # Tagesstatistiken
+    if args.no_daily_stats:
+        config.SHOW_DAILY_STATS = False
+
+    if args.daily_stats_interval is not None:
+        config.DAILY_STATS_INTERVAL = args.daily_stats_interval
 
 
 def main():

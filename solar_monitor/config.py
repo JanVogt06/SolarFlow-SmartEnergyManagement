@@ -40,6 +40,10 @@ class Config:
     # Display
     ENABLE_COLORS: bool = os.getenv("ENABLE_COLORS", "True").lower() == "true"
 
+    # Tagesstatistiken
+    DAILY_STATS_INTERVAL: int = int(os.getenv("DAILY_STATS_INTERVAL", "1800"))  # Sekunden (Standard: 30 Min)
+    SHOW_DAILY_STATS: bool = os.getenv("SHOW_DAILY_STATS", "True").lower() == "true"
+
     # Überschuss-Anzeige
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
 
@@ -153,5 +157,9 @@ class Config:
         for key, thresholds in self.THRESHOLDS.items():
             if thresholds['high'] <= thresholds['medium']:
                 raise ValueError(f"THRESHOLDS['{key}']['high'] muss größer als THRESHOLDS['{key}']['medium'] sein")
+
+        # Validiere Tagesstatistik-Intervall
+        if self.DAILY_STATS_INTERVAL < 60:
+            raise ValueError("DAILY_STATS_INTERVAL sollte mindestens 60 Sekunden sein")
 
         return True

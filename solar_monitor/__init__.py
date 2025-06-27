@@ -8,6 +8,7 @@ from .api import FroniusAPI
 from .display import DisplayFormatter
 from .logger import DataLogger
 from .monitor import SolarMonitor
+from .daily_stats import DailyStats
 
 __version__ = "1.0.0"
 __author__ = "Jan Vogt"
@@ -18,5 +19,6 @@ __all__ = [
     "FroniusAPI",
     "DisplayFormatter",
     "DataLogger",
-    "SolarMonitor"
+    "SolarMonitor",
+    "DailyStats"
 ]
