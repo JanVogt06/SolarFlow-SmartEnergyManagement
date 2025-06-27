@@ -27,21 +27,16 @@ class FroniusAPI:
         self.base_url = f"http://{ip_address}"
         self.logger = logging.getLogger(__name__)
 
-        # API-Endpunkte
-        self.endpoints = {
-            'power_flow': '/solar_api/v1/GetPowerFlowRealtimeData.fcgi',
-            'meter_data': '/solar_api/v1/GetMeterRealtimeData.cgi',
-            'storage_data': '/solar_api/v1/GetStorageRealtimeData.cgi'
-        }
+        # API-Endpunkt für Leistungsdaten
+        self.power_flow_endpoint = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'
 
-    def _make_request(self, endpoint: str, params: Optional[Dict] = None, suppress_404: bool = False) -> Optional[Dict[str, Any]]:
+    def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
         """
         Führt einen HTTP-Request aus und gibt JSON zurück.
 
         Args:
             endpoint: API-Endpunkt
             params: Optionale Query-Parameter
-            suppress_404: Wenn True, werden 404-Fehler nur als DEBUG geloggt
 
         Returns:
             JSON-Response oder None bei Fehler
@@ -54,10 +49,7 @@ class FroniusAPI:
             return response.json()
 
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404 and suppress_404:
-                self.logger.debug(f"Endpunkt nicht gefunden: {url}")
-            else:
-                self.logger.error(f"API-Fehler: {e}")
+            self.logger.error(f"API-Fehler: {e}")
             return None
         except requests.exceptions.Timeout:
             self.logger.error(f"Timeout bei Anfrage an {url}")
@@ -79,7 +71,7 @@ class FroniusAPI:
         Returns:
             SolarData-Objekt oder None bei Fehler
         """
-        data = self._make_request(self.endpoints['power_flow'])
+        data = self._make_request(self.power_flow_endpoint)
 
         if not data:
             return None
@@ -162,5 +154,5 @@ class FroniusAPI:
         Returns:
             True wenn Verbindung erfolgreich, sonst False
         """
-        data = self._make_request(self.endpoints['power_flow'])
+        data = self._make_request(self.power_flow_endpoint)
         return data is not None
