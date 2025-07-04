@@ -1,5 +1,5 @@
 """
-Konfigurationsmodul für den Fronius Solar Monitor.
+Konfigurationsmodul für den Fronius Solar Monitor - Erweitert um Device-Logging.
 """
 
 import logging
@@ -25,11 +25,17 @@ class Config:
     DATA_LOG_DIR: str = os.getenv("DATA_LOG_DIR", "Datalogs")  # Haupt-Ordner für Log-Dateien
     SOLAR_DATA_DIR: str = os.getenv("SOLAR_DATA_DIR", "Solardata")  # Unterordner für Solardaten
     DAILY_STATS_DIR: str = os.getenv("DAILY_STATS_DIR", "Dailystats")  # Unterordner für Tagesstatistiken
+    DEVICE_LOG_DIR: str = os.getenv("DEVICE_LOG_DIR", "Devicelogs")  # Unterordner für Geräte-Logs
+
     DATA_LOG_BASE_NAME: str = os.getenv("DATA_LOG_BASE_NAME", "solar_data")  # Basis-Name für Solardaten
     DAILY_STATS_BASE_NAME: str = os.getenv("DAILY_STATS_BASE_NAME", "daily_stats")  # Basis-Name für Tagesstatistiken
+    DEVICE_EVENTS_BASE_NAME: str = os.getenv("DEVICE_EVENTS_BASE_NAME", "device_events")  # Basis-Name für Geräte-Events
+    DEVICE_STATUS_BASE_NAME: str = os.getenv("DEVICE_STATUS_BASE_NAME", "device_status")  # Basis-Name für Geräte-Status
+
     DATA_LOG_FILE: str = os.getenv("DATA_LOG_FILE", "solar_data.csv")  # Deprecated - nur für Kompatibilität
     ENABLE_DATA_LOGGING: bool = os.getenv("ENABLE_DATA_LOGGING", "True").lower() == "true"
     ENABLE_DAILY_STATS_LOGGING: bool = os.getenv("ENABLE_DAILY_STATS_LOGGING", "True").lower() == "true"
+    ENABLE_DEVICE_LOGGING: bool = os.getenv("ENABLE_DEVICE_LOGGING", "True").lower() == "true"
 
     # CSV Format Optionen
     CSV_DELIMITER: str = os.getenv("CSV_DELIMITER", ";")  # ; für Excel DE, , für international
@@ -52,10 +58,16 @@ class Config:
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
 
     # Gerätesteuerung
-    ENABLE_DEVICE_CONTROL: bool = os.getenv("ENABLE_DEVICE_CONTROL", "False").lower() == "true"
+    ENABLE_DEVICE_CONTROL: bool = os.getenv("ENABLE_DEVICE_CONTROL", "True").lower() == "true"
     DEVICE_CONFIG_FILE: str = os.getenv("DEVICE_CONFIG_FILE", "devices.json")
     DEVICE_HYSTERESIS_MINUTES: int = int(os.getenv("DEVICE_HYSTERESIS_MINUTES", "5"))
     DEVICE_UPDATE_ONLY_ON_CHANGE: bool = os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true"
+
+    # Geräte-Logging Optionen
+    DEVICE_LOG_INTERVAL: int = int(os.getenv("DEVICE_LOG_INTERVAL", "60"))  # Sekunden - Status-Log Intervall
+    DEVICE_LOG_EVENTS: bool = os.getenv("DEVICE_LOG_EVENTS", "True").lower() == "true"  # Event-basiertes Logging
+    DEVICE_LOG_STATUS: bool = os.getenv("DEVICE_LOG_STATUS", "True").lower() == "true"  # Periodisches Status-Logging
+    DEVICE_LOG_DAILY_SUMMARY: bool = os.getenv("DEVICE_LOG_DAILY_SUMMARY", "True").lower() == "true"  # Tägliche Zusammenfassung
 
     # Zentrale Schwellwerte für Farbcodierung
     THRESHOLDS: Dict[str, Dict[str, float]] = {
@@ -171,5 +183,9 @@ class Config:
         # Validiere Tagesstatistik-Intervall
         if self.DAILY_STATS_INTERVAL < 60:
             raise ValueError("DAILY_STATS_INTERVAL sollte mindestens 60 Sekunden sein")
+
+        # Validiere Geräte-Log-Intervall
+        if self.DEVICE_LOG_INTERVAL < 10:
+            raise ValueError("DEVICE_LOG_INTERVAL sollte mindestens 10 Sekunden sein")
 
         return True

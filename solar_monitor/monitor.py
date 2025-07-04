@@ -1,5 +1,5 @@
 """
-Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung.
+Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung und Logging.
 """
 
 import logging
@@ -17,7 +17,8 @@ from .daily_stats import DailyStats
 from .daily_stats_logger import DailyStatsLogger
 
 # Import für Gerätesteuerung
-from device_management import DeviceManager, EnergyController, DeviceState
+from device_management import DeviceManager, EnergyController, DeviceState, DeviceLogger
+
 
 class SolarMonitor:
     """Hauptklasse für den Solar Monitor mit Gerätesteuerung"""
@@ -50,6 +51,7 @@ class SolarMonitor:
         # Gerätesteuerung initialisieren
         self.device_manager = None
         self.energy_controller = None
+        self.device_logger = None
         if self.config.ENABLE_DEVICE_CONTROL:
             self._init_device_control()
 
@@ -71,6 +73,7 @@ class SolarMonitor:
         # Gerätesteuerung
         self.last_device_update = None  # Zeitpunkt der letzten Geräte-Aktualisierung
         self.last_surplus_power = None  # Letzter Überschuss für Änderungserkennung
+        self.last_device_status_log = None  # Zeitpunkt des letzten Status-Logs
 
     def _init_device_control(self) -> None:
         """Initialisiert die Gerätesteuerung"""
@@ -81,6 +84,10 @@ class SolarMonitor:
 
             # Setze Hysterese-Zeit
             self.energy_controller.hysteresis_time = timedelta(minutes=self.config.DEVICE_HYSTERESIS_MINUTES)
+
+            # Device Logger initialisieren wenn Logging aktiviert
+            if self.config.ENABLE_DEVICE_LOGGING:
+                self.device_logger = DeviceLogger(self.config, self.device_manager)
 
             self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
             self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
@@ -97,6 +104,7 @@ class SolarMonitor:
             self.config.ENABLE_DEVICE_CONTROL = False
             self.device_manager = None
             self.energy_controller = None
+            self.device_logger = None
 
     def _setup_logging(self) -> None:
         """Konfiguriert das System-Logging"""
@@ -172,12 +180,26 @@ class SolarMonitor:
         if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
             self.daily_stats_logger.log_daily_stats(self.daily_stats)
 
-        # Geräte beim Beenden ausschalten
+        # Geräte beim Beenden ausschalten und zusammenfassen
         if self.energy_controller:
             self.logger.info("Schalte alle Geräte aus...")
+
+            # Alle aktiven Geräte ausschalten
             for device in self.device_manager.get_active_devices():
+                old_state = device.state
                 device.state = DeviceState.OFF
                 self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
+
+                # Event loggen
+                if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+                    self.device_logger.log_device_event(
+                        device, "ausgeschaltet", "Programmende",
+                        self.last_surplus_power or 0, old_state
+                    )
+
+            # Tageszusammenfassung erstellen
+            if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
+                self.device_logger.log_daily_summary()
 
             # Speichere Gerätekonfiguration
             self.device_manager.save_devices()
@@ -231,6 +253,18 @@ class SolarMonitor:
             for device_name, action in changes.items():
                 self.logger.info(f"Gerät '{device_name}' {action}")
 
+            # Logge Änderungen in CSV
+            if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+                self.device_logger.log_changes(changes, data.surplus_power)
+
+        # Periodisches Status-Logging
+        if self.device_logger and self.config.DEVICE_LOG_STATUS:
+            if self.last_device_status_log is None:
+                self.last_device_status_log = time.time()
+            elif time.time() - self.last_device_status_log >= self.config.DEVICE_LOG_INTERVAL:
+                self.device_logger.log_device_status(data.surplus_power)
+                self.last_device_status_log = time.time()
+
         # Merke Werte für nächsten Vergleich
         self.last_surplus_power = data.surplus_power
         self.last_device_update = time.time()
@@ -243,6 +277,11 @@ class SolarMonitor:
             current_date: Aktuelles Datum
         """
         if self.energy_controller and self.daily_stats.date != current_date:
+            # Erstelle Tageszusammenfassung vor dem Reset
+            if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
+                self.device_logger.log_daily_summary()
+
+            # Reset durchführen
             self.energy_controller.reset_daily_stats()
             self.logger.info("Tägliche Gerätestatistiken zurückgesetzt")
 
@@ -255,6 +294,9 @@ class SolarMonitor:
 
         if self.config.ENABLE_DEVICE_CONTROL:
             self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
+            if self.config.ENABLE_DEVICE_LOGGING:
+                self.logger.info(f"Geräte-Logging aktiviert (Events: {self.config.DEVICE_LOG_EVENTS}, "
+                               f"Status: {self.config.DEVICE_LOG_STATUS} alle {self.config.DEVICE_LOG_INTERVAL}s)")
 
         consecutive_errors = 0
         max_consecutive_errors = 5

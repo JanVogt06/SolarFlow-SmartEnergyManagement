@@ -146,12 +146,21 @@ def parse_arguments():
           python main.py --enable-devices --device-config my_devices.json  # Eigene Gerätedatei
           python main.py --enable-devices --device-hysteresis 10  # 10 Min Hysterese
 
+        Geräte-Logging:
+          python main.py --enable-devices --no-device-logging  # Gerätesteuerung ohne Logging
+          python main.py --enable-devices --device-log-dir MyDeviceLogs  # Eigenes Geräte-Log-Verzeichnis
+          python main.py --enable-devices --device-log-interval 300  # Status-Log alle 5 Minuten
+          python main.py --enable-devices --no-device-events  # Ohne Event-Logging
+          python main.py --enable-devices --no-device-status  # Ohne periodisches Status-Logging
+          python main.py --enable-devices --no-device-summary  # Ohne tägliche Zusammenfassung
+
         Logging und Verzeichnisse:
           python main.py --no-logging             # Ohne CSV-Logging
           python main.py --no-daily-stats-logging # Ohne Tagesstatistik-CSV
           python main.py --data-log-dir MyLogs    # Eigenes Hauptverzeichnis
           python main.py --solar-data-dir Solar   # Eigenes Solardaten-Verzeichnis
           python main.py --daily-stats-dir Stats  # Eigenes Statistik-Verzeichnis
+          python main.py --device-log-dir Devices # Eigenes Geräte-Log-Verzeichnis
           python main.py --no-daily-stats         # Ohne periodische Tagesstatistiken
           python main.py --daily-stats-interval 3600  # Tagesstatistiken jede Stunde
           python main.py --log-file my.log        # Eigene Log-Datei
@@ -182,6 +191,8 @@ def parse_arguments():
           python main.py --csv-delimiter "," --csv-decimal "." --csv-english
           python main.py --enable-devices --log-level DEBUG --interval 10
           python main.py --enable-devices --device-config pool.json --no-colors
+          python main.py --enable-devices --device-log-interval 60 --no-device-events
+          python main.py --enable-devices --no-device-logging --log-level INFO
 
         Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
           export FRONIUS_IP=192.168.178.100
@@ -193,6 +204,12 @@ def parse_arguments():
           export ENABLE_DEVICE_CONTROL=true
           export DEVICE_CONFIG_FILE=devices.json
           export DEVICE_HYSTERESIS_MINUTES=5
+          export ENABLE_DEVICE_LOGGING=true
+          export DEVICE_LOG_DIR=Devicelogs
+          export DEVICE_LOG_INTERVAL=60
+          export DEVICE_LOG_EVENTS=true
+          export DEVICE_LOG_STATUS=true
+          export DEVICE_LOG_DAILY_SUMMARY=true
           export SOLAR_DATA_DIR=MySolarData
           export DAILY_STATS_DIR=MyDailyStats
           python main.py
@@ -432,6 +449,43 @@ def parse_arguments():
         help='Hysterese-Zeit in Minuten für Geräteschaltungen (Standard: 5)'
     )
 
+    # Device-Logging Argumente
+    parser.add_argument(
+        '--device-log-dir',
+        type=str,
+        help='Unterverzeichnis für Geräte-Logs (Standard: Devicelogs)'
+    )
+
+    parser.add_argument(
+        '--no-device-logging',
+        action='store_true',
+        help='Deaktiviert das Geräte-Logging komplett'
+    )
+
+    parser.add_argument(
+        '--device-log-interval',
+        type=int,
+        help='Intervall für Geräte-Status-Logging in Sekunden (Standard: 60)'
+    )
+
+    parser.add_argument(
+        '--no-device-events',
+        action='store_true',
+        help='Deaktiviert das Event-basierte Geräte-Logging'
+    )
+
+    parser.add_argument(
+        '--no-device-status',
+        action='store_true',
+        help='Deaktiviert das periodische Status-Logging'
+    )
+
+    parser.add_argument(
+        '--no-device-summary',
+        action='store_true',
+        help='Deaktiviert die tägliche Geräte-Zusammenfassung'
+    )
+
     return parser.parse_args()
 
 
@@ -543,6 +597,25 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
 
     if args.device_hysteresis is not None:
         config.DEVICE_HYSTERESIS_MINUTES = args.device_hysteresis
+
+    # Device-Logging
+    if args.device_log_dir:
+        config.DEVICE_LOG_DIR = args.device_log_dir
+
+    if args.no_device_logging:
+        config.ENABLE_DEVICE_LOGGING = False
+
+    if args.device_log_interval is not None:
+        config.DEVICE_LOG_INTERVAL = args.device_log_interval
+
+    if args.no_device_events:
+        config.DEVICE_LOG_EVENTS = False
+
+    if args.no_device_status:
+        config.DEVICE_LOG_STATUS = False
+
+    if args.no_device_summary:
+        config.DEVICE_LOG_DAILY_SUMMARY = False
 
 
 def main():
