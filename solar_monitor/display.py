@@ -137,6 +137,69 @@ class DisplayFormatter:
 
         print("=" * 60)
 
+    def display_data_with_devices(self, data: SolarData, device_manager) -> None:
+        """
+        Zeigt die Daten mit Gerätestatus formatiert an.
+
+        Args:
+            data: Anzuzeigende Solardaten
+            device_manager: DeviceManager mit Geräteinformationen
+        """
+        # Zeige normale Solar-Daten
+        self.display_data(data)
+
+        # Füge Geräte-Sektion hinzu
+        print("\n" + "-" * 60)
+        print("GERÄTESTEUERUNG:")
+        print("-" * 60)
+
+        # Berechne Gesamtverbrauch der gesteuerten Geräte
+        controlled_consumption = device_manager.get_total_consumption()
+
+        print(f"Gesteuerter Verbrauch:    {controlled_consumption:>10.0f} W")
+        print(f"Verbleibender Überschuss: {data.surplus_power - controlled_consumption:>10.0f} W")
+        print()
+
+        # Zeige Gerätestatus
+        devices = device_manager.get_devices_by_priority()
+        if not devices:
+            print("Keine Geräte konfiguriert")
+        else:
+            print(f"{'Gerät':<20} {'Priorität':>9} {'Leistung':>10} {'Status':<12} {'Laufzeit heute':>14}")
+            print("-" * 75)
+
+            for device in devices:
+                # Status-Farbe
+                if device.state.value == "on":
+                    status_color = self.COLOR_GREEN
+                    status_text = "EIN"
+                elif device.state.value == "blocked":
+                    status_color = self.COLOR_YELLOW
+                    status_text = "BLOCKIERT"
+                else:
+                    status_color = self.COLOR_RED
+                    status_text = "AUS"
+
+                # Formatiere Laufzeit
+                hours = device.runtime_today // 60
+                minutes = device.runtime_today % 60
+                runtime_str = f"{hours}h {minutes}m"
+
+                # Zeige Zeile
+                status_colored = f"{status_color}{status_text:<10}{self.COLOR_RESET if self.enable_colors else ''}"
+                print(f"{device.name:<20} {device.priority:>9} {device.power_consumption:>9.0f}W "
+                      f"{status_colored} {runtime_str:>14}")
+
+                # Zeige zusätzliche Info bei Blockierung
+                if device.state.value == "blocked":
+                    if not device.can_run_today():
+                        remaining = device.get_remaining_runtime()
+                        print(f"  → Maximale Tageslaufzeit erreicht")
+                    elif not device.is_time_allowed(data.timestamp):
+                        print(f"  → Außerhalb der erlaubten Zeiten")
+
+        print("=" * 60)
+
     def _display_battery_info(self, data: SolarData) -> None:
         """
         Zeigt Batterie-Informationen an.

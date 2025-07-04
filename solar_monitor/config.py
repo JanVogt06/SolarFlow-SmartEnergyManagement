@@ -51,6 +51,12 @@ class Config:
     # Überschuss-Anzeige
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
 
+    # Gerätesteuerung
+    ENABLE_DEVICE_CONTROL: bool = os.getenv("ENABLE_DEVICE_CONTROL", "False").lower() == "true"
+    DEVICE_CONFIG_FILE: str = os.getenv("DEVICE_CONFIG_FILE", "devices.json")
+    DEVICE_HYSTERESIS_MINUTES: int = int(os.getenv("DEVICE_HYSTERESIS_MINUTES", "5"))
+    DEVICE_UPDATE_ONLY_ON_CHANGE: bool = os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true"
+
     # Zentrale Schwellwerte für Farbcodierung
     THRESHOLDS: Dict[str, Dict[str, float]] = {
         'battery_soc': {

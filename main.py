@@ -133,58 +133,69 @@ def parse_arguments():
         description="Fronius Solar Monitor - Überwacht Ihre Solaranlage in Echtzeit",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Beispiele:
-  python main.py                          # Standard-Ausführung
-  python main.py --ip 192.168.178.100     # Andere IP-Adresse
-  python main.py --interval 10            # Update alle 10 Sekunden
-  python main.py --timeout 10             # Längerer Timeout für langsame Verbindungen
-  python main.py --no-colors              # Ohne farbige Ausgabe
-  python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
-Logging und Verzeichnisse:
-  python main.py --no-logging             # Ohne CSV-Logging
-  python main.py --no-daily-stats-logging # Ohne Tagesstatistik-CSV
-  python main.py --data-log-dir MyLogs    # Eigenes Hauptverzeichnis
-  python main.py --solar-data-dir Solar   # Eigenes Solardaten-Verzeichnis
-  python main.py --daily-stats-dir Stats  # Eigenes Statistik-Verzeichnis
-  python main.py --no-daily-stats         # Ohne periodische Tagesstatistiken
-  python main.py --daily-stats-interval 3600  # Tagesstatistiken jede Stunde
-  python main.py --log-file my.log        # Eigene Log-Datei
-  python main.py --data-file data.csv     # Eigene Daten-CSV
-  python main.py --log-level DEBUG        # Debug-Modus
-  python main.py --log-level WARNING      # Nur Warnungen und Fehler
-  python main.py --skip-check             # Dependency-Check überspringen
-  python main.py --version                # Version anzeigen
+        Beispiele:
+          python main.py                          # Standard-Ausführung
+          python main.py --ip 192.168.178.100     # Andere IP-Adresse
+          python main.py --interval 10            # Update alle 10 Sekunden
+          python main.py --timeout 10             # Längerer Timeout für langsame Verbindungen
+          python main.py --no-colors              # Ohne farbige Ausgabe
+          python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
 
-CSV-Format Optionen:
-  python main.py --csv-delimiter ";"      # CSV Trennzeichen (Standard: ;)
-  python main.py --csv-encoding utf-8     # CSV Encoding (Standard: utf-8)
-  python main.py --csv-decimal ","        # Dezimaltrennzeichen (Standard: ,)
-  python main.py --csv-english            # Englische CSV-Header
-  python main.py --csv-no-info            # Keine Info-Zeile unter Header
+        Gerätesteuerung:
+          python main.py --enable-devices         # Aktiviert intelligente Gerätesteuerung
+          python main.py --enable-devices --device-config my_devices.json  # Eigene Gerätedatei
+          python main.py --enable-devices --device-hysteresis 10  # 10 Min Hysterese
 
-Schwellwerte:
-  python main.py --battery-idle 20        # Batterie Idle-Schwelle in Watt
-  python main.py --autarky-high 80        # Autarkie hoch ab % (grün)
-  python main.py --autarky-medium 40      # Autarkie mittel ab % (gelb)
-  python main.py --battery-soc-high 85    # Batterie SOC hoch ab %
-  python main.py --battery-soc-medium 25  # Batterie SOC mittel ab %
+        Logging und Verzeichnisse:
+          python main.py --no-logging             # Ohne CSV-Logging
+          python main.py --no-daily-stats-logging # Ohne Tagesstatistik-CSV
+          python main.py --data-log-dir MyLogs    # Eigenes Hauptverzeichnis
+          python main.py --solar-data-dir Solar   # Eigenes Solardaten-Verzeichnis
+          python main.py --daily-stats-dir Stats  # Eigenes Statistik-Verzeichnis
+          python main.py --no-daily-stats         # Ohne periodische Tagesstatistiken
+          python main.py --daily-stats-interval 3600  # Tagesstatistiken jede Stunde
+          python main.py --log-file my.log        # Eigene Log-Datei
+          python main.py --data-file data.csv     # Eigene Daten-CSV
+          python main.py --log-level DEBUG        # Debug-Modus
+          python main.py --log-level WARNING      # Nur Warnungen und Fehler
+          python main.py --skip-check             # Dependency-Check überspringen
+          python main.py --version                # Version anzeigen
 
-Kombinationen:
-  python main.py --ip 192.168.1.100 --interval 10 --no-colors
-  python main.py --log-level WARNING --no-logging
-  python main.py --data-file /path/to/solar_$(date +%%Y%%m%%d).csv
-  python main.py --csv-delimiter "," --csv-decimal "." --csv-english
+        CSV-Format Optionen:
+          python main.py --csv-delimiter ";"      # CSV Trennzeichen (Standard: ;)
+          python main.py --csv-encoding utf-8     # CSV Encoding (Standard: utf-8)
+          python main.py --csv-decimal ","        # Dezimaltrennzeichen (Standard: ,)
+          python main.py --csv-english            # Englische CSV-Header
+          python main.py --csv-no-info            # Keine Info-Zeile unter Header
 
-Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
-  export FRONIUS_IP=192.168.178.100
-  export UPDATE_INTERVAL=10
-  export LOG_LEVEL=WARNING
-  export ENABLE_COLORS=false
-  export ENABLE_DATA_LOGGING=false
-  export ENABLE_DAILY_STATS_LOGGING=false
-  export SOLAR_DATA_DIR=MySolarData
-  export DAILY_STATS_DIR=MyDailyStats
-  python main.py
+        Schwellwerte:
+          python main.py --battery-idle 20        # Batterie Idle-Schwelle in Watt
+          python main.py --autarky-high 80        # Autarkie hoch ab % (grün)
+          python main.py --autarky-medium 40      # Autarkie mittel ab % (gelb)
+          python main.py --battery-soc-high 85    # Batterie SOC hoch ab %
+          python main.py --battery-soc-medium 25  # Batterie SOC mittel ab %
+
+        Kombinationen:
+          python main.py --ip 192.168.1.100 --interval 10 --no-colors
+          python main.py --log-level WARNING --no-logging
+          python main.py --data-file /path/to/solar_$(date +%%Y%%m%%d).csv
+          python main.py --csv-delimiter "," --csv-decimal "." --csv-english
+          python main.py --enable-devices --log-level DEBUG --interval 10
+          python main.py --enable-devices --device-config pool.json --no-colors
+
+        Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
+          export FRONIUS_IP=192.168.178.100
+          export UPDATE_INTERVAL=10
+          export LOG_LEVEL=WARNING
+          export ENABLE_COLORS=false
+          export ENABLE_DATA_LOGGING=false
+          export ENABLE_DAILY_STATS_LOGGING=false
+          export ENABLE_DEVICE_CONTROL=true
+          export DEVICE_CONFIG_FILE=devices.json
+          export DEVICE_HYSTERESIS_MINUTES=5
+          export SOLAR_DATA_DIR=MySolarData
+          export DAILY_STATS_DIR=MyDailyStats
+          python main.py
         """
     )
 
@@ -402,6 +413,25 @@ Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
         version='Fronius Solar Monitor 1.0.0'
     )
 
+    # Gerätesteuerung
+    parser.add_argument(
+        '--enable-devices',
+        action='store_true',
+        help='Aktiviert die intelligente Gerätesteuerung'
+    )
+
+    parser.add_argument(
+        '--device-config',
+        type=str,
+        help='Pfad zur Gerätekonfigurationsdatei (Standard: devices.json)'
+    )
+
+    parser.add_argument(
+        '--device-hysteresis',
+        type=int,
+        help='Hysterese-Zeit in Minuten für Geräteschaltungen (Standard: 5)'
+    )
+
     return parser.parse_args()
 
 
@@ -503,6 +533,16 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
 
     if args.daily_stats_interval is not None:
         config.DAILY_STATS_INTERVAL = args.daily_stats_interval
+
+    # Gerätesteuerung
+    if args.enable_devices:
+        config.ENABLE_DEVICE_CONTROL = True
+
+    if args.device_config:
+        config.DEVICE_CONFIG_FILE = args.device_config
+
+    if args.device_hysteresis is not None:
+        config.DEVICE_HYSTERESIS_MINUTES = args.device_hysteresis
 
 
 def main():

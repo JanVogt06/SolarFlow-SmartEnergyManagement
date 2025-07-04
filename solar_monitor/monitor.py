@@ -1,10 +1,12 @@
 """
-Hauptmonitor-Klasse für den Fronius Solar Monitor.
+Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung.
 """
 
 import logging
 import time
 from typing import Optional
+from pathlib import Path
+from datetime import timedelta
 
 from .api import FroniusAPI
 from .config import Config
@@ -14,9 +16,11 @@ from .models import SolarData
 from .daily_stats import DailyStats
 from .daily_stats_logger import DailyStatsLogger
 
+# Import für Gerätesteuerung
+from device_management import DeviceManager, EnergyController, DeviceState
 
 class SolarMonitor:
-    """Hauptklasse für den Solar Monitor"""
+    """Hauptklasse für den Solar Monitor mit Gerätesteuerung"""
 
     def __init__(self, config: Optional[Config] = None):
         """
@@ -43,6 +47,12 @@ class SolarMonitor:
         if self.config.ENABLE_DAILY_STATS_LOGGING:
             self.daily_stats_logger = DailyStatsLogger(self.config)
 
+        # Gerätesteuerung initialisieren
+        self.device_manager = None
+        self.energy_controller = None
+        if self.config.ENABLE_DEVICE_CONTROL:
+            self._init_device_control()
+
         self.running = False
         self._setup_logging()
 
@@ -57,6 +67,36 @@ class SolarMonitor:
         # Tagesstatistiken
         self.daily_stats = DailyStats()
         self.last_stats_display = None  # Zeitpunkt der letzten Statistik-Anzeige
+
+        # Gerätesteuerung
+        self.last_device_update = None  # Zeitpunkt der letzten Geräte-Aktualisierung
+        self.last_surplus_power = None  # Letzter Überschuss für Änderungserkennung
+
+    def _init_device_control(self) -> None:
+        """Initialisiert die Gerätesteuerung"""
+        try:
+            config_file = Path(self.config.DEVICE_CONFIG_FILE)
+            self.device_manager = DeviceManager(config_file)
+            self.energy_controller = EnergyController(self.device_manager)
+
+            # Setze Hysterese-Zeit
+            self.energy_controller.hysteresis_time = timedelta(minutes=self.config.DEVICE_HYSTERESIS_MINUTES)
+
+            self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
+            self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
+
+            # Liste Geräte auf
+            for device in self.device_manager.get_devices_by_priority():
+                self.logger.info(f"  - {device.name}: {device.power_consumption}W, "
+                               f"Priorität {device.priority}, "
+                               f"Schwellwerte: Ein={device.switch_on_threshold}W, "
+                               f"Aus={device.switch_off_threshold}W")
+
+        except Exception as e:
+            self.logger.error(f"Fehler bei der Initialisierung der Gerätesteuerung: {e}")
+            self.config.ENABLE_DEVICE_CONTROL = False
+            self.device_manager = None
+            self.energy_controller = None
 
     def _setup_logging(self) -> None:
         """Konfiguriert das System-Logging"""
@@ -132,6 +172,16 @@ class SolarMonitor:
         if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
             self.daily_stats_logger.log_daily_stats(self.daily_stats)
 
+        # Geräte beim Beenden ausschalten
+        if self.energy_controller:
+            self.logger.info("Schalte alle Geräte aus...")
+            for device in self.device_manager.get_active_devices():
+                device.state = DeviceState.OFF
+                self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
+
+            # Speichere Gerätekonfiguration
+            self.device_manager.save_devices()
+
     def _handle_consecutive_errors(self, consecutive_errors: int, max_errors: int = 5) -> bool:
         """
         Behandelt aufeinanderfolgende Fehler.
@@ -152,12 +202,59 @@ class SolarMonitor:
             return False
         return True
 
+    def _update_devices(self, data: SolarData) -> None:
+        """
+        Aktualisiert die Gerätesteuerung basierend auf den Solardaten.
+
+        Args:
+            data: Aktuelle Solardaten
+        """
+        if not self.energy_controller:
+            return
+
+        # Prüfe ob Update notwendig (nur bei Änderung oder periodisch)
+        if self.config.DEVICE_UPDATE_ONLY_ON_CHANGE:
+            # Berechne Änderung des Überschusses
+            if self.last_surplus_power is not None:
+                change = abs(data.surplus_power - self.last_surplus_power)
+                # Update nur bei signifikanter Änderung (>50W) oder alle 60 Sekunden
+                if change < 50 and self.last_device_update:
+                    time_since_update = time.time() - self.last_device_update
+                    if time_since_update < 60:
+                        return
+
+        # Führe Update durch
+        changes = self.energy_controller.update(data.surplus_power, data.timestamp)
+
+        # Protokolliere Änderungen
+        if changes:
+            for device_name, action in changes.items():
+                self.logger.info(f"Gerät '{device_name}' {action}")
+
+        # Merke Werte für nächsten Vergleich
+        self.last_surplus_power = data.surplus_power
+        self.last_device_update = time.time()
+
+    def _check_daily_device_reset(self, current_date) -> None:
+        """
+        Prüft und führt täglichen Reset der Gerätestatistiken durch.
+
+        Args:
+            current_date: Aktuelles Datum
+        """
+        if self.energy_controller and self.daily_stats.date != current_date:
+            self.energy_controller.reset_daily_stats()
+            self.logger.info("Tägliche Gerätestatistiken zurückgesetzt")
+
     def run(self) -> None:
         """Hauptschleife des Monitors"""
         self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
         if self.config.SHOW_DAILY_STATS:
             interval_min = self.config.DAILY_STATS_INTERVAL / 60
             self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
+
+        if self.config.ENABLE_DEVICE_CONTROL:
+            self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
 
         consecutive_errors = 0
         max_consecutive_errors = 5
@@ -176,8 +273,15 @@ class SolarMonitor:
                         self.stats['updates'] += 1
                         self.stats['last_update'] = time.time()
 
-                        # Daten anzeigen
-                        self.display.display_data(data)
+                        # Gerätesteuerung aktualisieren
+                        if self.config.ENABLE_DEVICE_CONTROL:
+                            self._update_devices(data)
+
+                        # Daten anzeigen - mit oder ohne Geräte
+                        if self.config.ENABLE_DEVICE_CONTROL and self.device_manager:
+                            self.display.display_data_with_devices(data, self.device_manager)
+                        else:
+                            self.display.display_data(data)
 
                         # Daten loggen
                         if self.data_logger:
@@ -195,6 +299,9 @@ class SolarMonitor:
                             self.daily_stats.reset()
                             self.daily_stats.date = current_date
                             self.daily_stats.first_update = data.timestamp
+
+                            # Gerätestatistiken zurücksetzen
+                            self._check_daily_device_reset(current_date)
 
                         # Tagesstatistiken aktualisieren
                         self.daily_stats.update(data, self.config.UPDATE_INTERVAL)
@@ -244,3 +351,21 @@ class SolarMonitor:
             Tagesstatistiken
         """
         return self.daily_stats
+
+    def get_device_manager(self) -> Optional[DeviceManager]:
+        """
+        Gibt den DeviceManager zurück (für externe Verwendung).
+
+        Returns:
+            DeviceManager oder None wenn Gerätesteuerung nicht aktiv
+        """
+        return self.device_manager
+
+    def get_energy_controller(self) -> Optional[EnergyController]:
+        """
+        Gibt den EnergyController zurück (für externe Verwendung).
+
+        Returns:
+            EnergyController oder None wenn Gerätesteuerung nicht aktiv
+        """
+        return self.energy_controller
