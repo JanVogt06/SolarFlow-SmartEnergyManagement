@@ -6,9 +6,14 @@
     "priority": 3,
     "min_runtime": 120,
     "max_runtime_per_day": 240,
-    "switch_on_threshold": 2200,
-    "switch_off_threshold": 1800,
-    "allowed_time_ranges": [["08:00:00", "20:00:00"]]
+    "switch_on_threshold": 300,
+    "switch_off_threshold": 100,
+    "allowed_time_ranges": [
+      [
+        "08:00:00",
+        "20:00:00"
+      ]
+    ]
   },
   {
     "name": "Warmwasserboiler",

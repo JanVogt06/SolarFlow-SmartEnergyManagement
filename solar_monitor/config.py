@@ -59,7 +59,7 @@ class Config:
 
     # Gerätesteuerung
     ENABLE_DEVICE_CONTROL: bool = os.getenv("ENABLE_DEVICE_CONTROL", "True").lower() == "true"
-    DEVICE_CONFIG_FILE: str = os.getenv("DEVICE_CONFIG_FILE", "devices.json")
+    DEVICE_CONFIG_FILE: str = os.getenv("DEVICE_CONFIG_FILE", "device_management/devices.json")
     DEVICE_HYSTERESIS_MINUTES: int = int(os.getenv("DEVICE_HYSTERESIS_MINUTES", "5"))
     DEVICE_UPDATE_ONLY_ON_CHANGE: bool = os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true"
 
