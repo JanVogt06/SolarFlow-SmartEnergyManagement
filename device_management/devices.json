@@ -2,7 +2,7 @@
   {
     "name": "Waschmaschine",
     "description": "Waschmaschine im Keller",
-    "power_consumption": 2000,
+    "power_consumption": 200,
     "priority": 3,
     "min_runtime": 120,
     "max_runtime_per_day": 240,
