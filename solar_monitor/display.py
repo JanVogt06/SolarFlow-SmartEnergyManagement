@@ -1,11 +1,12 @@
 """
-Anzeigeformatierung für den Fronius Solar Monitor.
+Anzeigeformatierung für den Fronius Solar Monitor - KORRIGIERT.
 """
 
 from typing import Optional
 from .models import SolarData
 from .config import Config
 from .daily_stats import DailyStats
+from device_management import DeviceState
 
 
 class DisplayFormatter:
@@ -157,7 +158,12 @@ class DisplayFormatter:
         controlled_consumption = device_manager.get_total_consumption()
 
         print(f"Gesteuerter Verbrauch:    {controlled_consumption:>10.0f} W")
-        print(f"Verbleibender Überschuss: {data.surplus_power - controlled_consumption:>10.0f} W")
+        print(f"Aktueller Überschuss:     {data.surplus_power:>10.0f} W")
+
+        # Optional: Zeige theoretischen Überschuss (wenn alle Geräte aus wären)
+        theoretical_surplus = data.surplus_power + controlled_consumption
+        if controlled_consumption > 0:
+            print(f"Theoretischer Überschuss: {theoretical_surplus:>10.0f} W (wenn alle Geräte aus)")
         print()
 
         # Zeige Gerätestatus
@@ -180,9 +186,11 @@ class DisplayFormatter:
                     status_color = self.COLOR_RED
                     status_text = "AUS"
 
+                total_runtime = device.get_current_runtime(data.timestamp)
+
                 # Formatiere Laufzeit
-                hours = device.runtime_today // 60
-                minutes = device.runtime_today % 60
+                hours = total_runtime // 60
+                minutes = total_runtime % 60
                 runtime_str = f"{hours}h {minutes}m"
 
                 # Zeige Zeile

@@ -1,13 +1,14 @@
 """
-Verwaltung mehrerer Geräte für den Smart Energy Manager.
+Verwaltung mehrerer Geräte für den Smart Energy Manager - KORRIGIERT.
 """
 
 import json
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+from datetime import time
 
-from .device import Device, DeviceState
+from .device import Device, DeviceState, DevicePriority
 
 
 class DeviceManager:
@@ -65,6 +66,78 @@ class DeviceManager:
         """Berechnet Gesamtverbrauch aller aktiven Geräte"""
         return sum(d.power_consumption for d in self.get_active_devices())
 
+    def _validate_device_config(self, device_dict: Dict[str, Any]) -> List[str]:
+        """
+        Validiert eine Gerätekonfiguration.
+
+        Args:
+            device_dict: Dictionary mit Gerätekonfiguration
+
+        Returns:
+            Liste von Fehlermeldungen (leer wenn alles ok)
+        """
+        errors = []
+
+        # Pflichtfelder
+        required_fields = ['name', 'power_consumption', 'priority',
+                          'switch_on_threshold', 'switch_off_threshold']
+
+        for field in required_fields:
+            if field not in device_dict:
+                errors.append(f"Pflichtfeld '{field}' fehlt")
+
+        # Name validieren
+        if 'name' in device_dict:
+            if not isinstance(device_dict['name'], str) or not device_dict['name'].strip():
+                errors.append("Name muss ein nicht-leerer String sein")
+
+        # Numerische Werte validieren
+        numeric_fields = {
+            'power_consumption': (0, float('inf'), "Leistungsaufnahme"),
+            'priority': (1, 10, "Priorität"),
+            'switch_on_threshold': (0, float('inf'), "Einschalt-Schwellwert"),
+            'switch_off_threshold': (0, float('inf'), "Ausschalt-Schwellwert"),
+            'min_runtime': (0, 1440, "Mindestlaufzeit"),  # Max 24 Stunden
+            'max_runtime_per_day': (0, 1440, "Maximale Tageslaufzeit")
+        }
+
+        for field, (min_val, max_val, desc) in numeric_fields.items():
+            if field in device_dict:
+                try:
+                    value = float(device_dict[field])
+                    if not (min_val <= value <= max_val):
+                        errors.append(f"{desc} muss zwischen {min_val} und {max_val} liegen")
+                except (ValueError, TypeError):
+                    errors.append(f"{desc} muss eine Zahl sein")
+
+        # Schwellwerte-Logik prüfen
+        if ('switch_on_threshold' in device_dict and 'switch_off_threshold' in device_dict):
+            try:
+                on_threshold = float(device_dict['switch_on_threshold'])
+                off_threshold = float(device_dict['switch_off_threshold'])
+                if off_threshold > on_threshold:
+                    errors.append("Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein")
+            except (ValueError, TypeError):
+                pass  # Fehler wurde schon oben erfasst
+
+        # Zeitbereiche validieren
+        if 'allowed_time_ranges' in device_dict:
+            if not isinstance(device_dict['allowed_time_ranges'], list):
+                errors.append("allowed_time_ranges muss eine Liste sein")
+            else:
+                for i, time_range in enumerate(device_dict['allowed_time_ranges']):
+                    if not isinstance(time_range, list) or len(time_range) != 2:
+                        errors.append(f"Zeitbereich {i+1} muss eine Liste mit 2 Zeiten sein")
+                    else:
+                        # Validiere Zeitformat
+                        for j, time_str in enumerate(time_range):
+                            try:
+                                time.fromisoformat(time_str)
+                            except ValueError:
+                                errors.append(f"Zeitbereich {i+1}, Zeit {j+1}: Ungültiges Zeitformat (erwartet: HH:MM:SS)")
+
+        return errors
+
     def save_devices(self) -> None:
         """Speichert Geräte in JSON-Datei"""
         devices_data = []
@@ -101,11 +174,25 @@ class DeviceManager:
                 devices_data = json.load(f)
 
             self.devices.clear()
+
+            # FIX 4: Validiere alle Geräte vor dem Laden
+            all_errors = []
+            for i, device_dict in enumerate(devices_data):
+                errors = self._validate_device_config(device_dict)
+                if errors:
+                    device_name = device_dict.get('name', f'Gerät {i+1}')
+                    all_errors.append(f"{device_name}: " + "; ".join(errors))
+
+            if all_errors:
+                error_msg = "Fehler in der Gerätekonfiguration:\n" + "\n".join(all_errors)
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            # Lade Geräte wenn Validierung erfolgreich
             for device_dict in devices_data:
                 # Konvertiere Zeit-Strings zurück
                 time_ranges = []
                 for start_str, end_str in device_dict.get('allowed_time_ranges', []):
-                    from datetime import time
                     start = time.fromisoformat(start_str)
                     end = time.fromisoformat(end_str)
                     time_ranges.append((start, end))
@@ -125,5 +212,17 @@ class DeviceManager:
 
             self.logger.info(f"Geladen: {len(self.devices)} Geräte")
 
+            # Zeige Prioritätsübersicht
+            for device in self.get_devices_by_priority():
+                self.logger.debug(f"  {device.name}: Priorität {device.priority} "
+                                f"({device.get_priority_name()})")
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Fehler beim Parsen der JSON-Datei: {e}")
+            raise
+        except ValueError as e:
+            # Validierungsfehler wurden bereits geloggt
+            raise
         except Exception as e:
-            self.logger.error(f"Fehler beim Laden der Geräte: {e}")
+            self.logger.error(f"Unerwarteter Fehler beim Laden der Geräte: {e}")
+            raise

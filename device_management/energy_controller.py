@@ -1,5 +1,5 @@
 """
-Energie-Steuerung für den Smart Energy Manager.
+Energie-Steuerung für den Smart Energy Manager - KORRIGIERT.
 """
 
 import logging
@@ -31,7 +31,7 @@ class EnergyController:
         Aktualisiert Gerätezustände basierend auf verfügbarem Überschuss.
 
         Args:
-            surplus_power: Verfügbarer Überschuss in Watt
+            surplus_power: Verfügbarer Überschuss in Watt (kann negativ sein!)
             current_time: Aktuelle Zeit (optional, für Tests)
 
         Returns:
@@ -45,34 +45,53 @@ class EnergyController:
         # Sortiere Geräte nach Priorität
         devices = self.device_manager.get_devices_by_priority()
 
-        # Berechne aktuellen Verbrauch
+        # Berechne aktuellen Verbrauch der gesteuerten Geräte
         current_consumption = self.device_manager.get_total_consumption()
-        available_power = surplus_power + current_consumption
 
-        self.logger.debug(f"Überschuss: {surplus_power}W, Verbrauch: {current_consumption}W, "
-                          f"Verfügbar: {available_power}W")
+        # Die verfügbare Leistung für neue Geräte ist der aktuelle Überschuss
+        # plus die Leistung, die wir durch Abschalten von Geräten freigeben könnten
+        total_available = surplus_power + current_consumption
 
-        # Verarbeite Geräte nach Priorität
+        self.logger.debug(f"Überschuss: {surplus_power}W, Gesteuerter Verbrauch: {current_consumption}W, "
+                          f"Total verfügbar: {total_available}W")
+
+        # Dann: Prüfe welche Geräte ausgeschaltet werden müssen
+        # Verwende den TATSÄCHLICHEN Überschuss für die Ausschalt-Entscheidung
         for device in devices:
-            action = self._process_device(device, available_power, current_time)
+            if device.state == DeviceState.ON:
+                # Gerät läuft - prüfe ob ausschalten basierend auf REALEM Überschuss
+                if surplus_power < device.switch_off_threshold:
+                    # Prüfe Mindestlaufzeit
+                    if self._check_min_runtime(device, current_time):
+                        action = self._switch_off(device, current_time,
+                                                f"Überschuss ({surplus_power}W) < Schwellwert ({device.switch_off_threshold}W)")
+                        if action:
+                            changes[device.name] = action
+                            # Aktualisiere verfügbare Leistung nach Abschaltung
+                            surplus_power += device.power_consumption
+                            total_available = surplus_power + self.device_manager.get_total_consumption()
+
+        # Danach: Prüfe welche Geräte eingeschaltet werden können
+        # Verwende die TOTAL verfügbare Leistung für die Einschalt-Entscheidung
+        available_for_new = total_available
+        for device in devices:
+            action = self._process_device_for_switching_on(device, available_for_new, current_time)
 
             if action:
                 changes[device.name] = action
-
-                # Aktualisiere verfügbare Leistung
-                if action == "eingeschaltet" and device.state == DeviceState.ON:
-                    available_power -= device.power_consumption
-                elif action == "ausgeschaltet" and device.state == DeviceState.OFF:
-                    available_power += device.power_consumption
+                # Aktualisiere verfügbare Leistung nach Einschaltung
+                if "eingeschaltet" in action and device.state == DeviceState.ON:
+                    available_for_new -= device.power_consumption
 
         return changes
 
-    def _process_device(self, device: Device, available_power: float, current_time: datetime) -> Optional[str]:
+    def _process_device_for_switching_on(self, device: Device, available_power: float,
+                                        current_time: datetime) -> Optional[str]:
         """
-        Verarbeitet ein einzelnes Gerät.
+        Prüft ob ein Gerät eingeschaltet werden kann.
 
         Args:
-            device: Zu verarbeitendes Gerät
+            device: Zu prüfendes Gerät
             available_power: Verfügbare Leistung in Watt
             current_time: Aktuelle Zeit
 
@@ -93,20 +112,13 @@ class EnergyController:
             device.state = DeviceState.BLOCKED
             return None
 
-        # Entscheide basierend auf aktuellem Zustand
+        # Gerät kann grundsätzlich laufen - prüfe ob einschalten
         if device.state == DeviceState.OFF or device.state == DeviceState.BLOCKED:
             # Gerät ist aus - prüfe ob einschalten
             if available_power >= device.switch_on_threshold:
-                # Prüfe Hysterese
-                if self._check_hysteresis(device, current_time):
+                # FIX 3: Prüfe Hysterese für EINSCHALTEN (basierend auf letztem Ausschalten)
+                if self._check_switch_on_hysteresis(device, current_time):
                     return self._switch_on(device, current_time)
-
-        elif device.state == DeviceState.ON:
-            # Gerät läuft - prüfe ob ausschalten
-            if available_power < device.switch_off_threshold:
-                # Prüfe Mindestlaufzeit
-                if self._check_min_runtime(device, current_time):
-                    return self._switch_off(device, current_time, "Nicht genug Überschuss")
 
         return None
 
@@ -122,26 +134,42 @@ class EnergyController:
 
     def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> str:
         """Schaltet ein Gerät aus"""
-        # Berechne Laufzeit
+        # Berechne und addiere Laufzeit zur Tagesstatistik
         if device.last_state_change:
             runtime = int((current_time - device.last_state_change).total_seconds() / 60)
             device.runtime_today += runtime
+            self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten, "
+                            f"Gesamt heute: {device.runtime_today} Minuten")
 
         device.state = DeviceState.OFF
         device.last_state_change = current_time
+        # FIX 3: Speichere Ausschaltzeit für Hysterese
+        device.last_switch_off = current_time
 
         self.logger.info(f"Gerät '{device.name}' ausgeschaltet"
                          f"{f' - {reason}' if reason else ''}")
 
-        return "ausgeschaltet"
+        return f"ausgeschaltet - {reason}" if reason else "ausgeschaltet"
 
-    def _check_hysteresis(self, device: Device, current_time: datetime) -> bool:
-        """Prüft ob Hysterese-Zeit abgelaufen ist"""
-        if device.last_state_change is None:
+    def _check_switch_on_hysteresis(self, device: Device, current_time: datetime) -> bool:
+        """
+        Prüft ob Hysterese-Zeit seit dem letzten Ausschalten abgelaufen ist.
+
+        Dies verhindert zu schnelles Wiedereinschalten nach dem Ausschalten.
+        """
+        if device.last_switch_off is None:
+            # Gerät wurde noch nie ausgeschaltet oder ist beim Start aus
             return True
 
-        time_since_change = current_time - device.last_state_change
-        return time_since_change >= self.hysteresis_time
+        time_since_off = current_time - device.last_switch_off
+        can_switch_on = time_since_off >= self.hysteresis_time
+
+        if not can_switch_on:
+            remaining = self.hysteresis_time - time_since_off
+            self.logger.debug(f"Gerät '{device.name}' kann noch nicht eingeschaltet werden. "
+                            f"Hysterese: {remaining.total_seconds():.0f}s verbleibend")
+
+        return can_switch_on
 
     def _check_min_runtime(self, device: Device, current_time: datetime) -> bool:
         """Prüft ob Mindestlaufzeit erreicht ist"""
