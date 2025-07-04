@@ -134,7 +134,7 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
         Beispiele:
-          python main.py                          # Standard-Ausführung
+          python main.py                          # Standard-Ausführung mit Gerätesteuerung
           python main.py --ip 192.168.178.100     # Andere IP-Adresse
           python main.py --interval 10            # Update alle 10 Sekunden
           python main.py --timeout 10             # Längerer Timeout für langsame Verbindungen
@@ -142,17 +142,18 @@ def parse_arguments():
           python main.py --simple                 # Einzeilige Ausgabe für kleine Displays
 
         Gerätesteuerung:
-          python main.py --enable-devices         # Aktiviert intelligente Gerätesteuerung
-          python main.py --enable-devices --device-config my_devices.json  # Eigene Gerätedatei
-          python main.py --enable-devices --device-hysteresis 10  # 10 Min Hysterese
+          python main.py                          # Gerätesteuerung ist standardmäßig aktiv
+          python main.py --disable-devices        # Deaktiviert intelligente Gerätesteuerung
+          python main.py --device-config my_devices.json  # Eigene Gerätedatei
+          python main.py --device-hysteresis 10   # 10 Min Hysterese
 
         Geräte-Logging:
-          python main.py --enable-devices --no-device-logging  # Gerätesteuerung ohne Logging
-          python main.py --enable-devices --device-log-dir MyDeviceLogs  # Eigenes Geräte-Log-Verzeichnis
-          python main.py --enable-devices --device-log-interval 300  # Status-Log alle 5 Minuten
-          python main.py --enable-devices --no-device-events  # Ohne Event-Logging
-          python main.py --enable-devices --no-device-status  # Ohne periodisches Status-Logging
-          python main.py --enable-devices --no-device-summary  # Ohne tägliche Zusammenfassung
+          python main.py --no-device-logging      # Gerätesteuerung ohne Logging
+          python main.py --device-log-dir MyDeviceLogs    # Eigenes Geräte-Log-Verzeichnis
+          python main.py --device-log-interval 300         # Status-Log alle 5 Minuten
+          python main.py --no-device-events       # Ohne Event-Logging
+          python main.py --no-device-status       # Ohne periodisches Status-Logging
+          python main.py --no-device-summary      # Ohne tägliche Zusammenfassung
 
         Logging und Verzeichnisse:
           python main.py --no-logging             # Ohne CSV-Logging
@@ -189,10 +190,10 @@ def parse_arguments():
           python main.py --log-level WARNING --no-logging
           python main.py --data-file /path/to/solar_$(date +%%Y%%m%%d).csv
           python main.py --csv-delimiter "," --csv-decimal "." --csv-english
-          python main.py --enable-devices --log-level DEBUG --interval 10
-          python main.py --enable-devices --device-config pool.json --no-colors
-          python main.py --enable-devices --device-log-interval 60 --no-device-events
-          python main.py --enable-devices --no-device-logging --log-level INFO
+          python main.py --disable-devices --log-level INFO
+          python main.py --device-config pool.json --no-colors
+          python main.py --device-log-interval 60 --no-device-events
+          python main.py --disable-devices --no-logging
 
         Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
           export FRONIUS_IP=192.168.178.100
@@ -201,7 +202,7 @@ def parse_arguments():
           export ENABLE_COLORS=false
           export ENABLE_DATA_LOGGING=false
           export ENABLE_DAILY_STATS_LOGGING=false
-          export ENABLE_DEVICE_CONTROL=true
+          export ENABLE_DEVICE_CONTROL=true       # oder false zum Deaktivieren
           export DEVICE_CONFIG_FILE=devices.json
           export DEVICE_HYSTERESIS_MINUTES=5
           export ENABLE_DEVICE_LOGGING=true
@@ -432,9 +433,9 @@ def parse_arguments():
 
     # Gerätesteuerung
     parser.add_argument(
-        '--enable-devices',
+        '--disable-devices',
         action='store_true',
-        help='Aktiviert die intelligente Gerätesteuerung'
+        help='Deaktiviert die intelligente Gerätesteuerung (standardmäßig aktiviert)'
     )
 
     parser.add_argument(
@@ -588,9 +589,9 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
     if args.daily_stats_interval is not None:
         config.DAILY_STATS_INTERVAL = args.daily_stats_interval
 
-    # Gerätesteuerung
-    if args.enable_devices:
-        config.ENABLE_DEVICE_CONTROL = True
+    # Gerätesteuerung - WICHTIG: Logik umgekehrt!
+    if args.disable_devices:
+        config.ENABLE_DEVICE_CONTROL = False
 
     if args.device_config:
         config.DEVICE_CONFIG_FILE = args.device_config
