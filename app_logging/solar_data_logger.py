@@ -1,48 +1,33 @@
 """
-Daten-Logging für den Fronius Solar Monitor mit Session-basierten Dateien.
+Solar Data Logger für den Smart Energy Manager.
 """
 
-import csv
-import logging
-import os
-from datetime import datetime
-from pathlib import Path
+from typing import List, Any
 
+from .base_logger import BaseLogger
 from solar_monitor.models import SolarData
-from solar_monitor.config import Config
 
 
-class DataLogger:
-    """Klasse zum Logging der Solardaten mit Session-basierten Dateien"""
+class SolarDataLogger(BaseLogger):
+    """Logger für Solar-Leistungsdaten"""
 
-    def __init__(self, config: Config):
+    def __init__(self, config):
         """
-        Initialisiert den DataLogger mit Konfiguration.
+        Initialisiert den SolarDataLogger.
 
         Args:
             config: Konfigurationsobjekt
         """
-        self.config = config
-        self.logger = logging.getLogger(__name__)
+        super().__init__(
+            config=config,
+            base_dir=config.DATA_LOG_DIR,
+            sub_dir=config.SOLAR_DATA_DIR,
+            base_filename=config.DATA_LOG_BASE_NAME,
+            session_based=True  # Eine Datei pro Session
+        )
 
-        # Erstelle Verzeichnisstruktur
-        self.base_dir = Path(config.DATA_LOG_DIR)
-        self.data_dir = self.base_dir / config.SOLAR_DATA_DIR
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-
-        # Generiere eindeutigen Dateinamen mit Timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_name = config.DATA_LOG_BASE_NAME.replace('.csv', '')
-        self.filename = self.data_dir / f"{base_name}_{timestamp}.csv"
-
-        self.logger.info(f"Neue Log-Datei: {self.filename}")
-
-        # Header schreiben
-        self._write_header()
-
-    def _write_header(self) -> None:
-        """Schreibt die CSV-Header"""
-
+    def _get_headers(self) -> List[str]:
+        """Gibt die CSV-Header zurück"""
         if self.config.CSV_USE_GERMAN_HEADERS:
             headers = [
                 "Zeitstempel",
@@ -58,21 +43,6 @@ class DataLogger:
                 "Autarkie (%)",
                 "Überschuss (W)"
             ]
-
-            info_row = [
-                "Format: YYYY-MM-DD HH:MM:SS",
-                "Solarproduktion",
-                "Negativ=Einspeisung",
-                "Negativ=Laden",
-                "Gesamtverbrauch",
-                "Ladestand",
-                "PV + Batterie-Entladung",
-                "Ins Netz",
-                "Vom Netz",
-                "Direktverbrauch",
-                "Unabhängigkeit",
-                "Verfügbar"
-            ] if self.config.CSV_INCLUDE_INFO_ROW else None
         else:
             headers = [
                 "Timestamp",
@@ -89,92 +59,61 @@ class DataLogger:
                 "Surplus Power (W)"
             ]
 
-            info_row = [
-                "Format: YYYY-MM-DD HH:MM:SS",
-                "Solar production",
-                "Negative=Feed-in",
-                "Negative=Charging",
-                "Total consumption",
-                "State of charge",
-                "PV + Battery discharge",
-                "To grid",
-                "From grid",
-                "Direct consumption",
-                "Independence",
-                "Available"
-            ] if self.config.CSV_INCLUDE_INFO_ROW else None
+        return headers
 
-        try:
-            with open(self.filename, 'w', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(headers)
+    def _get_session_info(self) -> List[str]:
+        """Gibt Session-spezifische Info-Zeilen zurück"""
+        title = "Solar Data Log"
+        kwargs = {
+            "Fronius IP": self.config.FRONIUS_IP,
+            "Update Interval": f"{self.config.UPDATE_INTERVAL}s",
+            "Logging aktiviert": "Ja" if self.config.ENABLE_DATA_LOGGING else "Nein"
+        }
 
-                # Schreibe Info-Zeile wenn konfiguriert
-                if info_row:
-                    writer.writerow(info_row)
+        return self.csv_formatter.create_session_info(title, **kwargs)
 
-                # Schreibe Session-Info als Kommentar
-                writer.writerow([])  # Leerzeile
-                session_info = [
-                    f"# Session Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    f"# Fronius IP: {self.config.FRONIUS_IP}",
-                    f"# Update Interval: {self.config.UPDATE_INTERVAL}s",
-                    f"# CSV Format: Delimiter='{self.config.CSV_DELIMITER}', Decimal='{self.config.CSV_DECIMAL_SEPARATOR}'"
-                ]
-                for info in session_info:
-                    writer.writerow([info])
-                writer.writerow([])  # Leerzeile nach Kommentaren
-
-            self.logger.info(f"CSV-Datei erstellt: {self.filename.name}")
-            self.logger.debug(f"Format: Delimiter='{self.config.CSV_DELIMITER}', "
-                            f"Encoding={self.config.CSV_ENCODING}, "
-                            f"Decimal='{self.config.CSV_DECIMAL_SEPARATOR}'")
-
-        except IOError as e:
-            self.logger.error(f"Fehler beim Erstellen der CSV-Datei: {e}")
-
-    def log_data(self, data: SolarData) -> None:
+    def _format_row(self, data: SolarData) -> List[Any]:
         """
-        Schreibt Daten in die CSV-Datei.
+        Formatiert SolarData für CSV-Export.
 
         Args:
             data: Zu loggende Solardaten
+
+        Returns:
+            Liste mit formatierten Werten
         """
         # Formatiere Zeitstempel
-        timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = self.csv_formatter.format_timestamp(data.timestamp)
 
-        # Formatiere Zahlen basierend auf Decimal Separator
-        def format_number(value: float, decimals: int = 0, with_sign: bool = False) -> str:
-            """Formatiert eine Zahl mit konfigurierbarem Dezimaltrennzeichen"""
-            if decimals == 0:
-                formatted = f"{value:+.0f}" if with_sign else f"{value:.0f}"
-            else:
-                formatted = f"{value:+.{decimals}f}" if with_sign else f"{value:.{decimals}f}"
-
-            if self.config.CSV_DECIMAL_SEPARATOR == ",":
-                formatted = formatted.replace(".", ",")
-
-            return formatted
-
-        # Erstelle Datenzeile
+        # Formatiere alle Werte
         row = [
             timestamp,
-            format_number(data.pv_power),
-            format_number(data.grid_power, with_sign=True),
-            format_number(data.battery_power, with_sign=True) if data.battery_power != 0 else "0",
-            format_number(data.load_power),
-            format_number(data.battery_soc, decimals=1) if data.battery_soc is not None else "-",
-            format_number(data.total_production),
-            format_number(data.feed_in_power),
-            format_number(data.grid_consumption),
-            format_number(data.self_consumption),
-            format_number(data.autarky_rate, decimals=1),
-            format_number(data.surplus_power)
+            self.csv_formatter.format_number(data.pv_power),
+            self.csv_formatter.format_number(data.grid_power, with_sign=True),
+            self.csv_formatter.format_number(data.battery_power, with_sign=True)
+                if data.battery_power != 0 else "0",
+            self.csv_formatter.format_number(data.load_power),
+            self.csv_formatter.format_number(data.battery_soc, decimals=1)
+                if data.battery_soc is not None else "-",
+            self.csv_formatter.format_number(data.total_production),
+            self.csv_formatter.format_number(data.feed_in_power),
+            self.csv_formatter.format_number(data.grid_consumption),
+            self.csv_formatter.format_number(data.self_consumption),
+            self.csv_formatter.format_number(data.autarky_rate, decimals=1),
+            self.csv_formatter.format_number(data.surplus_power)
         ]
 
-        try:
-            with open(self.filename, 'a', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(row)
-        except IOError as e:
-            self.logger.error(f"Fehler beim Schreiben der Log-Datei: {e}")
+        return row
+
+    # Alias für Kompatibilität
+    def log_data(self, data: SolarData) -> bool:
+        """
+        Loggt Solardaten (Kompatibilitäts-Methode).
+
+        Args:
+            data: Zu loggende Solardaten
+
+        Returns:
+            True bei Erfolg
+        """
+        return self.log(data)

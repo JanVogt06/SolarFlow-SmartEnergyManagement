@@ -1,298 +1,321 @@
 """
-Device Logger für den Smart Energy Manager.
+Abstrakte Basisklasse für alle Logger im Smart Energy Manager.
 """
 
-from typing import List, Any, Dict
-from datetime import datetime
+import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
+from datetime import datetime
+from typing import List, Optional, Dict, Any
 
-from .base_logger import MultiFileLogger
-from device_management import Device, DeviceState, DeviceManager
+from utils.csv_utils import CSVFormatter, CSVWriter
 
 
-class DeviceLogger(MultiFileLogger):
-    """Logger für Geräte-Events und Status"""
+class BaseLogger(ABC):
+    """Abstrakte Basisklasse für alle CSV-Logger"""
 
-    def __init__(self, config, device_manager: DeviceManager):
+    def __init__(self, config, base_dir: str, sub_dir: str,
+                 base_filename: str, session_based: bool = True):
         """
-        Initialisiert den DeviceLogger.
+        Initialisiert den BaseLogger.
 
         Args:
             config: Konfigurationsobjekt
-            device_manager: DeviceManager-Instanz
+            base_dir: Basis-Verzeichnis (z.B. "Datalogs")
+            sub_dir: Unterverzeichnis (z.B. "Solardata")
+            base_filename: Basis-Dateiname ohne Endung (z.B. "solar_data")
+            session_based: Ob pro Session eine neue Datei erstellt wird
         """
-        super().__init__(
-            config=config,
-            base_dir=config.DATA_LOG_DIR,
-            sub_dir=config.DEVICE_LOG_DIR
-        )
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.device_manager = device_manager
+        # CSV-Utilities
+        self.csv_formatter = CSVFormatter(config)
+        self.csv_writer = CSVWriter(config)
 
-        # Event-Log: Eine Datei pro Session
-        self.add_file(
-            'events',
-            config.DEVICE_EVENTS_BASE_NAME,
-            session_based=True
-        )
+        # Verzeichnisstruktur
+        self.base_dir = Path(config.DATA_LOG_DIR if hasattr(config, 'DATA_LOG_DIR') else base_dir)
+        self.log_dir = self.base_dir / sub_dir
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Status-Log: Eine Datei pro Tag
-        self.add_file(
-            'status',
-            config.DEVICE_STATUS_BASE_NAME,
-            session_based=False,
-            timestamp_format="%Y%m%d"
-        )
+        # Dateiname generieren
+        self.base_filename = base_filename.replace('.csv', '')
+        self.session_based = session_based
+        self.filepath = self._generate_filepath()
 
-        # Header initialisieren
-        self._init_event_file()
-        self._init_status_file()
+        # Initial-Setup
+        self._initialized = False
+        self._initialize()
 
-        # Letzter Status für Änderungserkennung
-        self.last_device_states = {}
+    def _generate_filepath(self) -> Path:
+        """
+        Generiert den Dateipfad basierend auf Konfiguration.
 
-    def _init_event_file(self) -> None:
-        """Initialisiert die Event-Log-Datei"""
-        if self.config.CSV_USE_GERMAN_HEADERS:
-            headers = [
-                "Zeitstempel",
-                "Gerät",
-                "Aktion",
-                "Von Status",
-                "Zu Status",
-                "Grund",
-                "Überschuss (W)",
-                "Geräteverbrauch (W)",
-                "Schwellwert Ein (W)",
-                "Schwellwert Aus (W)",
-                "Laufzeit heute (min)",
-                "Priorität"
-            ]
+        Returns:
+            Pfad zur Log-Datei
+        """
+        if self.session_based:
+            # Eine Datei pro Session mit Timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{self.base_filename}_{timestamp}.csv"
         else:
-            headers = [
-                "Timestamp",
-                "Device",
-                "Action",
-                "From State",
-                "To State",
-                "Reason",
-                "Surplus (W)",
-                "Device Power (W)",
-                "On Threshold (W)",
-                "Off Threshold (W)",
-                "Runtime Today (min)",
-                "Priority"
-            ]
+            # Eine Datei pro Tag/Monat
+            timestamp = datetime.now().strftime(self._get_file_timestamp_format())
+            filename = f"{self.base_filename}_{timestamp}.csv"
 
-        info_lines = self.csv_formatter.create_session_info(
-            "Geräte-Event-Log",
-            **{"Anzahl Geräte": len(self.device_manager.devices)}
-        )
+        return self.log_dir / filename
 
-        self.initialize_file('events', headers, info_lines)
+    def _get_file_timestamp_format(self) -> str:
+        """
+        Gibt das Timestamp-Format für Dateinamen zurück.
 
-    def _init_status_file(self) -> None:
-        """Initialisiert die Status-Log-Datei"""
-        # Prüfe ob Datei bereits existiert
-        if self.csv_writer.file_exists(self.files['status']):
-            return
+        Kann von Subklassen überschrieben werden.
 
-        # Dynamische Header basierend auf konfigurierten Geräten
-        if self.config.CSV_USE_GERMAN_HEADERS:
-            headers = ["Zeitstempel"]
-            for device in self.device_manager.get_devices_by_priority():
-                headers.extend([
-                    f"{device.name} Status",
-                    f"{device.name} Laufzeit (min)"
-                ])
-            headers.extend([
-                "Gesamt Ein",
-                "Gesamtverbrauch (W)",
-                "Überschuss (W)",
-                "Genutzter Überschuss (W)"
-            ])
+        Returns:
+            strftime Format-String
+        """
+        return "%Y%m%d"  # Standard: Eine Datei pro Tag
+
+    def _initialize(self) -> None:
+        """Initialisiert die Log-Datei"""
+        if not self.csv_writer.file_exists(self.filepath):
+            headers = self._get_headers()
+            info_lines = self._get_session_info()
+
+            if self.csv_writer.write_header(self.filepath, headers, info_lines):
+                self._initialized = True
+                self.logger.info(f"Log-Datei initialisiert: {self.filepath}")
+            else:
+                self.logger.error(f"Fehler bei der Initialisierung: {self.filepath}")
         else:
-            headers = ["Timestamp"]
-            for device in self.device_manager.get_devices_by_priority():
-                headers.extend([
-                    f"{device.name} State",
-                    f"{device.name} Runtime (min)"
-                ])
-            headers.extend([
-                "Total On",
-                "Total Consumption (W)",
-                "Surplus (W)",
-                "Used Surplus (W)"
-            ])
+            self._initialized = True
+            self.logger.debug(f"Log-Datei existiert bereits: {self.filepath}")
 
-        info_lines = self.csv_formatter.create_session_info(
-            f"Geräte-Status-Log für {datetime.now().strftime('%Y-%m-%d')}",
-            **{"Status-Intervall": f"{self.config.DEVICE_LOG_INTERVAL}s"}
-        )
-
-        self.initialize_file('status', headers, info_lines)
-
-    def log_device_event(self, device: Device, action: str, reason: str,
-                        surplus_power: float, old_state: DeviceState) -> bool:
+    def _check_new_file_needed(self) -> bool:
         """
-        Loggt ein Geräte-Event.
-
-        Args:
-            device: Betroffenes Gerät
-            action: Durchgeführte Aktion
-            reason: Grund für die Aktion
-            surplus_power: Aktueller Überschuss
-            old_state: Vorheriger Status
+        Prüft ob eine neue Datei benötigt wird (z.B. bei Tageswechsel).
 
         Returns:
-            True bei Erfolg
+            True wenn neue Datei benötigt wird
         """
-        timestamp = self.csv_formatter.format_timestamp(datetime.now())
+        if self.session_based:
+            return False  # Session-basierte Dateien wechseln nie
 
-        row = [
-            timestamp,
-            device.name,
-            action,
-            old_state.value,
-            device.state.value,
-            reason,
-            self.csv_formatter.format_number(surplus_power),
-            self.csv_formatter.format_number(device.power_consumption),
-            self.csv_formatter.format_number(device.switch_on_threshold),
-            self.csv_formatter.format_number(device.switch_off_threshold),
-            self.csv_formatter.format_number(device.runtime_today),
-            str(device.priority)
-        ]
+        # Prüfe ob aktueller Timestamp vom Dateinamen abweicht
+        current_timestamp = datetime.now().strftime(self._get_file_timestamp_format())
+        file_timestamp = self.filepath.stem.split('_')[-1]
 
-        success = self.log_to_file('events', row)
-        if success:
-            self.logger.debug(f"Event geloggt: {device.name} - {action}")
+        return current_timestamp != file_timestamp
 
-        return success
+    def _rotate_file_if_needed(self) -> None:
+        """Rotiert die Log-Datei wenn nötig (z.B. bei Tageswechsel)"""
+        if self._check_new_file_needed():
+            self.filepath = self._generate_filepath()
+            self._initialized = False
+            self._initialize()
+            self.logger.info(f"Neue Log-Datei erstellt: {self.filepath}")
 
-    def log_device_status(self, surplus_power: float) -> bool:
+    @abstractmethod
+    def _get_headers(self) -> List[str]:
         """
-        Loggt den aktuellen Status aller Geräte.
+        Gibt die CSV-Header zurück.
 
-        Args:
-            surplus_power: Aktueller Überschuss
+        Muss von Subklassen implementiert werden.
 
         Returns:
-            True bei Erfolg
+            Liste mit Header-Spalten
         """
-        # Prüfe ob neue Datei für neuen Tag benötigt wird
-        current_date = datetime.now().strftime("%Y%m%d")
-        expected_date = self.files['status'].stem.split('_')[-1]
+        pass
 
-        if current_date != expected_date:
-            # Neue Tagesdatei
-            self.add_file(
-                'status',
-                self.config.DEVICE_STATUS_BASE_NAME,
-                session_based=False,
-                timestamp_format="%Y%m%d"
-            )
-            self._init_status_file()
-
-        timestamp = self.csv_formatter.format_timestamp(datetime.now())
-
-        # Baue Zeile auf
-        row = [timestamp]
-
-        total_on = 0
-        total_consumption = 0.0
-
-        # Status für jedes Gerät
-        for device in self.device_manager.get_devices_by_priority():
-            state_str = "1" if device.state == DeviceState.ON else "0"
-            row.extend([
-                state_str,
-                self.csv_formatter.format_number(device.runtime_today)
-            ])
-
-            if device.state == DeviceState.ON:
-                total_on += 1
-                total_consumption += device.power_consumption
-
-        # Zusammenfassung
-        used_surplus = min(total_consumption, max(0, surplus_power))
-        row.extend([
-            str(total_on),
-            self.csv_formatter.format_number(total_consumption),
-            self.csv_formatter.format_number(surplus_power),
-            self.csv_formatter.format_number(used_surplus)
-        ])
-
-        return self.log_to_file('status', row)
-
-    def log_changes(self, changes: Dict[str, str], surplus_power: float) -> None:
+    def _get_session_info(self) -> List[str]:
         """
-        Loggt Änderungen vom EnergyController.
+        Gibt Session-Info-Zeilen zurück.
 
-        Args:
-            changes: Dict mit Geräteänderungen {Name: Aktion}
-            surplus_power: Aktueller Überschuss
-        """
-        for device_name, action in changes.items():
-            device = self.device_manager.get_device(device_name)
-            if device:
-                # Bestimme alten Status
-                old_state = self.last_device_states.get(device_name, DeviceState.OFF)
-
-                # Bestimme Grund basierend auf Aktion
-                if "eingeschaltet" in action:
-                    reason = f"Überschuss > {device.switch_on_threshold}W"
-                elif "ausgeschaltet" in action:
-                    if "Überschuss" in action:
-                        reason = f"Überschuss < {device.switch_off_threshold}W"
-                    elif "Zeit" in action:
-                        reason = "Außerhalb erlaubter Zeit"
-                    elif "Maximale" in action:
-                        reason = "Maximale Tageslaufzeit erreicht"
-                    else:
-                        reason = "Manuell/System"
-                else:
-                    reason = action
-
-                # Event loggen
-                self.log_device_event(device, action, reason, surplus_power, old_state)
-
-                # Status aktualisieren
-                self.last_device_states[device_name] = device.state
-
-    def log_daily_summary(self) -> bool:
-        """
-        Erstellt eine Tageszusammenfassung.
+        Kann von Subklassen überschrieben werden.
 
         Returns:
-            True bei Erfolg
+            Liste mit Info-Zeilen
         """
-        summary_file = self.log_dir / f"device_summary_{datetime.now().strftime('%Y%m%d')}.txt"
+        title = f"{self.__class__.__name__} Log"
+        kwargs = {
+            "Logger": self.__class__.__name__,
+            "Verzeichnis": str(self.log_dir),
+            "Session-basiert": "Ja" if self.session_based else "Nein"
+        }
 
+        return self.csv_formatter.create_session_info(title, **kwargs)
+
+    @abstractmethod
+    def _format_row(self, data: Any) -> List[Any]:
+        """
+        Formatiert Daten für eine CSV-Zeile.
+
+        Muss von Subklassen implementiert werden.
+
+        Args:
+            data: Zu formatierende Daten
+
+        Returns:
+            Liste mit formatierten Werten für CSV
+        """
+        pass
+
+    def log(self, data: Any) -> bool:
+        """
+        Haupt-Log-Methode für alle Logger.
+
+        Args:
+            data: Zu loggende Daten
+
+        Returns:
+            True bei Erfolg, False bei Fehler
+        """
+        if not self._initialized:
+            self.logger.error("Logger nicht initialisiert")
+            return False
+
+        # Prüfe ob neue Datei benötigt wird
+        self._rotate_file_if_needed()
+
+        # Formatiere Daten
         try:
-            with open(summary_file, 'w', encoding='utf-8') as f:
-                f.write(f"Geräte-Tageszusammenfassung - {datetime.now().strftime('%d.%m.%Y')}\n")
-                f.write("=" * 60 + "\n\n")
+            row = self._format_row(data)
+        except Exception as e:
+            self.logger.error(f"Fehler beim Formatieren der Daten: {e}")
+            return False
 
-                total_energy = 0.0
+        # Schreibe Zeile
+        return self.csv_writer.append_row(self.filepath, row)
 
-                for device in self.device_manager.get_devices_by_priority():
-                    energy = device.runtime_today * device.power_consumption / 60000
-                    total_energy += energy
+    def get_current_filepath(self) -> Path:
+        """
+        Gibt den aktuellen Dateipfad zurück.
 
-                    f.write(f"{device.name}:\n")
-                    f.write(f"  Priorität: {device.priority}\n")
-                    f.write(f"  Leistung: {device.power_consumption}W\n")
-                    f.write(f"  Laufzeit heute: {device.runtime_today} Minuten\n")
-                    f.write(f"  Energieverbrauch: {energy:.2f} kWh\n")
-                    f.write(f"  Status: {device.state.value}\n")
-                    f.write("\n")
+        Returns:
+            Aktueller Dateipfad
+        """
+        return self.filepath
 
-                f.write(f"\nGesamt-Energieverbrauch gesteuerte Geräte: {total_energy:.2f} kWh\n")
+    def get_log_directory(self) -> Path:
+        """
+        Gibt das Log-Verzeichnis zurück.
 
-            self.logger.info(f"Tageszusammenfassung erstellt: {summary_file.name}")
+        Returns:
+            Log-Verzeichnis
+        """
+        return self.log_dir
+
+
+class MultiFileLogger(BaseLogger):
+    """
+    Erweiterte Basisklasse für Logger mit mehreren Dateien.
+
+    Z.B. für DeviceLogger mit Events und Status in separaten Dateien.
+    """
+
+    def __init__(self, config, base_dir: str, sub_dir: str):
+        """
+        Initialisiert den MultiFileLogger.
+
+        Args:
+            config: Konfigurationsobjekt
+            base_dir: Basis-Verzeichnis
+            sub_dir: Unterverzeichnis
+        """
+        # Initialisiere ohne automatische Datei-Erstellung
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.csv_formatter = CSVFormatter(config)
+        self.csv_writer = CSVWriter(config)
+
+        # Verzeichnisstruktur
+        self.base_dir = Path(config.DATA_LOG_DIR if hasattr(config, 'DATA_LOG_DIR') else base_dir)
+        self.log_dir = self.base_dir / sub_dir
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Dictionary für mehrere Dateien
+        self.files: Dict[str, Path] = {}
+        self._initialized_files: Dict[str, bool] = {}
+
+    def add_file(self, file_key: str, base_filename: str,
+                 session_based: bool = True,
+                 timestamp_format: str = "%Y%m%d") -> None:
+        """
+        Fügt eine neue Log-Datei hinzu.
+
+        Args:
+            file_key: Eindeutiger Schlüssel für die Datei
+            base_filename: Basis-Dateiname
+            session_based: Ob Session-basiert
+            timestamp_format: Format für Zeitstempel
+        """
+        base_filename = base_filename.replace('.csv', '')
+
+        if session_based:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        else:
+            timestamp = datetime.now().strftime(timestamp_format)
+
+        filename = f"{base_filename}_{timestamp}.csv"
+        self.files[file_key] = self.log_dir / filename
+        self._initialized_files[file_key] = False
+
+    def initialize_file(self, file_key: str, headers: List[str],
+                       info_lines: Optional[List[str]] = None) -> bool:
+        """
+        Initialisiert eine spezifische Log-Datei.
+
+        Args:
+            file_key: Schlüssel der Datei
+            headers: CSV-Header
+            info_lines: Info-Zeilen
+
+        Returns:
+            True bei Erfolg
+        """
+        if file_key not in self.files:
+            self.logger.error(f"Unbekannter Datei-Schlüssel: {file_key}")
+            return False
+
+        filepath = self.files[file_key]
+
+        if not self.csv_writer.file_exists(filepath):
+            if self.csv_writer.write_header(filepath, headers, info_lines):
+                self._initialized_files[file_key] = True
+                self.logger.info(f"Log-Datei initialisiert: {filepath}")
+                return True
+        else:
+            self._initialized_files[file_key] = True
             return True
 
-        except IOError as e:
-            self.logger.error(f"Fehler beim Erstellen der Zusammenfassung: {e}")
+        return False
+
+    def log_to_file(self, file_key: str, row: List[Any]) -> bool:
+        """
+        Schreibt Daten in eine spezifische Datei.
+
+        Args:
+            file_key: Schlüssel der Datei
+            row: Zu schreibende Zeile
+
+        Returns:
+            True bei Erfolg
+        """
+        if file_key not in self.files:
+            self.logger.error(f"Unbekannter Datei-Schlüssel: {file_key}")
             return False
+
+        if not self._initialized_files.get(file_key, False):
+            self.logger.error(f"Datei nicht initialisiert: {file_key}")
+            return False
+
+        return self.csv_writer.append_row(self.files[file_key], row)
+
+    # Abstrakte Methoden für Kompatibilität
+    def _get_headers(self) -> List[str]:
+        """Nicht verwendet in MultiFileLogger"""
+        return []
+
+    def _format_row(self, data: Any) -> List[Any]:
+        """Nicht verwendet in MultiFileLogger"""
+        return []

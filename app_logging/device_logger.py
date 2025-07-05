@@ -1,61 +1,58 @@
 """
-Geräte-Logging für den Smart Energy Manager.
-
-Diese Datei sollte unter device_management/device_logger.py gespeichert werden.
+Device Logger für den Smart Energy Manager.
 """
 
-import csv
-import logging
+from typing import List, Any, Dict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, List
 
-from device_management.device import Device, DeviceState
-from device_management.device_manager import DeviceManager
+from .base_logger import MultiFileLogger
+from device_management import Device, DeviceState, DeviceManager
 
 
-class DeviceLogger:
-    """Klasse zum Logging der Geräte-Events und Statistiken"""
+class DeviceLogger(MultiFileLogger):
+    """Logger für Geräte-Events und Status"""
 
     def __init__(self, config, device_manager: DeviceManager):
         """
-        Initialisiert den DeviceLogger mit Konfiguration.
+        Initialisiert den DeviceLogger.
 
         Args:
             config: Konfigurationsobjekt
             device_manager: DeviceManager-Instanz
         """
-        self.config = config
-        self.device_manager = device_manager
-        self.logger = logging.getLogger(__name__)
+        super().__init__(
+            config=config,
+            base_dir=config.DATA_LOG_DIR,
+            sub_dir=config.DEVICE_LOG_DIR
+        )
 
-        # Erstelle Verzeichnisstruktur
-        self.base_dir = Path(config.DATA_LOG_DIR)
-        self.device_dir = self.base_dir / config.DEVICE_LOG_DIR
-        self.device_dir.mkdir(parents=True, exist_ok=True)
+        self.device_manager = device_manager
 
         # Event-Log: Eine Datei pro Session
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        events_base = config.DEVICE_EVENTS_BASE_NAME.replace('.csv', '')
-        self.events_file = self.device_dir / f"{events_base}_{timestamp}.csv"
+        self.add_file(
+            'events',
+            config.DEVICE_EVENTS_BASE_NAME,
+            session_based=True
+        )
 
         # Status-Log: Eine Datei pro Tag
-        date_stamp = datetime.now().strftime("%Y%m%d")
-        status_base = config.DEVICE_STATUS_BASE_NAME.replace('.csv', '')
-        self.status_file = self.device_dir / f"{status_base}_{date_stamp}.csv"
+        self.add_file(
+            'status',
+            config.DEVICE_STATUS_BASE_NAME,
+            session_based=False,
+            timestamp_format="%Y%m%d"
+        )
 
-        self.logger.info(f"Geräte-Event-Log: {self.events_file.name}")
-        self.logger.info(f"Geräte-Status-Log: {self.status_file.name}")
-
-        # Header schreiben
-        self._write_event_header()
-        self._write_status_header_if_needed()
+        # Header initialisieren
+        self._init_event_file()
+        self._init_status_file()
 
         # Letzter Status für Änderungserkennung
         self.last_device_states = {}
 
-    def _write_event_header(self) -> None:
-        """Schreibt die Header für die Event-CSV"""
+    def _init_event_file(self) -> None:
+        """Initialisiert die Event-Log-Datei"""
         if self.config.CSV_USE_GERMAN_HEADERS:
             headers = [
                 "Zeitstempel",
@@ -87,31 +84,22 @@ class DeviceLogger:
                 "Priority"
             ]
 
-        try:
-            with open(self.events_file, 'w', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(headers)
+        info_lines = self.csv_formatter.create_session_info(
+            "Geräte-Event-Log",
+            **{"Anzahl Geräte": len(self.device_manager.devices)}
+        )
 
-                # Session-Info
-                writer.writerow([])
-                session_info = f"# Geräte-Event-Log erstellt: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                writer.writerow([session_info])
-                writer.writerow([f"# Anzahl konfigurierte Geräte: {len(self.device_manager.devices)}"])
-                writer.writerow([])
+        self.initialize_file('events', headers, info_lines)
 
-            self.logger.info("Geräte-Event-CSV erstellt")
-
-        except IOError as e:
-            self.logger.error(f"Fehler beim Erstellen der Event-CSV: {e}")
-
-    def _write_status_header_if_needed(self) -> None:
-        """Schreibt die Header für die Status-CSV wenn Datei neu ist"""
-        if self.status_file.exists():
+    def _init_status_file(self) -> None:
+        """Initialisiert die Status-Log-Datei"""
+        # Prüfe ob Datei bereits existiert
+        if self.csv_writer.file_exists(self.files['status']):
             return
 
+        # Dynamische Header basierend auf konfigurierten Geräten
         if self.config.CSV_USE_GERMAN_HEADERS:
             headers = ["Zeitstempel"]
-            # Dynamisch für jedes Gerät
             for device in self.device_manager.get_devices_by_priority():
                 headers.extend([
                     f"{device.name} Status",
@@ -125,7 +113,6 @@ class DeviceLogger:
             ])
         else:
             headers = ["Timestamp"]
-            # Dynamisch für jedes Gerät
             for device in self.device_manager.get_devices_by_priority():
                 headers.extend([
                     f"{device.name} State",
@@ -138,24 +125,15 @@ class DeviceLogger:
                 "Used Surplus (W)"
             ])
 
-        try:
-            with open(self.status_file, 'w', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(headers)
+        info_lines = self.csv_formatter.create_session_info(
+            f"Geräte-Status-Log für {datetime.now().strftime('%Y-%m-%d')}",
+            **{"Status-Intervall": f"{self.config.DEVICE_LOG_INTERVAL}s"}
+        )
 
-                # Info
-                writer.writerow([])
-                info = f"# Geräte-Status-Log für {datetime.now().strftime('%Y-%m-%d')}"
-                writer.writerow([info])
-                writer.writerow([])
-
-            self.logger.info("Geräte-Status-CSV erstellt")
-
-        except IOError as e:
-            self.logger.error(f"Fehler beim Erstellen der Status-CSV: {e}")
+        self.initialize_file('status', headers, info_lines)
 
     def log_device_event(self, device: Device, action: str, reason: str,
-                        surplus_power: float, old_state: DeviceState) -> None:
+                        surplus_power: float, old_state: DeviceState) -> bool:
         """
         Loggt ein Geräte-Event.
 
@@ -165,17 +143,11 @@ class DeviceLogger:
             reason: Grund für die Aktion
             surplus_power: Aktueller Überschuss
             old_state: Vorheriger Status
-        """
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Formatiere Zahlen
-        def format_number(value: float, decimals: int = 0) -> str:
-            if value is None:
-                return "-"
-            formatted = f"{value:.{decimals}f}"
-            if self.config.CSV_DECIMAL_SEPARATOR == ",":
-                formatted = formatted.replace(".", ",")
-            return formatted
+        Returns:
+            True bei Erfolg
+        """
+        timestamp = self.csv_formatter.format_timestamp(datetime.now())
 
         row = [
             timestamp,
@@ -184,51 +156,45 @@ class DeviceLogger:
             old_state.value,
             device.state.value,
             reason,
-            format_number(surplus_power),
-            format_number(device.power_consumption),
-            format_number(device.switch_on_threshold),
-            format_number(device.switch_off_threshold),
-            format_number(device.runtime_today),
-            device.priority.label()
+            self.csv_formatter.format_number(surplus_power),
+            self.csv_formatter.format_number(device.power_consumption),
+            self.csv_formatter.format_number(device.switch_on_threshold),
+            self.csv_formatter.format_number(device.switch_off_threshold),
+            self.csv_formatter.format_number(device.runtime_today),
+            str(device.priority.value)  # Numerischer Wert der Priorität
         ]
 
-        try:
-            with open(self.events_file, 'a', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(row)
-
+        success = self.log_to_file('events', row)
+        if success:
             self.logger.debug(f"Event geloggt: {device.name} - {action}")
 
-        except IOError as e:
-            self.logger.error(f"Fehler beim Schreiben des Events: {e}")
+        return success
 
-    def log_device_status(self, surplus_power: float) -> None:
+    def log_device_status(self, surplus_power: float) -> bool:
         """
         Loggt den aktuellen Status aller Geräte.
 
         Args:
             surplus_power: Aktueller Überschuss
+
+        Returns:
+            True bei Erfolg
         """
         # Prüfe ob neue Datei für neuen Tag benötigt wird
         current_date = datetime.now().strftime("%Y%m%d")
-        expected_date = self.status_file.stem.split('_')[-1]
+        expected_date = self.files['status'].stem.split('_')[-1]
 
         if current_date != expected_date:
             # Neue Tagesdatei
-            status_base = self.config.DEVICE_STATUS_BASE_NAME.replace('.csv', '')
-            self.status_file = self.device_dir / f"{status_base}_{current_date}.csv"
-            self._write_status_header_if_needed()
+            self.add_file(
+                'status',
+                self.config.DEVICE_STATUS_BASE_NAME,
+                session_based=False,
+                timestamp_format="%Y%m%d"
+            )
+            self._init_status_file()
 
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        # Formatiere Zahlen
-        def format_number(value: float, decimals: int = 0) -> str:
-            if value is None:
-                return "-"
-            formatted = f"{value:.{decimals}f}"
-            if self.config.CSV_DECIMAL_SEPARATOR == ",":
-                formatted = formatted.replace(".", ",")
-            return formatted
+        timestamp = self.csv_formatter.format_timestamp(datetime.now())
 
         # Baue Zeile auf
         row = [timestamp]
@@ -241,7 +207,7 @@ class DeviceLogger:
             state_str = "1" if device.state == DeviceState.ON else "0"
             row.extend([
                 state_str,
-                format_number(device.runtime_today)
+                self.csv_formatter.format_number(device.runtime_today)
             ])
 
             if device.state == DeviceState.ON:
@@ -252,18 +218,12 @@ class DeviceLogger:
         used_surplus = min(total_consumption, max(0, surplus_power))
         row.extend([
             str(total_on),
-            format_number(total_consumption),
-            format_number(surplus_power),
-            format_number(used_surplus)
+            self.csv_formatter.format_number(total_consumption),
+            self.csv_formatter.format_number(surplus_power),
+            self.csv_formatter.format_number(used_surplus)
         ])
 
-        try:
-            with open(self.status_file, 'a', newline='', encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
-                writer.writerow(row)
-
-        except IOError as e:
-            self.logger.error(f"Fehler beim Schreiben des Status: {e}")
+        return self.log_to_file('status', row)
 
     def log_changes(self, changes: Dict[str, str], surplus_power: float) -> None:
         """
@@ -276,7 +236,7 @@ class DeviceLogger:
         for device_name, action in changes.items():
             device = self.device_manager.get_device(device_name)
             if device:
-                # Bestimme alten Status aus dem letzten bekannten Zustand
+                # Bestimme alten Status
                 old_state = self.last_device_states.get(device_name, DeviceState.OFF)
 
                 # Bestimme Grund basierend auf Aktion
@@ -300,30 +260,39 @@ class DeviceLogger:
                 # Status aktualisieren
                 self.last_device_states[device_name] = device.state
 
-    def log_daily_summary(self) -> None:
-        """Erstellt eine Tageszusammenfassung"""
-        summary_file = self.device_dir / f"device_summary_{datetime.now().strftime('%Y%m%d')}.txt"
+    def log_daily_summary(self) -> bool:
+        """
+        Erstellt eine Tageszusammenfassung.
+
+        Returns:
+            True bei Erfolg
+        """
+        summary_file = self.log_dir / f"device_summary_{datetime.now().strftime('%Y%m%d')}.txt"
 
         try:
             with open(summary_file, 'w', encoding='utf-8') as f:
                 f.write(f"Geräte-Tageszusammenfassung - {datetime.now().strftime('%d.%m.%Y')}\n")
                 f.write("=" * 60 + "\n\n")
 
+                total_energy = 0.0
+
                 for device in self.device_manager.get_devices_by_priority():
+                    energy = device.runtime_today * device.power_consumption / 60000
+                    total_energy += energy
+
                     f.write(f"{device.name}:\n")
-                    f.write(f"  Priorität: {device.priority.label()}\n")
+                    f.write(f"  Priorität: {device.priority.value} ({device.priority.label()})\n")
                     f.write(f"  Leistung: {device.power_consumption}W\n")
                     f.write(f"  Laufzeit heute: {device.runtime_today} Minuten\n")
-                    f.write(f"  Energieverbrauch: {device.runtime_today * device.power_consumption / 60000:.2f} kWh\n")
+                    f.write(f"  Energieverbrauch: {energy:.2f} kWh\n")
                     f.write(f"  Status: {device.state.value}\n")
                     f.write("\n")
 
-                # Gesamtstatistik
-                total_energy = sum(d.runtime_today * d.power_consumption / 60000
-                                 for d in self.device_manager.devices)
                 f.write(f"\nGesamt-Energieverbrauch gesteuerte Geräte: {total_energy:.2f} kWh\n")
 
             self.logger.info(f"Tageszusammenfassung erstellt: {summary_file.name}")
+            return True
 
         except IOError as e:
             self.logger.error(f"Fehler beim Erstellen der Zusammenfassung: {e}")
+            return False
