@@ -215,7 +215,7 @@ class DeviceManager:
             # Zeige Prioritätsübersicht
             for device in self.get_devices_by_priority():
                 self.logger.debug(f"  {device.name}: Priorität {device.priority} "
-                                f"({device.get_priority_name()})")
+                                f"({device.priority.label()})")
 
         except json.JSONDecodeError as e:
             self.logger.error(f"Fehler beim Parsen der JSON-Datei: {e}")

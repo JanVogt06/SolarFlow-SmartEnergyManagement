@@ -18,11 +18,6 @@ class DeviceState(Enum):
 class DevicePriority(IntEnum):
     """
     Geräteprioritäten - niedrigere Werte = höhere Priorität
-
-    Verwendung:
-        device.priority = DevicePriority.HIGH
-        # oder direkt mit Zahlen 1-10
-        device.priority = 3  # Hohe Priorität
     """
     CRITICAL = 1      # Kritische Geräte (z.B. Kühlschrank)
     VERY_HIGH = 2     # Sehr hohe Priorität
@@ -35,6 +30,21 @@ class DevicePriority(IntEnum):
     MINIMAL = 9       # Minimale Priorität
     OPTIONAL = 10     # Optional (z.B. Pool-Heizung)
 
+    def label(self) -> str:
+        labels = {
+            DevicePriority.CRITICAL: "Kritisch",
+            DevicePriority.VERY_HIGH: "Sehr hoch",
+            DevicePriority.HIGH: "Hoch",
+            DevicePriority.MEDIUM_HIGH: "Mittel-Hoch",
+            DevicePriority.MEDIUM: "Mittel",
+            DevicePriority.MEDIUM_LOW: "Mittel-Niedrig",
+            DevicePriority.LOW: "Niedrig",
+            DevicePriority.VERY_LOW: "Sehr niedrig",
+            DevicePriority.MINIMAL: "Minimal",
+            DevicePriority.OPTIONAL: "Optional"
+        }
+        return labels.get(self, f"Priorität {self.value}")
+
 
 @dataclass
 class Device:
@@ -44,7 +54,7 @@ class Device:
     name: str
     description: str = ""
     power_consumption: float = 0.0  # Watt
-    priority: int = DevicePriority.MEDIUM  # 1-10, wobei 1 höchste Priorität
+    priority: DevicePriority = DevicePriority.MEDIUM
 
     # Laufzeit-Beschränkungen
     min_runtime: int = 0  # Minuten - Mindestlaufzeit wenn eingeschaltet
@@ -67,22 +77,22 @@ class Device:
 
     def __post_init__(self):
         """Validierung nach Initialisierung"""
-        # Priorität zwischen 1-10
-        if not 1 <= self.priority <= 10:
-            raise ValueError(f"Priorität muss zwischen 1-10 liegen, ist aber {self.priority}")
+        if not isinstance(self.priority, DevicePriority):
+            try:
+                self.priority = DevicePriority(self.priority)
+            except ValueError:
+                raise ValueError(f"Ungültige Priorität: {self.priority}")
 
-        # Schwellwerte validieren
         if self.switch_off_threshold > self.switch_on_threshold:
             raise ValueError("Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein")
 
-        # Leistung muss positiv sein
         if self.power_consumption < 0:
             raise ValueError("Leistungsaufnahme muss positiv sein")
 
     def is_time_allowed(self, current_time: datetime) -> bool:
         """Prüft ob Gerät zur aktuellen Zeit laufen darf"""
         if not self.allowed_time_ranges:
-            return True  # Keine Zeitbeschränkung
+            return True
 
         current = current_time.time()
         for start, end in self.allowed_time_ranges:
@@ -93,57 +103,27 @@ class Device:
     def can_run_today(self) -> bool:
         """Prüft ob Gerät heute noch laufen darf (Maximallaufzeit)"""
         if self.max_runtime_per_day == 0:
-            return True  # Keine Beschränkung
+            return True
         return self.runtime_today < self.max_runtime_per_day
 
     def get_remaining_runtime(self) -> int:
         """Gibt verbleibende Laufzeit heute in Minuten zurück"""
         if self.max_runtime_per_day == 0:
-            return 999999  # "Unbegrenzt"
+            return 999999  # unbegrenzt
         return max(0, self.max_runtime_per_day - self.runtime_today)
 
     def get_current_runtime(self, current_time: datetime) -> int:
-        """
-        Berechnet die aktuelle Gesamtlaufzeit heute in Minuten.
-
-        Args:
-            current_time: Aktuelle Zeit
-
-        Returns:
-            Gesamtlaufzeit heute in Minuten
-        """
+        """Berechnet die aktuelle Gesamtlaufzeit heute in Minuten"""
         total_runtime = self.runtime_today
-
-        # Wenn das Gerät läuft, addiere die Zeit seit dem letzten Einschalten
         if self.state == DeviceState.ON and self.last_state_change:
             current_session = int((current_time - self.last_state_change).total_seconds() / 60)
             total_runtime += current_session
-
         return total_runtime
 
     def get_priority_name(self) -> str:
-        """
-        Gibt den Namen der Prioritätsstufe zurück.
-
-        Returns:
-            Beschreibender Name der Priorität
-        """
-        priority_names = {
-            1: "Kritisch",
-            2: "Sehr hoch",
-            3: "Hoch",
-            4: "Mittel-Hoch",
-            5: "Mittel",
-            6: "Mittel-Niedrig",
-            7: "Niedrig",
-            8: "Sehr niedrig",
-            9: "Minimal",
-            10: "Optional"
-        }
-        return priority_names.get(self.priority, f"Priorität {self.priority}")
+        return self.priority.label()
 
     def __repr__(self) -> str:
-        """String-Repräsentation für Debugging"""
         return (f"Device(name='{self.name}', power={self.power_consumption}W, "
                 f"priority={self.priority} ({self.get_priority_name()}), "
                 f"state={self.state.value}, runtime_today={self.runtime_today}min)")

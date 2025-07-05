@@ -189,7 +189,7 @@ class DeviceLogger:
             format_number(device.switch_on_threshold),
             format_number(device.switch_off_threshold),
             format_number(device.runtime_today),
-            str(device.priority)
+            device.priority.label()
         ]
 
         try:
@@ -311,7 +311,7 @@ class DeviceLogger:
 
                 for device in self.device_manager.get_devices_by_priority():
                     f.write(f"{device.name}:\n")
-                    f.write(f"  Priorität: {device.priority}\n")
+                    f.write(f"  Priorität: {device.priority.label()}\n")
                     f.write(f"  Leistung: {device.power_consumption}W\n")
                     f.write(f"  Laufzeit heute: {device.runtime_today} Minuten\n")
                     f.write(f"  Energieverbrauch: {device.runtime_today * device.power_consumption / 60000:.2f} kWh\n")
