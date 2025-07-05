@@ -8,8 +8,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from .models import SolarData
-from .config import Config
+from solar_monitor.models import SolarData
+from solar_monitor.config import Config
 
 
 class DataLogger:

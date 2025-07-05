@@ -7,8 +7,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from .daily_stats import DailyStats
-from .config import Config
+from solar_monitor.daily_stats import DailyStats
+from solar_monitor.config import Config
 
 
 class DailyStatsLogger:

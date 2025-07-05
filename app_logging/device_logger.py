@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, List
 
-from .device import Device, DeviceState
-from .device_manager import DeviceManager
+from device_management.device import Device, DeviceState
+from device_management.device_manager import DeviceManager
 
 
 class DeviceLogger:

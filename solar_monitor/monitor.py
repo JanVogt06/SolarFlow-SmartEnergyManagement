@@ -11,13 +11,10 @@ from datetime import timedelta
 from .api import FroniusAPI
 from .config import Config
 from .display import DisplayFormatter
-from .logger import DataLogger
 from .models import SolarData
 from .daily_stats import DailyStats
-from .daily_stats_logger import DailyStatsLogger
-
-# Import für Gerätesteuerung
-from device_management import DeviceManager, EnergyController, DeviceState, DeviceLogger
+from app_logging import SolarDataLogger, DailyStatsLogger, DeviceLogger
+from device_management import DeviceManager, EnergyController, DeviceState
 
 
 class SolarMonitor:
@@ -41,7 +38,7 @@ class SolarMonitor:
         # Data Logger nur wenn aktiviert
         self.data_logger = None
         if self.config.ENABLE_DATA_LOGGING:
-            self.data_logger = DataLogger(self.config)
+            self.data_logger = SolarDataLogger(self.config)
 
         # Daily Stats Logger
         self.daily_stats_logger = None
