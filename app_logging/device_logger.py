@@ -1,5 +1,5 @@
 """
-Device Logger für den Smart Energy Manager - FIXED VERSION.
+Device Logger für den Smart Energy Manager.
 """
 
 from typing import List, Any, Dict
