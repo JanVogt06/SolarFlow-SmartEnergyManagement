@@ -1,5 +1,5 @@
 """
-Device Logger für den Smart Energy Manager.
+Device Logger für den Smart Energy Manager - FIXED VERSION.
 """
 
 from typing import List, Any, Dict
@@ -51,6 +51,9 @@ class DeviceLogger(MultiFileLogger):
         # Letzter Status für Änderungserkennung
         self.last_device_states = {}
 
+        self.logger.debug(f"DeviceLogger initialisiert. Dateien: {list(self.files.keys())}")
+        self.logger.debug(f"Initialisierungsstatus: {self._initialized_files}")
+
     def _init_event_file(self) -> None:
         """Initialisiert die Event-Log-Datei"""
         if self.config.CSV_USE_GERMAN_HEADERS:
@@ -89,14 +92,24 @@ class DeviceLogger(MultiFileLogger):
             **{"Anzahl Geräte": len(self.device_manager.devices)}
         )
 
-        self.initialize_file('events', headers, info_lines)
+        success = self.initialize_file('events', headers, info_lines)
+        if not success:
+            self.logger.error("Fehler beim Initialisieren der Event-Datei")
 
     def _init_status_file(self) -> None:
         """Initialisiert die Status-Log-Datei"""
-        # Prüfe ob Datei bereits existiert
-        if self.csv_writer.file_exists(self.files['status']):
+        # Prüfe ob Datei bereits existiert UND initialisiert ist
+        if 'status' in self.files and self._initialized_files.get('status', False):
+            # Datei ist bereits initialisiert
             return
 
+        # Prüfe ob physische Datei existiert
+        if 'status' in self.files and self.csv_writer.file_exists(self.files['status']):
+            # Datei existiert, markiere als initialisiert
+            self._initialized_files['status'] = True
+            return
+
+        # Erstelle neue Datei mit Headers
         # Dynamische Header basierend auf konfigurierten Geräten
         if self.config.CSV_USE_GERMAN_HEADERS:
             headers = ["Zeitstempel"]
@@ -130,7 +143,11 @@ class DeviceLogger(MultiFileLogger):
             **{"Status-Intervall": f"{self.config.DEVICE_LOG_INTERVAL}s"}
         )
 
-        self.initialize_file('status', headers, info_lines)
+        success = self.initialize_file('status', headers, info_lines)
+        if not success:
+            self.logger.error("Fehler beim Initialisieren der Status-Datei")
+        else:
+            self.logger.debug("Status-Datei erfolgreich initialisiert")
 
     def log_device_event(self, device: Device, action: str, reason: str,
                         surplus_power: float, old_state: DeviceState) -> bool:
@@ -182,17 +199,29 @@ class DeviceLogger(MultiFileLogger):
         """
         # Prüfe ob neue Datei für neuen Tag benötigt wird
         current_date = datetime.now().strftime("%Y%m%d")
-        expected_date = self.files['status'].stem.split('_')[-1]
+        if 'status' in self.files:
+            expected_date = self.files['status'].stem.split('_')[-1]
 
-        if current_date != expected_date:
-            # Neue Tagesdatei
-            self.add_file(
-                'status',
-                self.config.DEVICE_STATUS_BASE_NAME,
-                session_based=False,
-                timestamp_format="%Y%m%d"
-            )
+            if current_date != expected_date:
+                # Neue Tagesdatei
+                self.add_file(
+                    'status',
+                    self.config.DEVICE_STATUS_BASE_NAME,
+                    session_based=False,
+                    timestamp_format="%Y%m%d"
+                )
+                # Initialisiere neue Datei
+                self._init_status_file()
+
+        # Stelle sicher, dass die Status-Datei initialisiert ist
+        if not self._initialized_files.get('status', False):
+            self.logger.warning("Status-Datei nicht initialisiert, versuche erneut...")
             self._init_status_file()
+
+            # Wenn immer noch nicht initialisiert, gib auf
+            if not self._initialized_files.get('status', False):
+                self.logger.error("Konnte Status-Datei nicht initialisieren")
+                return False
 
         timestamp = self.csv_formatter.format_timestamp(datetime.now())
 
