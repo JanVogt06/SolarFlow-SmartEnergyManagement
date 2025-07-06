@@ -6,7 +6,8 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from datetime import time
+from datetime import time, datetime
+from typing import Tuple
 
 from .device import Device, DeviceState, DevicePriority
 
@@ -68,7 +69,7 @@ class DeviceManager:
 
     def _validate_device_config(self, device_dict: Dict[str, Any]) -> List[str]:
         """
-        Validiert eine Gerätekonfiguration.
+        Validiert eine Gerätekonfiguration mit verbesserter Zeitbereichs-Validierung.
 
         Args:
             device_dict: Dictionary mit Gerätekonfiguration
@@ -80,7 +81,7 @@ class DeviceManager:
 
         # Pflichtfelder
         required_fields = ['name', 'power_consumption', 'priority',
-                          'switch_on_threshold', 'switch_off_threshold']
+                           'switch_on_threshold', 'switch_off_threshold']
 
         for field in required_fields:
             if field not in device_dict:
@@ -120,23 +121,128 @@ class DeviceManager:
             except (ValueError, TypeError):
                 pass  # Fehler wurde schon oben erfasst
 
-        # Zeitbereiche validieren
+        # VERBESSERTE Zeitbereichs-Validierung
         if 'allowed_time_ranges' in device_dict:
-            if not isinstance(device_dict['allowed_time_ranges'], list):
-                errors.append("allowed_time_ranges muss eine Liste sein")
-            else:
-                for i, time_range in enumerate(device_dict['allowed_time_ranges']):
-                    if not isinstance(time_range, list) or len(time_range) != 2:
-                        errors.append(f"Zeitbereich {i+1} muss eine Liste mit 2 Zeiten sein")
-                    else:
-                        # Validiere Zeitformat
-                        for j, time_str in enumerate(time_range):
-                            try:
-                                time.fromisoformat(time_str)
-                            except ValueError:
-                                errors.append(f"Zeitbereich {i+1}, Zeit {j+1}: Ungültiges Zeitformat (erwartet: HH:MM:SS)")
+            time_errors = self._validate_time_ranges_config(device_dict['allowed_time_ranges'])
+            errors.extend(time_errors)
 
         return errors
+
+    def _validate_time_ranges_config(self, time_ranges: Any) -> List[str]:
+        """
+        Validiert Zeitbereichs-Konfiguration detailliert.
+
+        Args:
+            time_ranges: Zeitbereichs-Konfiguration aus JSON
+
+        Returns:
+            Liste von Fehlermeldungen
+        """
+        errors = []
+
+        # Prüfe Grundstruktur
+        if not isinstance(time_ranges, list):
+            return ["allowed_time_ranges muss eine Liste sein"]
+
+        valid_ranges = []
+
+        for i, time_range in enumerate(time_ranges):
+            # Prüfe Format
+            if not isinstance(time_range, list) or len(time_range) != 2:
+                errors.append(f"Zeitbereich {i + 1} muss eine Liste mit 2 Zeiten sein [start, ende]")
+                continue
+
+            start_str, end_str = time_range
+
+            # Validiere Zeitformat
+            try:
+                start_time = time.fromisoformat(start_str)
+            except (ValueError, TypeError, AttributeError):
+                errors.append(
+                    f"Zeitbereich {i + 1}, Startzeit: Ungültiges Format '{start_str}' "
+                    f"(erwartet: HH:MM:SS oder HH:MM)"
+                )
+                continue
+
+            try:
+                end_time = time.fromisoformat(end_str)
+            except (ValueError, TypeError, AttributeError):
+                errors.append(
+                    f"Zeitbereich {i + 1}, Endzeit: Ungültiges Format '{end_str}' "
+                    f"(erwartet: HH:MM:SS oder HH:MM)"
+                )
+                continue
+
+            # Warne bei identischen Start- und Endzeiten (außer wenn beide 00:00)
+            if start_time == end_time and start_time != time(0, 0):
+                errors.append(
+                    f"Zeitbereich {i + 1}: Start und Ende sind identisch ({start_str}). "
+                    f"Das Gerät würde nur zu dieser exakten Zeit laufen."
+                )
+
+            valid_ranges.append((start_time, end_time, i))
+
+        # Prüfe auf Überlappungen wenn mindestens 2 gültige Bereiche
+        if len(valid_ranges) >= 2:
+            overlap_warnings = self._check_time_overlaps(valid_ranges)
+            if overlap_warnings:
+                # Überlappungen sind Warnungen, keine Fehler
+                for warning in overlap_warnings:
+                    self.logger.warning(warning)
+
+        return errors
+
+    def _check_time_overlaps(self, valid_ranges: List[Tuple[time, time, int]]) -> List[str]:
+        """
+        Prüft auf überlappende Zeitbereiche.
+
+        Args:
+            valid_ranges: Liste von (start, end, original_index) Tupeln
+
+        Returns:
+            Liste von Warnmeldungen
+        """
+        warnings = []
+
+        # Konvertiere zu Minuten-Intervallen
+        intervals = []
+        for start, end, idx in valid_ranges:
+            start_min = start.hour * 60 + start.minute
+            end_min = end.hour * 60 + end.minute
+
+            if start <= end:
+                # Normaler Bereich
+                intervals.append([(start_min, end_min, idx)])
+            else:
+                # Über Mitternacht - teile in zwei Bereiche
+                intervals.append([
+                    (start_min, 24 * 60, idx),
+                    (0, end_min, idx)
+                ])
+
+        # Prüfe alle Kombinationen
+        for i in range(len(intervals)):
+            for j in range(i + 1, len(intervals)):
+                for int1 in intervals[i]:
+                    for int2 in intervals[j]:
+                        if self._intervals_overlap_check(int1[:2], int2[:2]):
+                            idx1, idx2 = int1[2], int2[2]
+                            warnings.append(
+                                f"Zeitbereiche {idx1 + 1} und {idx2 + 1} überlappen sich. "
+                                f"Das kann zu unerwartetem Verhalten führen."
+                            )
+                            break
+                    if warnings:
+                        break
+
+        return warnings
+
+    def _intervals_overlap_check(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> bool:
+        """Prüft ob zwei Intervalle überlappen"""
+        start1, end1 = interval1
+        start2, end2 = interval2
+
+        return not (end1 <= start2 or end2 <= start1)
 
     def save_devices(self) -> None:
         """Speichert Geräte in JSON-Datei"""
@@ -164,7 +270,7 @@ class DeviceManager:
         self.logger.info(f"Gespeichert: {len(self.devices)} Geräte")
 
     def load_devices(self) -> None:
-        """Lädt Geräte aus JSON-Datei"""
+        """Lädt Geräte aus JSON-Datei mit verbesserter Validierung"""
         if not self.config_file.exists():
             self.logger.info(f"Keine Gerätekonfiguration gefunden: {self.config_file}")
             return
@@ -175,26 +281,52 @@ class DeviceManager:
 
             self.devices.clear()
 
-            # FIX 4: Validiere alle Geräte vor dem Laden
+            # Validiere alle Geräte vor dem Laden
             all_errors = []
+            valid_devices = []
+
             for i, device_dict in enumerate(devices_data):
                 errors = self._validate_device_config(device_dict)
                 if errors:
-                    device_name = device_dict.get('name', f'Gerät {i+1}')
-                    all_errors.append(f"{device_name}: " + "; ".join(errors))
+                    device_name = device_dict.get('name', f'Gerät {i + 1}')
+                    all_errors.append(f"\n{device_name}:\n  " + "\n  ".join(errors))
+                else:
+                    valid_devices.append((i, device_dict))
 
+            # Zeige alle Fehler auf einmal
             if all_errors:
-                error_msg = "Fehler in der Gerätekonfiguration:\n" + "\n".join(all_errors)
+                error_msg = "Fehler in der Gerätekonfiguration:" + "".join(all_errors)
                 self.logger.error(error_msg)
-                raise ValueError(error_msg)
 
-            # Lade Geräte wenn Validierung erfolgreich
+                # Frage ob trotzdem die gültigen Geräte geladen werden sollen
+                if valid_devices:
+                    self.logger.warning(
+                        f"{len(valid_devices)} von {len(devices_data)} Geräten "
+                        f"sind gültig und könnten geladen werden."
+                    )
+                    # In Produktionsumgebung könnte hier eine Benutzerabfrage erfolgen
+                    # Für jetzt: Lade nur die gültigen Geräte
+                    devices_data = [device_dict for _, device_dict in valid_devices]
+                else:
+                    raise ValueError("Keine gültigen Geräte in der Konfiguration")
+
+            # Lade die validierten Geräte
             for device_dict in devices_data:
-                # Konvertiere Zeit-Strings zurück
+                # Konvertiere Zeit-Strings
                 time_ranges = []
                 for start_str, end_str in device_dict.get('allowed_time_ranges', []):
-                    start = time.fromisoformat(start_str)
-                    end = time.fromisoformat(end_str)
+                    # Unterstütze beide Formate: HH:MM und HH:MM:SS
+                    try:
+                        start = time.fromisoformat(start_str)
+                    except ValueError:
+                        # Versuche ohne Sekunden
+                        start = datetime.strptime(start_str, "%H:%M").time()
+
+                    try:
+                        end = time.fromisoformat(end_str)
+                    except ValueError:
+                        end = datetime.strptime(end_str, "%H:%M").time()
+
                     time_ranges.append((start, end))
 
                 device = Device(
@@ -210,18 +342,18 @@ class DeviceManager:
                 )
                 self.devices.append(device)
 
-            self.logger.info(f"Geladen: {len(self.devices)} Geräte")
+            self.logger.info(f"Erfolgreich geladen: {len(self.devices)} Geräte")
 
-            # Zeige Prioritätsübersicht
+            # Zeige Übersicht
             for device in self.get_devices_by_priority():
-                self.logger.debug(f"  {device.name}: Priorität {device.priority} "
-                                f"({device.priority.label()})")
+                self.logger.debug(
+                    f"  {device.name}: {device.power_consumption}W, "
+                    f"Priorität {device.priority}, "
+                    f"Zeitbereiche: {device.format_time_ranges()}"
+                )
 
         except json.JSONDecodeError as e:
             self.logger.error(f"Fehler beim Parsen der JSON-Datei: {e}")
-            raise
-        except ValueError as e:
-            # Validierungsfehler wurden bereits geloggt
             raise
         except Exception as e:
             self.logger.error(f"Unerwarteter Fehler beim Laden der Geräte: {e}")
