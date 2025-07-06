@@ -4,9 +4,9 @@ Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung und Logg
 
 import logging
 import time
-from typing import Optional
+from typing import Optional, Dict, Tuple
 from pathlib import Path
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from .api import FroniusAPI
 from .config import Config
@@ -179,47 +179,209 @@ class SolarMonitor:
 
         # Geräte beim Beenden ausschalten und zusammenfassen
         if self.energy_controller:
-            self.logger.info("Schalte alle Geräte aus...")
+            self._shutdown_devices()
 
-            # Alle aktiven Geräte ausschalten
-            for device in self.device_manager.get_active_devices():
-                old_state = device.state
-                device.state = DeviceState.OFF
-                self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
+    def _shutdown_devices(self) -> None:
+        """Schaltet alle Geräte aus und erstellt Zusammenfassung"""
+        self.logger.info("Schalte alle Geräte aus...")
 
-                # Event loggen
-                if self.device_logger and self.config.DEVICE_LOG_EVENTS:
-                    self.device_logger.log_device_event(
-                        device, "ausgeschaltet", "Programmende",
-                        self.last_surplus_power or 0, old_state
-                    )
+        # Alle aktiven Geräte ausschalten
+        for device in self.device_manager.get_active_devices():
+            old_state = device.state
+            device.state = DeviceState.OFF
+            self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
 
-            # Tageszusammenfassung erstellen
-            if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
-                self.device_logger.log_daily_summary()
+            # Event loggen
+            if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+                self.device_logger.log_device_event(
+                    device, "ausgeschaltet", "Programmende",
+                    self.last_surplus_power or 0, old_state
+                )
 
-            # Speichere Gerätekonfiguration
-            self.device_manager.save_devices()
+        # Tageszusammenfassung erstellen
+        if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
+            self.device_logger.log_daily_summary()
 
-    def _handle_consecutive_errors(self, consecutive_errors: int, max_errors: int = 5) -> bool:
+        # Speichere Gerätekonfiguration
+        self.device_manager.save_devices()
+
+    def run(self) -> None:
+        """Hauptschleife des Monitors"""
+        self._log_startup_info()
+
+        consecutive_errors = 0
+        max_consecutive_errors = 5
+
+        try:
+            while self.running:
+                consecutive_errors = self._process_update_cycle(
+                    consecutive_errors,
+                    max_consecutive_errors
+                )
+
+                if consecutive_errors >= max_consecutive_errors:
+                    break
+
+                # Warte bis zum nächsten Update
+                time.sleep(self.config.UPDATE_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\n\nBeende Programm...")
+            self.stop()
+
+    def _log_startup_info(self) -> None:
+        """Loggt Informationen beim Start"""
+        self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
+
+        if self.config.SHOW_DAILY_STATS:
+            interval_min = self.config.DAILY_STATS_INTERVAL / 60
+            self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
+
+        if self.config.ENABLE_DEVICE_CONTROL:
+            self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
+            if self.config.ENABLE_DEVICE_LOGGING:
+                self.logger.info(f"Geräte-Logging aktiviert (Events: {self.config.DEVICE_LOG_EVENTS}, "
+                               f"Status: {self.config.DEVICE_LOG_STATUS} alle {self.config.DEVICE_LOG_INTERVAL}s)")
+
+    def _process_update_cycle(self, consecutive_errors: int, max_errors: int) -> int:
         """
-        Behandelt aufeinanderfolgende Fehler.
+        Verarbeitet einen Update-Zyklus.
 
         Args:
-            consecutive_errors: Anzahl der aufeinanderfolgenden Fehler
-            max_errors: Maximale Anzahl erlaubter Fehler
+            consecutive_errors: Aktuelle Anzahl aufeinanderfolgender Fehler
+            max_errors: Maximale erlaubte Fehler
 
         Returns:
-            True wenn fortfahren, False wenn abbrechen
+            Aktualisierte Anzahl aufeinanderfolgender Fehler
+        """
+        try:
+            # Daten abrufen
+            data = self.api.get_power_flow_data()
+
+            if data:
+                # Erfolg - Error Counter zurücksetzen
+                consecutive_errors = 0
+                self._process_successful_data(data)
+            else:
+                consecutive_errors += 1
+                self._handle_data_error(consecutive_errors, max_errors)
+
+        except KeyboardInterrupt:
+            raise  # Weiterleiten für sauberes Beenden
+        except Exception as e:
+            self.stats['errors'] += 1
+            self.logger.error(f"Fehler in der Hauptschleife: {e}", exc_info=True)
+            consecutive_errors += 1
+
+        return consecutive_errors
+
+    def _process_successful_data(self, data: SolarData) -> None:
+        """
+        Verarbeitet erfolgreich empfangene Daten.
+
+        Args:
+            data: Empfangene Solardaten
+        """
+        # Statistiken aktualisieren
+        self._update_statistics()
+
+        # Gerätesteuerung aktualisieren
+        if self.config.ENABLE_DEVICE_CONTROL:
+            self._update_devices(data)
+
+        # Daten anzeigen
+        self._display_data(data)
+
+        # Daten loggen
+        if self.data_logger:
+            self.data_logger.log_data(data)
+
+        # Tagesstatistiken verarbeiten
+        self._process_daily_statistics(data)
+
+    def _update_statistics(self) -> None:
+        """Aktualisiert die Laufzeit-Statistiken"""
+        self.stats['updates'] += 1
+        self.stats['last_update'] = time.time()
+
+    def _display_data(self, data: SolarData) -> None:
+        """
+        Zeigt die Daten an.
+
+        Args:
+            data: Anzuzeigende Daten
+        """
+        if self.config.ENABLE_DEVICE_CONTROL and self.device_manager:
+            self.display.display_data_with_devices(data, self.device_manager)
+        else:
+            self.display.display_data(data)
+
+    def _process_daily_statistics(self, data: SolarData) -> None:
+        """
+        Verarbeitet Tagesstatistiken.
+
+        Args:
+            data: Aktuelle Solardaten
+        """
+        # Prüfe auf Tageswechsel
+        current_date = data.timestamp.date()
+        if self.daily_stats.date != current_date:
+            self._handle_date_change(current_date, data)
+
+        # Tagesstatistiken aktualisieren
+        self.daily_stats.update(data, self.config.UPDATE_INTERVAL)
+
+        # Periodische Anzeige
+        if self._should_display_daily_stats():
+            self.display.display_daily_stats(self.daily_stats)
+            self.last_stats_display = time.time()
+
+    def _handle_date_change(self, new_date: datetime.date, data: SolarData) -> None:
+        """
+        Behandelt einen Tageswechsel.
+
+        Args:
+            new_date: Neues Datum
+            data: Aktuelle Solardaten
+        """
+        # Speichere gestrige Statistiken
+        if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
+            self.daily_stats_logger.log_daily_stats(self.daily_stats)
+            self.logger.info(f"Tagesstatistik für {self.daily_stats.date} gespeichert")
+
+        # Reset für neuen Tag
+        self.daily_stats.reset()
+        self.daily_stats.date = new_date
+        self.daily_stats.first_update = data.timestamp
+
+        # Gerätestatistiken zurücksetzen
+        self._check_daily_device_reset(new_date)
+
+    def _should_display_daily_stats(self) -> bool:
+        """Prüft ob Tagesstatistiken angezeigt werden sollen"""
+        if not self.config.SHOW_DAILY_STATS:
+            return False
+
+        if self.last_stats_display is None:
+            self.last_stats_display = time.time()
+            return False
+
+        return time.time() - self.last_stats_display >= self.config.DAILY_STATS_INTERVAL
+
+    def _handle_data_error(self, consecutive_errors: int, max_errors: int) -> None:
+        """
+        Behandelt Fehler beim Datenabruf.
+
+        Args:
+            consecutive_errors: Anzahl aufeinanderfolgender Fehler
+            max_errors: Maximale erlaubte Fehler
         """
         self.stats['errors'] += 1
         self.logger.warning(
-            f"Keine Daten empfangen (Fehler {consecutive_errors}/{max_errors})")
+            f"Keine Daten empfangen (Fehler {consecutive_errors}/{max_errors})"
+        )
 
-        if consecutive_errors >= max_errors:
-            self.logger.error("Zu viele aufeinanderfolgende Fehler. Beende Monitor.")
-            return False
-        return True
+    # ====== DEVICE CONTROL METHODS ======
 
     def _update_devices(self, data: SolarData) -> None:
         """
@@ -231,42 +393,86 @@ class SolarMonitor:
         if not self.energy_controller:
             return
 
-        # Prüfe ob Update notwendig (nur bei Änderung oder periodisch)
-        if self.config.DEVICE_UPDATE_ONLY_ON_CHANGE:
-            # Berechne Änderung des Überschusses
-            if self.last_surplus_power is not None:
-                change = abs(data.surplus_power - self.last_surplus_power)
-                # Update nur bei signifikanter Änderung (>50W) oder alle 60 Sekunden
-                if change < 50 and self.last_device_update:
-                    time_since_update = time.time() - self.last_device_update
-                    if time_since_update < 60:
-                        return
+        # Prüfe ob Update notwendig
+        if not self._should_update_devices(data):
+            return
 
         # Führe Update durch
         changes = self.energy_controller.update(data.surplus_power, data.timestamp)
 
-        # Protokolliere Änderungen
+        # Verarbeite Änderungen
         if changes:
-            for device_name, action in changes.items():
-                self.logger.info(f"Gerät '{device_name}' {action}")
-
-            # Logge Änderungen in CSV
-            if self.device_logger and self.config.DEVICE_LOG_EVENTS:
-                self.device_logger.log_changes(changes, data.surplus_power)
+            self._process_device_changes(changes, data)
 
         # Periodisches Status-Logging
-        if self.device_logger and self.config.DEVICE_LOG_STATUS:
-            if self.last_device_status_log is None:
-                self.last_device_status_log = time.time()
-            elif time.time() - self.last_device_status_log >= self.config.DEVICE_LOG_INTERVAL:
-                self.device_logger.log_device_status(data.surplus_power)
-                self.last_device_status_log = time.time()
+        self._log_device_status_if_needed(data)
 
         # Merke Werte für nächsten Vergleich
         self.last_surplus_power = data.surplus_power
         self.last_device_update = time.time()
 
-    def _check_daily_device_reset(self, current_date) -> None:
+    def _should_update_devices(self, data: SolarData) -> bool:
+        """
+        Prüft ob Geräte-Update notwendig ist.
+
+        Args:
+            data: Aktuelle Solardaten
+
+        Returns:
+            True wenn Update notwendig
+        """
+        if not self.config.DEVICE_UPDATE_ONLY_ON_CHANGE:
+            return True
+
+        # Berechne Änderung des Überschusses
+        if self.last_surplus_power is None:
+            return True
+
+        change = abs(data.surplus_power - self.last_surplus_power)
+
+        # Update bei signifikanter Änderung (>50W)
+        if change >= 50:
+            return True
+
+        # Oder alle 60 Sekunden
+        if self.last_device_update:
+            time_since_update = time.time() - self.last_device_update
+            return time_since_update >= 60
+
+        return True
+
+    def _process_device_changes(self, changes: Dict[str, str], data: SolarData) -> None:
+        """
+        Verarbeitet Geräteänderungen.
+
+        Args:
+            changes: Dictionary mit Änderungen
+            data: Aktuelle Solardaten
+        """
+        for device_name, action in changes.items():
+            self.logger.info(f"Gerät '{device_name}' {action}")
+
+        # Logge Änderungen in CSV
+        if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+            self.device_logger.log_changes(changes, data.surplus_power)
+
+    def _log_device_status_if_needed(self, data: SolarData) -> None:
+        """
+        Loggt Gerätestatus wenn nötig.
+
+        Args:
+            data: Aktuelle Solardaten
+        """
+        if not (self.device_logger and self.config.DEVICE_LOG_STATUS):
+            return
+
+        if self.last_device_status_log is None:
+            self.last_device_status_log = time.time()
+        elif time.time() - self.last_device_status_log >= self.config.DEVICE_LOG_INTERVAL:
+            self.device_logger.log_device_status(data.surplus_power)
+            self.last_device_status_log = time.time()
+
+    def _check_daily_device_reset(self, current_date: datetime.date) -> None:
         """
         Prüft und führt täglichen Reset der Gerätestatistiken durch.
 
@@ -281,97 +487,6 @@ class SolarMonitor:
             # Reset durchführen
             self.energy_controller.reset_daily_stats()
             self.logger.info("Tägliche Gerätestatistiken zurückgesetzt")
-
-    def run(self) -> None:
-        """Hauptschleife des Monitors"""
-        self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
-        if self.config.SHOW_DAILY_STATS:
-            interval_min = self.config.DAILY_STATS_INTERVAL / 60
-            self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
-
-        if self.config.ENABLE_DEVICE_CONTROL:
-            self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
-            if self.config.ENABLE_DEVICE_LOGGING:
-                self.logger.info(f"Geräte-Logging aktiviert (Events: {self.config.DEVICE_LOG_EVENTS}, "
-                               f"Status: {self.config.DEVICE_LOG_STATUS} alle {self.config.DEVICE_LOG_INTERVAL}s)")
-
-        consecutive_errors = 0
-        max_consecutive_errors = 5
-
-        try:
-            while self.running:
-                try:
-                    # Daten abrufen
-                    data = self.api.get_power_flow_data()
-
-                    if data:
-                        # Erfolg - Error Counter zurücksetzen
-                        consecutive_errors = 0
-
-                        # Statistiken aktualisieren
-                        self.stats['updates'] += 1
-                        self.stats['last_update'] = time.time()
-
-                        # Gerätesteuerung aktualisieren
-                        if self.config.ENABLE_DEVICE_CONTROL:
-                            self._update_devices(data)
-
-                        # Daten anzeigen - mit oder ohne Geräte
-                        if self.config.ENABLE_DEVICE_CONTROL and self.device_manager:
-                            self.display.display_data_with_devices(data, self.device_manager)
-                        else:
-                            self.display.display_data(data)
-
-                        # Daten loggen
-                        if self.data_logger:
-                            self.data_logger.log_data(data)
-
-                        # Prüfe auf Tageswechsel
-                        current_date = data.timestamp.date()
-                        if self.daily_stats.date != current_date:
-                            # Neuer Tag - speichere die gestrigen Statistiken
-                            if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
-                                self.daily_stats_logger.log_daily_stats(self.daily_stats)
-                                self.logger.info(f"Tagesstatistik für {self.daily_stats.date} gespeichert")
-
-                            # Reset für neuen Tag
-                            self.daily_stats.reset()
-                            self.daily_stats.date = current_date
-                            self.daily_stats.first_update = data.timestamp
-
-                            # Gerätestatistiken zurücksetzen
-                            self._check_daily_device_reset(current_date)
-
-                        # Tagesstatistiken aktualisieren
-                        self.daily_stats.update(data, self.config.UPDATE_INTERVAL)
-
-                        # Tagesstatistiken periodisch anzeigen
-                        if self.config.SHOW_DAILY_STATS:
-                            if self.last_stats_display is None:
-                                self.last_stats_display = time.time()
-                            elif time.time() - self.last_stats_display >= self.config.DAILY_STATS_INTERVAL:
-                                self.display.display_daily_stats(self.daily_stats)
-                                self.last_stats_display = time.time()
-                    else:
-                        consecutive_errors += 1
-
-                        # Fehlerbehandlung in eigener Methode
-                        if not self._handle_consecutive_errors(consecutive_errors, max_consecutive_errors):
-                            break
-
-                    # Warte bis zum nächsten Update
-                    time.sleep(self.config.UPDATE_INTERVAL)
-
-                except KeyboardInterrupt:
-                    raise  # Weiterleiten für sauberes Beenden
-                except Exception as e:
-                    self.stats['errors'] += 1
-                    self.logger.error(f"Fehler in der Hauptschleife: {e}", exc_info=True)
-                    time.sleep(self.config.UPDATE_INTERVAL)
-
-        except KeyboardInterrupt:
-            print("\n\nBeende Programm...")
-            self.stop()
 
     def get_current_data(self) -> Optional[SolarData]:
         """
