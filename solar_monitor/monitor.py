@@ -181,7 +181,7 @@ class SolarMonitor:
 
         # Tagesstatistiken beim Beenden speichern
         if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
-            self.daily_stats_logger.log_daily_stats(self.daily_stats)
+            self.daily_stats_logger.log(self.daily_stats)
 
         # Geräte beim Beenden ausschalten und zusammenfassen
         if self.energy_controller:
@@ -300,7 +300,7 @@ class SolarMonitor:
 
         # Daten loggen
         if self.data_logger:
-            self.data_logger.log_data(data)
+            self.data_logger.log(data)
 
         # Tagesstatistiken verarbeiten
         self._process_daily_statistics(data)
