@@ -6,45 +6,37 @@ from typing import List, Any
 
 from .base_logger import BaseLogger
 from solar_monitor.daily_stats import DailyStats
-
+from .database.database import DatabaseManager
 
 class DailyStatsLogger(BaseLogger):
     """Logger für Tagesstatistiken"""
 
-    def __init__(self, config, device_manager: DeviceManager, use_database: bool = True):
+    def __init__(self, config, use_database: bool = True):
         """
-        Initialisiert den DeviceLogger.
+        Initialisiert den DailyStatsLogger.
 
         Args:
             config: Konfigurationsobjekt
-            device_manager: DeviceManager-Instanz
             use_database: Ob Daten auch in die Datenbank geschrieben werden sollen
         """
         super().__init__(
             config=config,
             base_dir=config.DATA_LOG_DIR,
-            sub_dir=config.DEVICE_LOG_DIR
+            sub_dir=config.DAILY_STATS_DIR,
+            base_filename=config.DAILY_STATS_BASE_NAME,
+            session_based=False
         )
-
-        self.device_manager = device_manager
 
         # Datenbank-Manager initialisieren
         self.use_database = use_database
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager()
-                self.logger.info("Datenbank-Integration aktiviert für DeviceLogger")
+                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
+                self.logger.info("Datenbank-Integration aktiviert für DailyStatsLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
                 self.use_database = False
-
-        # Rest der Initialisierung bleibt gleich...
-        self.add_file('events', config.DEVICE_EVENTS_BASE_NAME, session_based=True)
-        self.add_file('status', config.DEVICE_STATUS_BASE_NAME, session_based=False, timestamp_format="%Y%m%d")
-        self._init_event_file()
-        self._init_status_file()
-        self.last_device_states = {}
 
     def _get_file_timestamp_format(self) -> str:
         """Eine Datei pro Monat"""

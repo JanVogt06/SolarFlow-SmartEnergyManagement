@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .base_logger import MultiFileLogger
 from device_management import Device, DeviceState, DeviceManager
+from .database.database import DatabaseManager
 
 
 class DeviceLogger(MultiFileLogger):
@@ -35,7 +36,7 @@ class DeviceLogger(MultiFileLogger):
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager()
+                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
                 self.logger.info("Datenbank-Integration aktiviert für DeviceLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")

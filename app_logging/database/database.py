@@ -22,9 +22,10 @@ class DatabaseManager:
         Initialisiert den Datenbank-Manager.
         
         Args:
+            config: Konfigurationsobjekt
             db_path: Pfad zur SQLite-Datenbank
         """
-        self.db_path = Path(db_path)
+        self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         
@@ -186,15 +187,15 @@ class DatabaseManager:
                 ORDER BY timestamp
             """, (start_time, end_time))
             
-            return [dict(row) for row in cursor.fetchall()]
-    
+            return [dict(row) for row in db.fetchall(query)]
+
     def insert_daily_stats(self, stats: DailyStats) -> bool:
         """
         Fügt Tagesstatistiken in die Datenbank ein.
-        
+
         Args:
             stats: DailyStats-Objekt
-            
+
         Returns:
             True bei Erfolg
         """
@@ -224,15 +225,15 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Tagesstatistiken: {e}")
             return False
-    
+
     def get_daily_stats(self, start_date: date, end_date: date) -> List[Dict]:
         """
         Holt Tagesstatistiken für einen Datumsbereich.
-        
+
         Args:
             start_date: Startdatum
             end_date: Enddatum
-            
+
         Returns:
             Liste von Tagesstatistiken
         """
@@ -242,21 +243,21 @@ class DatabaseManager:
                 WHERE date BETWEEN ? AND ?
                 ORDER BY date
             """, (start_date, end_date))
-            
-            return [dict(row) for row in cursor.fetchall()]
-    
+
+            return [dict(row) for row in db.fetchall(query)]
+
     def insert_device_event(self, device: Device, action: str, reason: str,
                           surplus_power: float, old_state: DeviceState) -> bool:
         """
         Fügt ein Geräte-Event in die Datenbank ein.
-        
+
         Args:
             device: Device-Objekt
             action: Durchgeführte Aktion
             reason: Grund für die Aktion
             surplus_power: Aktueller Überschuss
             old_state: Vorheriger Status
-            
+
         Returns:
             True bei Erfolg
         """
@@ -277,16 +278,16 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Geräte-Event: {e}")
             return False
-    
-    def insert_device_status_snapshot(self, devices: List[Device], 
+
+    def insert_device_status_snapshot(self, devices: List[Device],
                                     surplus_power: float) -> bool:
         """
         Fügt einen Snapshot des aktuellen Gerätestatus ein.
-        
+
         Args:
             devices: Liste von Geräten
             surplus_power: Aktueller Überschuss
-            
+
         Returns:
             True bei Erfolg
         """
@@ -307,49 +308,49 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Gerätestatus: {e}")
             return False
-    
+
     def get_device_events(self, device_name: Optional[str] = None,
                          start_time: Optional[datetime] = None,
                          end_time: Optional[datetime] = None) -> List[Dict]:
         """
         Holt Geräte-Events aus der Datenbank.
-        
+
         Args:
             device_name: Optional - nur Events für dieses Gerät
             start_time: Optional - Startzeit
             end_time: Optional - Endzeit
-            
+
         Returns:
             Liste von Events
         """
         query = "SELECT * FROM device_events WHERE 1=1"
         params = []
-        
+
         if device_name:
             query += " AND device_name = ?"
             params.append(device_name)
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
-        
+
         if end_time:
             query += " AND timestamp <= ?"
             params.append(end_time)
-        
+
         query += " ORDER BY timestamp DESC"
-        
+
         with self.get_connection() as conn:
             cursor = conn.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
-    
+            return [dict(row) for row in db.fetchall(query)]
+
     def get_energy_summary(self, date: date) -> Dict:
         """
         Holt eine Energiezusammenfassung für einen Tag.
-        
+
         Args:
             date: Datum
-            
+
         Returns:
             Dictionary mit Energiewerten
         """
@@ -367,17 +368,17 @@ class DatabaseManager:
                 FROM solar_data
                 WHERE date(timestamp) = ?
             """, (date,))
-            
-            row = cursor.fetchone()
+
+            row = db.fetchone(query)
             return dict(row) if row else {}
-    
+
     def get_device_runtime_summary(self, date: date) -> List[Dict]:
         """
         Holt eine Zusammenfassung der Gerätelaufzeiten für einen Tag.
-        
+
         Args:
             date: Datum
-            
+
         Returns:
             Liste mit Gerätelaufzeiten
         """
@@ -394,5 +395,5 @@ class DatabaseManager:
                 GROUP BY device_name
                 ORDER BY max_runtime_minutes DESC
             """, (date,))
-            
-            return [dict(row) for row in cursor.fetchall()]
+
+            return [dict(row) for row in db.fetchall(query)]

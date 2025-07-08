@@ -6,7 +6,7 @@ from typing import List, Any
 
 from .base_logger import BaseLogger
 from solar_monitor.models import SolarData
-from database.database import DatabaseManager
+from .database.database import DatabaseManager
 
 
 class SolarDataLogger(BaseLogger):
@@ -33,7 +33,7 @@ class SolarDataLogger(BaseLogger):
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager()
+                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
                 self.logger.info("Datenbank-Integration aktiviert für SolarDataLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
