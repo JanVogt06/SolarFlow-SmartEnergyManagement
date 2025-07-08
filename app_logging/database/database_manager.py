@@ -26,7 +26,7 @@ class DatabaseManager:
         """
 
         self.config = config
-        self.db_path = config.DATABASE_LOG_DIR
+        self.db_path = Path(config.DATABASE_LOG_DIR)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         

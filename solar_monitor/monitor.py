@@ -46,6 +46,7 @@ class SolarMonitor:
         if self.config.ENABLE_DAILY_STATS_LOGGING:
             self.daily_stats_logger = DailyStatsLogger(self.config)
 
+        # Database Logger
         self.db_manager = None
         if self.config.ENABLE_DATABASE:
             self.db_manager = DatabaseManager(self.config)

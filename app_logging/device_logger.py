@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .base_logger import MultiFileLogger
 from device_management import Device, DeviceState, DeviceManager
-from .database.database import DatabaseManager
+from .database.database_manager import DatabaseManager
 
 
 class DeviceLogger(MultiFileLogger):

@@ -6,7 +6,7 @@ from typing import List, Any
 
 from .base_logger import BaseLogger
 from solar_monitor.daily_stats import DailyStats
-from .database.database import DatabaseManager
+from .database.database_manager import DatabaseManager
 
 class DailyStatsLogger(BaseLogger):
     """Logger für Tagesstatistiken"""

@@ -192,8 +192,4 @@ class Config:
         if self.DEVICE_LOG_INTERVAL < 10:
             raise ValueError("DEVICE_LOG_INTERVAL sollte mindestens 10 Sekunden sein")
 
-        # Datenbank-Validierung
-        if self.DATABASE_CLEANUP_DAYS < 30:
-            raise ValueError("DATABASE_CLEANUP_DAYS sollte mindestens 30 Tage sein")
-
         return True
