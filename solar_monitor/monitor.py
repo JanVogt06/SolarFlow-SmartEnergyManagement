@@ -14,6 +14,7 @@ from .display import DisplayFormatter
 from .models import SolarData
 from .daily_stats import DailyStats
 from app_logging import SolarDataLogger, DailyStatsLogger, DeviceLogger
+from app_logging.database import DatabaseManager
 from device_management import DeviceManager, EnergyController, DeviceState
 
 
@@ -44,6 +45,10 @@ class SolarMonitor:
         self.daily_stats_logger = None
         if self.config.ENABLE_DAILY_STATS_LOGGING:
             self.daily_stats_logger = DailyStatsLogger(self.config)
+
+        self.db_manager = None
+        if self.config.ENABLE_DATABASE:
+            self.db_manager = DatabaseManager(self.config)
 
         # Gerätesteuerung initialisieren
         self.device_manager = None

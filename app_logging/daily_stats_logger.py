@@ -11,7 +11,7 @@ from .database.database import DatabaseManager
 class DailyStatsLogger(BaseLogger):
     """Logger für Tagesstatistiken"""
 
-    def __init__(self, config, use_database: bool = True):
+    def __init__(self, config):
         """
         Initialisiert den DailyStatsLogger.
 
@@ -28,11 +28,11 @@ class DailyStatsLogger(BaseLogger):
         )
 
         # Datenbank-Manager initialisieren
-        self.use_database = use_database
+        self.use_database = config.ENABLE_DATABASE
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
+                self.db_manager = DatabaseManager(self.config)
                 self.logger.info("Datenbank-Integration aktiviert für DailyStatsLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")

@@ -17,15 +17,16 @@ from device_management import Device, DeviceState
 class DatabaseManager:
     """Datenbank-Manager für SQLite"""
     
-    def __init__(self, db_path: str = "Datalogs/solar_energy.db"):
+    def __init__(self, config):
         """
         Initialisiert den Datenbank-Manager.
         
         Args:
             config: Konfigurationsobjekt
-            db_path: Pfad zur SQLite-Datenbank
         """
-        self.db_path = db_path
+
+        self.config = config
+        self.db_path = config.DATABASE_LOG_DIR
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         

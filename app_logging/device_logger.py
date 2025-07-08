@@ -14,7 +14,7 @@ from .database.database import DatabaseManager
 class DeviceLogger(MultiFileLogger):
     """Logger für Geräte-Events und Status"""
 
-    def __init__(self, config, device_manager: DeviceManager, use_database: bool = True):
+    def __init__(self, config, device_manager: DeviceManager):
         """
         Initialisiert den DeviceLogger.
 
@@ -32,11 +32,11 @@ class DeviceLogger(MultiFileLogger):
         self.device_manager = device_manager
 
         # Datenbank-Manager initialisieren
-        self.use_database = use_database
+        self.use_database = config.ENABLE_DATABASE
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
+                self.db_manager = DatabaseManager(self.config)
                 self.logger.info("Datenbank-Integration aktiviert für DeviceLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")

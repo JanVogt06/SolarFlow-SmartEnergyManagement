@@ -12,13 +12,12 @@ from .database.database import DatabaseManager
 class SolarDataLogger(BaseLogger):
     """Logger für Solar-Leistungsdaten"""
 
-    def __init__(self, config, use_database: bool = True):
+    def __init__(self, config):
         """
         Initialisiert den SolarDataLogger.
 
         Args:
             config: Konfigurationsobjekt
-            use_database: Ob Daten auch in die Datenbank geschrieben werden sollen
         """
         super().__init__(
             config=config,
@@ -29,11 +28,11 @@ class SolarDataLogger(BaseLogger):
         )
 
         # Datenbank-Manager initialisieren
-        self.use_database = use_database
+        self.use_database = config.ENABLE_DATABASE
         self.db_manager = None
         if self.use_database:
             try:
-                self.db_manager = DatabaseManager(db_path=self.config.DATABASE_PATH)
+                self.db_manager = DatabaseManager(self.config)
                 self.logger.info("Datenbank-Integration aktiviert für SolarDataLogger")
             except Exception as e:
                 self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
