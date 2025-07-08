@@ -6,25 +6,38 @@ from typing import List, Any
 
 from .base_logger import BaseLogger
 from solar_monitor.models import SolarData
+from database.database import DatabaseManager
 
 
 class SolarDataLogger(BaseLogger):
     """Logger für Solar-Leistungsdaten"""
 
-    def __init__(self, config):
+    def __init__(self, config, use_database: bool = True):
         """
         Initialisiert den SolarDataLogger.
 
         Args:
             config: Konfigurationsobjekt
+            use_database: Ob Daten auch in die Datenbank geschrieben werden sollen
         """
         super().__init__(
             config=config,
             base_dir=config.DATA_LOG_DIR,
             sub_dir=config.SOLAR_DATA_DIR,
             base_filename=config.DATA_LOG_BASE_NAME,
-            session_based=True  # Eine Datei pro Session
+            session_based=True
         )
+
+        # Datenbank-Manager initialisieren
+        self.use_database = use_database
+        self.db_manager = None
+        if self.use_database:
+            try:
+                self.db_manager = DatabaseManager()
+                self.logger.info("Datenbank-Integration aktiviert für SolarDataLogger")
+            except Exception as e:
+                self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
+                self.use_database = False
 
     def _get_headers(self) -> List[str]:
         """Gibt die CSV-Header zurück"""
@@ -105,10 +118,9 @@ class SolarDataLogger(BaseLogger):
 
         return row
 
-    # Alias für Kompatibilität
-    def log_data(self, data: SolarData) -> bool:
+    def log(self, data: SolarData) -> bool:
         """
-        Loggt Solardaten (Kompatibilitäts-Methode).
+        Loggt Solardaten in CSV und Datenbank.
 
         Args:
             data: Zu loggende Solardaten
@@ -116,4 +128,14 @@ class SolarDataLogger(BaseLogger):
         Returns:
             True bei Erfolg
         """
-        return self.log(data)
+        # CSV-Logging (Basis-Implementierung)
+        csv_success = super().log(data)
+
+        # Datenbank-Logging
+        db_success = True
+        if self.use_database and self.db_manager:
+            db_success = self.db_manager.insert_solar_data(data)
+            if not db_success:
+                self.logger.warning("Fehler beim Schreiben in Datenbank")
+
+        return csv_success and db_success

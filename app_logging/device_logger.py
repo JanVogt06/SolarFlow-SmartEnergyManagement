@@ -13,13 +13,14 @@ from device_management import Device, DeviceState, DeviceManager
 class DeviceLogger(MultiFileLogger):
     """Logger für Geräte-Events und Status"""
 
-    def __init__(self, config, device_manager: DeviceManager):
+    def __init__(self, config, device_manager: DeviceManager, use_database: bool = True):
         """
         Initialisiert den DeviceLogger.
 
         Args:
             config: Konfigurationsobjekt
             device_manager: DeviceManager-Instanz
+            use_database: Ob Daten auch in die Datenbank geschrieben werden sollen
         """
         super().__init__(
             config=config,
@@ -29,30 +30,23 @@ class DeviceLogger(MultiFileLogger):
 
         self.device_manager = device_manager
 
-        # Event-Log: Eine Datei pro Session
-        self.add_file(
-            'events',
-            config.DEVICE_EVENTS_BASE_NAME,
-            session_based=True
-        )
+        # Datenbank-Manager initialisieren
+        self.use_database = use_database
+        self.db_manager = None
+        if self.use_database:
+            try:
+                self.db_manager = DatabaseManager()
+                self.logger.info("Datenbank-Integration aktiviert für DeviceLogger")
+            except Exception as e:
+                self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
+                self.use_database = False
 
-        # Status-Log: Eine Datei pro Tag
-        self.add_file(
-            'status',
-            config.DEVICE_STATUS_BASE_NAME,
-            session_based=False,
-            timestamp_format="%Y%m%d"
-        )
-
-        # Header initialisieren
+        # Rest der Initialisierung bleibt gleich...
+        self.add_file('events', config.DEVICE_EVENTS_BASE_NAME, session_based=True)
+        self.add_file('status', config.DEVICE_STATUS_BASE_NAME, session_based=False, timestamp_format="%Y%m%d")
         self._init_event_file()
         self._init_status_file()
-
-        # Letzter Status für Änderungserkennung
         self.last_device_states = {}
-
-        self.logger.debug(f"DeviceLogger initialisiert. Dateien: {list(self.files.keys())}")
-        self.logger.debug(f"Initialisierungsstatus: {self._initialized_files}")
 
     def _init_event_file(self) -> None:
         """Initialisiert die Event-Log-Datei"""
@@ -150,9 +144,9 @@ class DeviceLogger(MultiFileLogger):
             self.logger.debug("Status-Datei erfolgreich initialisiert")
 
     def log_device_event(self, device: Device, action: str, reason: str,
-                        surplus_power: float, old_state: DeviceState) -> bool:
+                         surplus_power: float, old_state: DeviceState) -> bool:
         """
-        Loggt ein Geräte-Event.
+        Loggt ein Geräte-Event in CSV und Datenbank.
 
         Args:
             device: Betroffenes Gerät
@@ -164,8 +158,8 @@ class DeviceLogger(MultiFileLogger):
         Returns:
             True bei Erfolg
         """
+        # CSV-Logging (existierende Implementierung)
         timestamp = self.csv_formatter.format_timestamp(datetime.now())
-
         row = [
             timestamp,
             device.name,
@@ -178,18 +172,26 @@ class DeviceLogger(MultiFileLogger):
             self.csv_formatter.format_number(device.switch_on_threshold),
             self.csv_formatter.format_number(device.switch_off_threshold),
             self.csv_formatter.format_number(device.runtime_today),
-            str(device.priority.value)  # Numerischer Wert der Priorität
+            str(device.priority.value)
         ]
 
-        success = self.log_to_file('events', row)
-        if success:
+        csv_success = self.log_to_file('events', row)
+
+        # Datenbank-Logging
+        db_success = True
+        if self.use_database and self.db_manager:
+            db_success = self.db_manager.insert_device_event(
+                device, action, reason, surplus_power, old_state
+            )
+
+        if csv_success:
             self.logger.debug(f"Event geloggt: {device.name} - {action}")
 
-        return success
+        return csv_success and db_success
 
     def log_device_status(self, surplus_power: float) -> bool:
         """
-        Loggt den aktuellen Status aller Geräte.
+        Loggt den aktuellen Status aller Geräte in CSV und Datenbank.
 
         Args:
             surplus_power: Aktueller Überschuss
@@ -197,53 +199,53 @@ class DeviceLogger(MultiFileLogger):
         Returns:
             True bei Erfolg
         """
-        # Prüfe ob neue Datei für neuen Tag benötigt wird
+        # CSV-Logging (existierende Implementierung bleibt gleich)
+        csv_success = self._log_device_status_csv(surplus_power)
+
+        # Datenbank-Logging
+        db_success = True
+        if self.use_database and self.db_manager:
+            devices = self.device_manager.get_devices_by_priority()
+            db_success = self.db_manager.insert_device_status_snapshot(
+                devices, surplus_power
+            )
+
+        return csv_success and db_success
+
+    def _log_device_status_csv(self, surplus_power: float) -> bool:
+        """Hilfsmethode für CSV-Status-Logging (existierende Implementierung)"""
+        # Der existierende Code aus log_device_status wird hierher verschoben
+        # um die Methode übersichtlicher zu machen
         current_date = datetime.now().strftime("%Y%m%d")
         if 'status' in self.files:
             expected_date = self.files['status'].stem.split('_')[-1]
-
             if current_date != expected_date:
-                # Neue Tagesdatei
-                self.add_file(
-                    'status',
-                    self.config.DEVICE_STATUS_BASE_NAME,
-                    session_based=False,
-                    timestamp_format="%Y%m%d"
-                )
-                # Initialisiere neue Datei
+                self.add_file('status', self.config.DEVICE_STATUS_BASE_NAME,
+                              session_based=False, timestamp_format="%Y%m%d")
                 self._init_status_file()
 
-        # Stelle sicher, dass die Status-Datei initialisiert ist
         if not self._initialized_files.get('status', False):
             self.logger.warning("Status-Datei nicht initialisiert, versuche erneut...")
             self._init_status_file()
-
-            # Wenn immer noch nicht initialisiert, gib auf
             if not self._initialized_files.get('status', False):
                 self.logger.error("Konnte Status-Datei nicht initialisieren")
                 return False
 
         timestamp = self.csv_formatter.format_timestamp(datetime.now())
-
-        # Baue Zeile auf
         row = [timestamp]
-
         total_on = 0
         total_consumption = 0.0
 
-        # Status für jedes Gerät
         for device in self.device_manager.get_devices_by_priority():
             state_str = "1" if device.state == DeviceState.ON else "0"
             row.extend([
                 state_str,
                 self.csv_formatter.format_number(device.runtime_today)
             ])
-
             if device.state == DeviceState.ON:
                 total_on += 1
                 total_consumption += device.power_consumption
 
-        # Zusammenfassung
         used_surplus = min(total_consumption, max(0, surplus_power))
         row.extend([
             str(total_on),

@@ -69,6 +69,10 @@ class Config:
     DEVICE_LOG_STATUS: bool = os.getenv("DEVICE_LOG_STATUS", "True").lower() == "true"  # Periodisches Status-Logging
     DEVICE_LOG_DAILY_SUMMARY: bool = os.getenv("DEVICE_LOG_DAILY_SUMMARY", "True").lower() == "true"  # Tägliche Zusammenfassung
 
+    # Datenbank-Konfiguration
+    ENABLE_DATABASE: bool = os.getenv("ENABLE_DATABASE", "True").lower() == "true"
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "Datalogs/solar_energy.db")
+
     # Zentrale Schwellwerte für Farbcodierung
     THRESHOLDS: Dict[str, Dict[str, float]] = {
         'battery_soc': {
@@ -187,5 +191,9 @@ class Config:
         # Validiere Geräte-Log-Intervall
         if self.DEVICE_LOG_INTERVAL < 10:
             raise ValueError("DEVICE_LOG_INTERVAL sollte mindestens 10 Sekunden sein")
+
+        # Datenbank-Validierung
+        if self.DATABASE_CLEANUP_DAYS < 30:
+            raise ValueError("DATABASE_CLEANUP_DAYS sollte mindestens 30 Tage sein")
 
         return True
