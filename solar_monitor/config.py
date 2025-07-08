@@ -71,7 +71,7 @@ class Config:
 
     # Datenbank-Konfiguration
     ENABLE_DATABASE: bool = os.getenv("ENABLE_DATABASE", "True").lower() == "true"
-    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "Datalogs/solar_energy.db")
+    DATABASE_LOG_DIR: str = os.getenv("DATABASE_PATH", "Datalogs/solar_energy.db")
 
     # Zentrale Schwellwerte für Farbcodierung
     THRESHOLDS: Dict[str, Dict[str, float]] = {

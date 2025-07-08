@@ -237,6 +237,11 @@ def add_logging_arguments(parser):
         help='Deaktiviert das CSV-Logging der Tagesstatistiken'
     )
 
+    group.add_argument(
+        '--no-database-logging',
+        help='Deaktiviert das Datenbank-Logging'
+    )
+
 
 def add_csv_arguments(parser):
     """Fügt CSV-Format Argumente hinzu"""
@@ -302,6 +307,12 @@ def add_directory_arguments(parser):
         '--device-log-dir',
         type=str,
         help='Unterverzeichnis für Geräte-Logs (Standard: Devicelogs)'
+    )
+
+    group.add_argument(
+        '--database-log-dir',
+        type=str,
+        help='Verzeichnis für Datenbank-Logs'
     )
 
 
@@ -457,6 +468,9 @@ def apply_logging_config(config: Config, args: argparse.Namespace) -> None:
     if args.no_daily_stats_logging:
         config.ENABLE_DAILY_STATS_LOGGING = False
 
+    if args.no_database_logging:
+        config.ENABLE_DATABASE = False
+
 
 def apply_csv_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet CSV-Format Konfiguration an"""
@@ -489,6 +503,9 @@ def apply_directory_config(config: Config, args: argparse.Namespace) -> None:
 
     if args.device_log_dir:
         config.DEVICE_LOG_DIR = args.device_log_dir
+
+    if args.database_log_dir:
+        config.DATABASE_LOG_DIR = args.database_log_dir
 
 
 def apply_threshold_config(config: Config, args: argparse.Namespace) -> None:
