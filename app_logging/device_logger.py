@@ -30,19 +30,7 @@ class DeviceLogger(MultiFileLogger):
         )
 
         self.db_manager = db_manager
-
         self.device_manager = device_manager
-
-        # Datenbank-Manager initialisieren
-        self.use_database = config.ENABLE_DATABASE
-        self.db_manager = None
-        if self.use_database:
-            try:
-                self.db_manager = DatabaseManager(self.config)
-                self.logger.info("Datenbank-Integration aktiviert für DeviceLogger")
-            except Exception as e:
-                self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
-                self.use_database = False
 
         # Rest der Initialisierung bleibt gleich...
         self.add_file('events', config.DEVICE_EVENTS_BASE_NAME, session_based=True)
@@ -207,7 +195,7 @@ class DeviceLogger(MultiFileLogger):
 
         # Datenbank-Logging
         db_success = True
-        if self.use_database and self.db_manager:
+        if self.db_manager:
             devices = self.device_manager.get_devices_by_priority()
             db_success = self.db_manager.insert_device_status_snapshot(
                 devices, surplus_power

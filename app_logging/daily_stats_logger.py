@@ -143,8 +143,9 @@ class DailyStatsLogger(BaseLogger):
         csv_success = super().log(stats)
 
         # Datenbank-Logging
+        # Datenbank-Logging
         db_success = True
-        if self.use_database and self.db_manager:
+        if self.db_manager:
             db_success = self.db_manager.insert_daily_stats(stats)
             if not db_success:
                 self.logger.warning("Fehler beim Schreiben in Datenbank")

@@ -29,17 +29,6 @@ class SolarDataLogger(BaseLogger):
 
         self.db_manager = db_manager
 
-        # Datenbank-Manager initialisieren
-        self.use_database = config.ENABLE_DATABASE
-        self.db_manager = None
-        if self.use_database:
-            try:
-                self.db_manager = DatabaseManager(self.config)
-                self.logger.info("Datenbank-Integration aktiviert für SolarDataLogger")
-            except Exception as e:
-                self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
-                self.use_database = False
-
     def _get_headers(self) -> List[str]:
         """Gibt die CSV-Header zurück"""
         if self.config.CSV_USE_GERMAN_HEADERS:
@@ -134,7 +123,7 @@ class SolarDataLogger(BaseLogger):
 
         # Datenbank-Logging
         db_success = True
-        if self.use_database and self.db_manager:
+        if self.db_manager:
             db_success = self.db_manager.insert_solar_data(data)
             if not db_success:
                 self.logger.warning("Fehler beim Schreiben in Datenbank")
