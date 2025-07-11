@@ -11,7 +11,7 @@ from .database.database_manager import DatabaseManager
 class DailyStatsLogger(BaseLogger):
     """Logger für Tagesstatistiken"""
 
-    def __init__(self, config):
+    def __init__(self, config, db_manager: DatabaseManager):
         """
         Initialisiert den DailyStatsLogger.
 
@@ -27,16 +27,7 @@ class DailyStatsLogger(BaseLogger):
             session_based=False
         )
 
-        # Datenbank-Manager initialisieren
-        self.use_database = config.ENABLE_DATABASE
-        self.db_manager = None
-        if self.use_database:
-            try:
-                self.db_manager = DatabaseManager(self.config)
-                self.logger.info("Datenbank-Integration aktiviert für DailyStatsLogger")
-            except Exception as e:
-                self.logger.error(f"Fehler bei Datenbank-Initialisierung: {e}")
-                self.use_database = False
+        self.db_manager = db_manager
 
     def _get_file_timestamp_format(self) -> str:
         """Eine Datei pro Monat"""

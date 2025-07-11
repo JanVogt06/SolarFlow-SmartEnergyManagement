@@ -12,7 +12,7 @@ from .database.database_manager import DatabaseManager
 class SolarDataLogger(BaseLogger):
     """Logger für Solar-Leistungsdaten"""
 
-    def __init__(self, config):
+    def __init__(self, config, db_manager: DatabaseManager):
         """
         Initialisiert den SolarDataLogger.
 
@@ -26,6 +26,8 @@ class SolarDataLogger(BaseLogger):
             base_filename=config.DATA_LOG_BASE_NAME,
             session_based=True
         )
+
+        self.db_manager = db_manager
 
         # Datenbank-Manager initialisieren
         self.use_database = config.ENABLE_DATABASE

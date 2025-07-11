@@ -36,20 +36,20 @@ class SolarMonitor:
         self.display = DisplayFormatter(self.config)
         self.logger = logging.getLogger(__name__)
 
-        # Data Logger nur wenn aktiviert
-        self.data_logger = None
-        if self.config.ENABLE_DATA_LOGGING:
-            self.data_logger = SolarDataLogger(self.config)
-
-        # Daily Stats Logger
-        self.daily_stats_logger = None
-        if self.config.ENABLE_DAILY_STATS_LOGGING:
-            self.daily_stats_logger = DailyStatsLogger(self.config)
-
         # Database Logger
         self.db_manager = None
         if self.config.ENABLE_DATABASE:
             self.db_manager = DatabaseManager(self.config)
+
+        # Data Logger nur wenn aktiviert
+        self.data_logger = None
+        if self.config.ENABLE_DATA_LOGGING:
+            self.data_logger = SolarDataLogger(self.config, self.db_manager)
+
+        # Daily Stats Logger
+        self.daily_stats_logger = None
+        if self.config.ENABLE_DAILY_STATS_LOGGING:
+            self.daily_stats_logger = DailyStatsLogger(self.config, self.db_manager)
 
         # Gerätesteuerung initialisieren
         self.device_manager = None
@@ -90,7 +90,7 @@ class SolarMonitor:
 
             # Device Logger initialisieren wenn Logging aktiviert
             if self.config.ENABLE_DEVICE_LOGGING:
-                self.device_logger = DeviceLogger(self.config, self.device_manager)
+                self.device_logger = DeviceLogger(self.config, self.device_manager, self.db_manager)
 
             self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
             self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")

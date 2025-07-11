@@ -169,26 +169,6 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Solar-Daten: {e}")
             return False
-    
-    def get_solar_data_range(self, start_time: datetime, end_time: datetime) -> List[Dict]:
-        """
-        Holt Solar-Daten für einen Zeitbereich.
-        
-        Args:
-            start_time: Startzeit
-            end_time: Endzeit
-            
-        Returns:
-            Liste von Datensätzen als Dictionaries
-        """
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT * FROM solar_data 
-                WHERE timestamp BETWEEN ? AND ?
-                ORDER BY timestamp
-            """, (start_time, end_time))
-            
-            return [dict(row) for row in db.fetchall(query)]
 
     def insert_daily_stats(self, stats: DailyStats) -> bool:
         """
@@ -226,26 +206,6 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Tagesstatistiken: {e}")
             return False
-
-    def get_daily_stats(self, start_date: date, end_date: date) -> List[Dict]:
-        """
-        Holt Tagesstatistiken für einen Datumsbereich.
-
-        Args:
-            start_date: Startdatum
-            end_date: Enddatum
-
-        Returns:
-            Liste von Tagesstatistiken
-        """
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT * FROM daily_stats 
-                WHERE date BETWEEN ? AND ?
-                ORDER BY date
-            """, (start_date, end_date))
-
-            return [dict(row) for row in db.fetchall(query)]
 
     def insert_device_event(self, device: Device, action: str, reason: str,
                           surplus_power: float, old_state: DeviceState) -> bool:
@@ -309,92 +269,3 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Gerätestatus: {e}")
             return False
-
-    def get_device_events(self, device_name: Optional[str] = None,
-                         start_time: Optional[datetime] = None,
-                         end_time: Optional[datetime] = None) -> List[Dict]:
-        """
-        Holt Geräte-Events aus der Datenbank.
-
-        Args:
-            device_name: Optional - nur Events für dieses Gerät
-            start_time: Optional - Startzeit
-            end_time: Optional - Endzeit
-
-        Returns:
-            Liste von Events
-        """
-        query = "SELECT * FROM device_events WHERE 1=1"
-        params = []
-
-        if device_name:
-            query += " AND device_name = ?"
-            params.append(device_name)
-
-        if start_time:
-            query += " AND timestamp >= ?"
-            params.append(start_time)
-
-        if end_time:
-            query += " AND timestamp <= ?"
-            params.append(end_time)
-
-        query += " ORDER BY timestamp DESC"
-
-        with self.get_connection() as conn:
-            cursor = conn.execute(query, params)
-            return [dict(row) for row in db.fetchall(query)]
-
-    def get_energy_summary(self, date: date) -> Dict:
-        """
-        Holt eine Energiezusammenfassung für einen Tag.
-
-        Args:
-            date: Datum
-
-        Returns:
-            Dictionary mit Energiewerten
-        """
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT 
-                    COUNT(*) as data_points,
-                    SUM(pv_power) * 5.0 / 3600000 as pv_energy_kwh,
-                    SUM(load_power) * 5.0 / 3600000 as consumption_kwh,
-                    SUM(feed_in_power) * 5.0 / 3600000 as feed_in_kwh,
-                    SUM(grid_consumption) * 5.0 / 3600000 as grid_kwh,
-                    AVG(autarky_rate) as avg_autarky,
-                    MAX(pv_power) as max_pv_power,
-                    MAX(surplus_power) as max_surplus
-                FROM solar_data
-                WHERE date(timestamp) = ?
-            """, (date,))
-
-            row = db.fetchone(query)
-            return dict(row) if row else {}
-
-    def get_device_runtime_summary(self, date: date) -> List[Dict]:
-        """
-        Holt eine Zusammenfassung der Gerätelaufzeiten für einen Tag.
-
-        Args:
-            date: Datum
-
-        Returns:
-            Liste mit Gerätelaufzeiten
-        """
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                SELECT 
-                    device_name,
-                    COUNT(CASE WHEN new_state = 'on' THEN 1 END) as switch_on_count,
-                    COUNT(CASE WHEN new_state = 'off' THEN 1 END) as switch_off_count,
-                    MAX(runtime_today) as max_runtime_minutes,
-                    AVG(device_power) as avg_power
-                FROM device_events
-                WHERE date(timestamp) = ?
-                GROUP BY device_name
-                ORDER BY max_runtime_minutes DESC
-            """, (date,))
-
-            return [dict(row) for row in db.fetchall(query)]

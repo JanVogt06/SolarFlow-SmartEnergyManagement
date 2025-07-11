@@ -14,7 +14,7 @@ from .database.database_manager import DatabaseManager
 class DeviceLogger(MultiFileLogger):
     """Logger für Geräte-Events und Status"""
 
-    def __init__(self, config, device_manager: DeviceManager):
+    def __init__(self, config, device_manager: DeviceManager, db_manager: DatabaseManager):
         """
         Initialisiert den DeviceLogger.
 
@@ -28,6 +28,8 @@ class DeviceLogger(MultiFileLogger):
             base_dir=config.DATA_LOG_DIR,
             sub_dir=config.DEVICE_LOG_DIR
         )
+
+        self.db_manager = db_manager
 
         self.device_manager = device_manager
 
