@@ -69,8 +69,9 @@ class SolarMonitor:
             'last_update': None
         }
 
-        # Tagesstatistiken
+        # Tagesstatistiken mit Config initialisieren
         self.daily_stats = DailyStats()
+        self.daily_stats.set_config(self.config)
         self.last_stats_display = None  # Zeitpunkt der letzten Statistik-Anzeige
 
         # Gerätesteuerung

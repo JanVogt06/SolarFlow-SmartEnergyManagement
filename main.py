@@ -207,6 +207,40 @@ def add_display_arguments(parser):
         help='Deaktiviert die periodische Anzeige der Tagesstatistiken'
     )
 
+def add_cost_arguments(parser):
+    """Fügt Kosten-bezogene Argumente hinzu"""
+    group = parser.add_argument_group('Kostenberechnung')
+
+    group.add_argument(
+        '--electricity-price',
+        type=float,
+        help='Strompreis in EUR/kWh (Standard: 0.40)'
+    )
+
+    group.add_argument(
+        '--electricity-price-night',
+        type=float,
+        help='Nachtstrompreis in EUR/kWh (Standard: 0.30)'
+    )
+
+    group.add_argument(
+        '--feed-in-tariff',
+        type=float,
+        help='Einspeisevergütung in EUR/kWh (Standard: 0.082)'
+    )
+
+    group.add_argument(
+        '--night-tariff-start',
+        type=str,
+        help='Beginn Nachttarif (Standard: 22:00)'
+    )
+
+    group.add_argument(
+        '--night-tariff-end',
+        type=str,
+        help='Ende Nachttarif (Standard: 06:00)'
+    )
+
 
 def add_logging_arguments(parser):
     """Fügt Logging-bezogene Argumente hinzu"""
@@ -417,6 +451,7 @@ def parse_arguments():
     add_connection_arguments(parser)
     add_timing_arguments(parser)
     add_display_arguments(parser)
+    add_cost_arguments(parser)
     add_logging_arguments(parser)
     add_csv_arguments(parser)
     add_directory_arguments(parser)
@@ -452,6 +487,22 @@ def apply_display_config(config: Config, args: argparse.Namespace) -> None:
     if args.no_daily_stats:
         config.SHOW_DAILY_STATS = False
 
+def apply_cost_config(config: Config, args: argparse.Namespace) -> None:
+    """Wendet Kosten-Konfiguration an"""
+    if args.electricity_price is not None:
+        config.ELECTRICITY_PRICE = args.electricity_price
+
+    if args.electricity_price_night is not None:
+        config.ELECTRICITY_PRICE_NIGHT = args.electricity_price_night
+
+    if args.feed_in_tariff is not None:
+        config.FEED_IN_TARIFF = args.feed_in_tariff
+
+    if args.night_tariff_start:
+        config.NIGHT_TARIFF_START = args.night_tariff_start
+
+    if args.night_tariff_end:
+        config.NIGHT_TARIFF_END = args.night_tariff_end
 
 def apply_logging_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Logging-Konfiguration an"""
@@ -552,6 +603,7 @@ def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
     apply_connection_config(config, args)
     apply_timing_config(config, args)
     apply_display_config(config, args)
+    apply_cost_config(config, args)
     apply_logging_config(config, args)
     apply_csv_config(config, args)
     apply_directory_config(config, args)

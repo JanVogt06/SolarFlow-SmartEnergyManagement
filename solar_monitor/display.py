@@ -268,7 +268,7 @@ class DisplayFormatter:
 
     def display_daily_stats(self, stats: DailyStats) -> None:
         """
-        Zeigt die Tagesstatistiken an.
+        Zeigt die Tagesstatistiken mit Kostenberechnung an.
 
         Args:
             stats: Anzuzeigende Tagesstatistiken
@@ -284,11 +284,44 @@ class DisplayFormatter:
         print(self.format_value("Eigenverbrauch:", stats.self_consumption_energy, "kWh", width=25, decimals=2))
         print(self.format_value("Einspeisung:", stats.feed_in_energy, "kWh", width=25, decimals=2))
         print(self.format_value("Netzbezug:", stats.grid_energy, "kWh", width=25, decimals=2))
+        if stats.grid_energy_day > 0 or stats.grid_energy_night > 0:
+            print(f"  → Tagtarif: {stats.grid_energy_day:>8.2f} kWh")
+            print(f"  → Nachttarif: {stats.grid_energy_night:>8.2f} kWh")
 
         # Batterie wenn vorhanden
         if stats.battery_charge_energy > 0 or stats.battery_discharge_energy > 0:
             print(self.format_value("Batterie geladen:", stats.battery_charge_energy, "kWh", width=25, decimals=2))
             print(self.format_value("Batterie entladen:", stats.battery_discharge_energy, "kWh", width=25, decimals=2))
+
+        # === NEUE KOSTENSEKTION ===
+        print("\nKostenberechnung:")
+        currency = self.config.CURRENCY_SYMBOL
+
+        # Kosten formatieren mit Farbe
+        cost_color = self.COLOR_RED if self.enable_colors else ""
+        savings_color = self.COLOR_GREEN if self.enable_colors else ""
+
+        print(
+            f"{'Stromkosten (Netzbezug):':<25} {cost_color}{stats.cost_grid_consumption:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
+        print(
+            f"{'Einspeisevergütung:':<25} {savings_color}{stats.revenue_feed_in:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
+        print(
+            f"{'Eingesparte Kosten:':<25} {savings_color}{stats.cost_saved:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
+        print("-" * 60)
+
+        benefit_color = self.COLOR_GREEN if stats.total_benefit > 0 else self.COLOR_RED
+        print(
+            f"{'GESAMTNUTZEN:':<25} {benefit_color if self.enable_colors else ''}{stats.total_benefit:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
+
+        # Vergleichswert
+        print(f"\n{'Kosten ohne Solar:':<25} {stats.cost_without_solar:>10.2f} {currency}")
+
+        # ROI
+        if stats.cost_without_solar > 0:
+            roi = (stats.total_benefit / stats.cost_without_solar) * 100
+            roi_color = self.get_threshold_color(roi, 'autarky')  # Nutze Autarkie-Schwellwerte
+            print(
+                f"{'Einsparungsquote:':<25} {roi_color}{roi:>10.1f} %{self.COLOR_RESET if self.enable_colors else ''}")
 
         # Maximale Leistungswerte
         print("\nMaximale Leistung:")
@@ -315,7 +348,8 @@ class DisplayFormatter:
 
         # Autarkie basierend auf Energiewerten
         energy_autarky_color = self.get_threshold_color(stats.self_sufficiency_rate, 'autarky')
-        print(self.format_value_with_color("Energie-Autarkie:", stats.self_sufficiency_rate, "%", energy_autarky_color, decimals=1))
+        print(self.format_value_with_color("Energie-Autarkie:", stats.self_sufficiency_rate, "%", energy_autarky_color,
+                                           decimals=1))
 
         print(f"\nLaufzeit: {stats.runtime_hours:.1f} Stunden")
         print("=" * 60)

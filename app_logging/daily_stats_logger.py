@@ -44,6 +44,8 @@ class DailyStatsLogger(BaseLogger):
                 "Eigenverbrauch (kWh)",
                 "Einspeisung (kWh)",
                 "Netzbezug (kWh)",
+                "Netzbezug Tag (kWh)",
+                "Netzbezug Nacht (kWh)",
                 "Batterie geladen (kWh)",
                 "Batterie entladen (kWh)",
                 "Max PV-Leistung (W)",
@@ -54,7 +56,12 @@ class DailyStatsLogger(BaseLogger):
                 "Min Batterie SOC (%)",
                 "Max Batterie SOC (%)",
                 "Ø Autarkie (%)",
-                "Energie-Autarkie (%)"
+                "Energie-Autarkie (%)",
+                "Stromkosten (EUR)",
+                "Einspeisevergütung (EUR)",
+                "Eingesparte Kosten (EUR)",
+                "Gesamtnutzen (EUR)",
+                "Kosten ohne Solar (EUR)"
             ]
         else:
             headers = [
@@ -65,6 +72,8 @@ class DailyStatsLogger(BaseLogger):
                 "Self Consumption (kWh)",
                 "Feed-in (kWh)",
                 "Grid Consumption (kWh)",
+                "Grid Day (kWh)",
+                "Grid Night (kWh)",
                 "Battery Charged (kWh)",
                 "Battery Discharged (kWh)",
                 "Max PV Power (W)",
@@ -75,7 +84,12 @@ class DailyStatsLogger(BaseLogger):
                 "Min Battery SOC (%)",
                 "Max Battery SOC (%)",
                 "Avg Autarky (%)",
-                "Energy Autarky (%)"
+                "Energy Autarky (%)",
+                "Electricity Cost (EUR)",
+                "Feed-in Revenue (EUR)",
+                "Saved Cost (EUR)",
+                "Total Benefit (EUR)",
+                "Cost without Solar (EUR)"
             ]
 
         return headers
@@ -92,7 +106,7 @@ class DailyStatsLogger(BaseLogger):
 
     def _format_row(self, stats: DailyStats) -> List[Any]:
         """
-        Formatiert DailyStats für CSV-Export.
+        Formatiert DailyStats für CSV-Export mit Kosten.
 
         Args:
             stats: Zu loggende Tagesstatistiken
@@ -112,6 +126,8 @@ class DailyStatsLogger(BaseLogger):
             self.csv_formatter.format_number(stats.self_consumption_energy, decimals=2),
             self.csv_formatter.format_number(stats.feed_in_energy, decimals=2),
             self.csv_formatter.format_number(stats.grid_energy, decimals=2),
+            self.csv_formatter.format_number(stats.grid_energy_day, decimals=2),  # NEU
+            self.csv_formatter.format_number(stats.grid_energy_night, decimals=2),  # NEU
             self.csv_formatter.format_number(stats.battery_charge_energy, decimals=2),
             self.csv_formatter.format_number(stats.battery_discharge_energy, decimals=2),
             self.csv_formatter.format_number(stats.pv_power_max),
@@ -124,7 +140,13 @@ class DailyStatsLogger(BaseLogger):
             self.csv_formatter.format_number(stats.battery_soc_max, decimals=1)
                 if stats.battery_soc_max is not None else "-",
             self.csv_formatter.format_number(stats.autarky_avg, decimals=1),
-            self.csv_formatter.format_number(stats.self_sufficiency_rate, decimals=1)
+            self.csv_formatter.format_number(stats.self_sufficiency_rate, decimals=1),
+            # NEUE Kostenfelder
+            self.csv_formatter.format_number(stats.cost_grid_consumption, decimals=2),
+            self.csv_formatter.format_number(stats.revenue_feed_in, decimals=2),
+            self.csv_formatter.format_number(stats.cost_saved, decimals=2),
+            self.csv_formatter.format_number(stats.total_benefit, decimals=2),
+            self.csv_formatter.format_number(stats.cost_without_solar, decimals=2)
         ]
 
         return row

@@ -57,6 +57,19 @@ class Config:
     # Überschuss-Anzeige
     SURPLUS_DISPLAY_THRESHOLD: float = float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0"))  # Watt - Anzeige-Schwelle
 
+    # Strompreise in EUR/kWh
+    ELECTRICITY_PRICE: float = float(os.getenv("ELECTRICITY_PRICE", "0.40"))  # 40 Cent/kWh
+    ELECTRICITY_PRICE_NIGHT: float = float(os.getenv("ELECTRICITY_PRICE_NIGHT", "0.30"))  # Nachttarif
+    FEED_IN_TARIFF: float = float(os.getenv("FEED_IN_TARIFF", "0.082"))  # 8,2 Cent/kWh Einspeisevergütung
+
+    # Zeitbasierte Tarife
+    NIGHT_TARIFF_START: str = os.getenv("NIGHT_TARIFF_START", "22:00")  # Beginn Nachttarif
+    NIGHT_TARIFF_END: str = os.getenv("NIGHT_TARIFF_END", "06:00")  # Ende Nachttarif
+
+    # Währungsformat
+    CURRENCY_SYMBOL: str = os.getenv("CURRENCY_SYMBOL", "€")
+    CURRENCY_FORMAT: str = os.getenv("CURRENCY_FORMAT", "de-DE") # oder "en-US" für $
+
     # Gerätesteuerung
     ENABLE_DEVICE_CONTROL: bool = os.getenv("ENABLE_DEVICE_CONTROL", "True").lower() == "true"
     DEVICE_CONFIG_FILE: str = os.getenv("DEVICE_CONFIG_FILE", "device_management/devices.json")

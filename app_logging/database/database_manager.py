@@ -38,91 +38,102 @@ class DatabaseManager:
         with self.get_connection() as conn:
             # Solar-Daten Tabelle
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS solar_data (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME NOT NULL,
-                    pv_power REAL NOT NULL,
-                    grid_power REAL NOT NULL,
-                    battery_power REAL DEFAULT 0,
-                    load_power REAL NOT NULL,
-                    battery_soc REAL,
-                    feed_in_power REAL NOT NULL,
-                    grid_consumption REAL NOT NULL,
-                    self_consumption REAL NOT NULL,
-                    autarky_rate REAL NOT NULL,
-                    surplus_power REAL NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
+                         CREATE TABLE IF NOT EXISTS solar_data
+                         (
+                             id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                             timestamp        DATETIME NOT NULL,
+                             pv_power         REAL     NOT NULL,
+                             grid_power       REAL     NOT NULL,
+                             battery_power    REAL     DEFAULT 0,
+                             load_power       REAL     NOT NULL,
+                             battery_soc      REAL,
+                             feed_in_power    REAL     NOT NULL,
+                             grid_consumption REAL     NOT NULL,
+                             self_consumption REAL     NOT NULL,
+                             autarky_rate     REAL     NOT NULL,
+                             surplus_power    REAL     NOT NULL,
+                             created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+                         )
+                         """)
+
             # Index für schnellere Zeitabfragen
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_solar_timestamp 
-                ON solar_data(timestamp)
-            """)
+                         CREATE INDEX IF NOT EXISTS idx_solar_timestamp
+                             ON solar_data (timestamp)
+                         """)
             
             # Tagesstatistiken Tabelle
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS daily_stats (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date DATE NOT NULL UNIQUE,
-                    runtime_hours REAL NOT NULL,
-                    pv_energy REAL NOT NULL,
-                    consumption_energy REAL NOT NULL,
-                    self_consumption_energy REAL NOT NULL,
-                    feed_in_energy REAL NOT NULL,
-                    grid_energy REAL NOT NULL,
-                    battery_charge_energy REAL DEFAULT 0,
-                    battery_discharge_energy REAL DEFAULT 0,
-                    pv_power_max REAL NOT NULL,
-                    consumption_power_max REAL NOT NULL,
-                    feed_in_power_max REAL NOT NULL,
-                    grid_power_max REAL NOT NULL,
-                    surplus_power_max REAL NOT NULL,
-                    battery_soc_min REAL,
-                    battery_soc_max REAL,
-                    autarky_avg REAL NOT NULL,
-                    self_sufficiency_rate REAL NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+                         CREATE TABLE IF NOT EXISTS daily_stats
+                         (
+                             id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+                             date                     DATE NOT NULL UNIQUE,
+                             runtime_hours            REAL NOT NULL,
+                             pv_energy                REAL NOT NULL,
+                             consumption_energy       REAL NOT NULL,
+                             self_consumption_energy  REAL NOT NULL,
+                             feed_in_energy           REAL NOT NULL,
+                             grid_energy              REAL NOT NULL,
+                             grid_energy_day          REAL     DEFAULT 0, -- NEU
+                             grid_energy_night        REAL     DEFAULT 0, -- NEU
+                             battery_charge_energy    REAL     DEFAULT 0,
+                             battery_discharge_energy REAL     DEFAULT 0,
+                             pv_power_max             REAL NOT NULL,
+                             consumption_power_max    REAL NOT NULL,
+                             feed_in_power_max        REAL NOT NULL,
+                             grid_power_max           REAL NOT NULL,
+                             surplus_power_max        REAL NOT NULL,
+                             battery_soc_min          REAL,
+                             battery_soc_max          REAL,
+                             autarky_avg              REAL NOT NULL,
+                             self_sufficiency_rate    REAL NOT NULL,
+                             cost_grid_consumption    REAL     DEFAULT 0, -- NEU
+                             revenue_feed_in          REAL     DEFAULT 0, -- NEU
+                             cost_saved               REAL     DEFAULT 0, -- NEU
+                             total_benefit            REAL     DEFAULT 0, -- NEU
+                             cost_without_solar       REAL     DEFAULT 0, -- NEU
+                             created_at               DATETIME DEFAULT CURRENT_TIMESTAMP
+                         )
+                         """)
             
             # Geräte-Events Tabelle
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS device_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME NOT NULL,
-                    device_name TEXT NOT NULL,
-                    action TEXT NOT NULL,
-                    old_state TEXT,
-                    new_state TEXT NOT NULL,
-                    reason TEXT,
-                    surplus_power REAL,
-                    device_power REAL NOT NULL,
-                    priority INTEGER NOT NULL,
-                    runtime_today INTEGER,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+                         CREATE TABLE IF NOT EXISTS device_events
+                         (
+                             id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                             timestamp     DATETIME NOT NULL,
+                             device_name   TEXT     NOT NULL,
+                             action        TEXT     NOT NULL,
+                             old_state     TEXT,
+                             new_state     TEXT     NOT NULL,
+                             reason        TEXT,
+                             surplus_power REAL,
+                             device_power  REAL     NOT NULL,
+                             priority      INTEGER  NOT NULL,
+                             runtime_today INTEGER,
+                             created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                         )
+                         """)
             
             # Index für Geräte-Abfragen
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_device_events 
-                ON device_events(device_name, timestamp)
-            """)
+                         CREATE INDEX IF NOT EXISTS idx_device_events
+                             ON device_events (device_name, timestamp)
+                         """)
             
             # Geräte-Status Tabelle (für regelmäßige Snapshots)
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS device_status (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp DATETIME NOT NULL,
-                    device_name TEXT NOT NULL,
-                    state TEXT NOT NULL,
-                    runtime_today INTEGER NOT NULL,
-                    power_consumption REAL NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+                         CREATE TABLE IF NOT EXISTS device_status
+                         (
+                             id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                             timestamp         DATETIME NOT NULL,
+                             device_name       TEXT     NOT NULL,
+                             state             TEXT     NOT NULL,
+                             runtime_today     INTEGER  NOT NULL,
+                             power_consumption REAL     NOT NULL,
+                             created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+                         )
+                         """)
             
             self.logger.info(f"Datenbank initialisiert: {self.db_path}")
     
@@ -154,17 +165,16 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 conn.execute("""
-                    INSERT INTO solar_data (
-                        timestamp, pv_power, grid_power, battery_power,
-                        load_power, battery_soc, feed_in_power, grid_consumption,
-                        self_consumption, autarky_rate, surplus_power
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    data.timestamp, data.pv_power, data.grid_power,
-                    data.battery_power, data.load_power, data.battery_soc,
-                    data.feed_in_power, data.grid_consumption,
-                    data.self_consumption, data.autarky_rate, data.surplus_power
-                ))
+                             INSERT INTO solar_data (timestamp, pv_power, grid_power, battery_power,
+                                                     load_power, battery_soc, feed_in_power, grid_consumption,
+                                                     self_consumption, autarky_rate, surplus_power)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             """, (
+                                 data.timestamp, data.pv_power, data.grid_power,
+                                 data.battery_power, data.load_power, data.battery_soc,
+                                 data.feed_in_power, data.grid_consumption,
+                                 data.self_consumption, data.autarky_rate, data.surplus_power
+                             ))
             return True
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Solar-Daten: {e}")
@@ -183,15 +193,15 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 conn.execute("""
-                    INSERT OR REPLACE INTO daily_stats (
-                        date, runtime_hours, pv_energy, consumption_energy,
-                        self_consumption_energy, feed_in_energy, grid_energy,
-                        battery_charge_energy, battery_discharge_energy,
-                        pv_power_max, consumption_power_max, feed_in_power_max,
-                        grid_power_max, surplus_power_max, battery_soc_min,
-                        battery_soc_max, autarky_avg, self_sufficiency_rate
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                                INSERT OR REPLACE INTO daily_stats (
+                                    date, runtime_hours, pv_energy, consumption_energy,
+                                    self_consumption_energy, feed_in_energy, grid_energy,
+                                    battery_charge_energy, battery_discharge_energy,
+                                    pv_power_max, consumption_power_max, feed_in_power_max,
+                                    grid_power_max, surplus_power_max, battery_soc_min,
+                                    battery_soc_max, autarky_avg, self_sufficiency_rate
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (
                     stats.date, stats.runtime_hours, stats.pv_energy,
                     stats.consumption_energy, stats.self_consumption_energy,
                     stats.feed_in_energy, stats.grid_energy,
@@ -225,11 +235,10 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 conn.execute("""
-                    INSERT INTO device_events (
-                        timestamp, device_name, action, old_state, new_state,
-                        reason, surplus_power, device_power, priority, runtime_today
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                             INSERT INTO device_events (timestamp, device_name, action, old_state, new_state,
+                                                        reason, surplus_power, device_power, priority, runtime_today)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             """, (
                     datetime.now(), device.name, action, old_state.value,
                     device.state.value, reason, surplus_power,
                     device.power_consumption, device.priority.value,
@@ -257,11 +266,10 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 for device in devices:
                     conn.execute("""
-                        INSERT INTO device_status (
-                            timestamp, device_name, state, runtime_today, 
-                            power_consumption
-                        ) VALUES (?, ?, ?, ?, ?)
-                    """, (
+                                 INSERT INTO device_status (timestamp, device_name, state, runtime_today,
+                                                            power_consumption)
+                                 VALUES (?, ?, ?, ?, ?)
+                                 """, (
                         timestamp, device.name, device.state.value,
                         device.runtime_today, device.power_consumption
                     ))
