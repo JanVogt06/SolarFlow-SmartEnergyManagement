@@ -1,5 +1,5 @@
 """
-Anzeigeformatierung für den Fronius Solar Monitor - KORRIGIERT.
+Anzeigeformatierung für den Fronius Solar Monitor - REFACTORED VERSION.
 """
 
 from typing import Optional
@@ -19,6 +19,13 @@ class DisplayFormatter:
     COLOR_BLUE = '\033[94m'
     COLOR_RESET = '\033[0m'
 
+    # Display-Konstanten
+    SEPARATOR_WIDTH = 60
+    SEPARATOR_CHAR = "="
+    SUB_SEPARATOR_CHAR = "-"
+    LABEL_WIDTH = 25
+    VALUE_WIDTH = 10
+
     def __init__(self, config: Config):
         """
         Initialisiert den DisplayFormatter.
@@ -29,7 +36,52 @@ class DisplayFormatter:
         self.config = config
         self.enable_colors = config.ENABLE_COLORS
 
-    def format_value(self, label: str, value: float, unit: str, width: int = 25, decimals: int = 0) -> str:
+    # ========== Basis-Formatierungsmethoden ==========
+
+    def _get_color(self, color_constant: str) -> str:
+        """
+        Gibt Farbcode zurück wenn Farben aktiviert sind.
+
+        Args:
+            color_constant: ANSI Farbcode-Konstante
+
+        Returns:
+            Farbcode oder leerer String
+        """
+        return color_constant if self.enable_colors else ""
+
+    def _colorize(self, text: str, color: str) -> str:
+        """
+        Färbt Text wenn Farben aktiviert sind.
+
+        Args:
+            text: Zu färbender Text
+            color: Farbcode
+
+        Returns:
+            Gefärbter Text oder Original
+        """
+        if not color or not self.enable_colors:
+            return text
+        return f"{color}{text}{self.COLOR_RESET}"
+
+    def _print_separator(self, char: str = None, width: int = None) -> None:
+        """Druckt eine Trennlinie."""
+        char = char or self.SEPARATOR_CHAR
+        width = width or self.SEPARATOR_WIDTH
+        print(char * width)
+
+    def _print_header(self, title: str, subtitle: str = None) -> None:
+        """Druckt einen formatierten Header."""
+        self._print_separator()
+        if subtitle:
+            print(f"{title:<20} {subtitle}")
+        else:
+            print(title)
+        self._print_separator()
+
+    def format_value(self, label: str, value: float, unit: str,
+                    width: int = None, decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige.
 
@@ -43,12 +95,15 @@ class DisplayFormatter:
         Returns:
             Formatierter String
         """
+        width = width or self.LABEL_WIDTH
         if decimals == 0:
-            return f"{label:<{width}} {value:>10.0f} {unit}"
+            return f"{label:<{width}} {value:>{self.VALUE_WIDTH}.0f} {unit}"
         else:
-            return f"{label:<{width}} {value:>10.{decimals}f} {unit}"
+            return f"{label:<{width}} {value:>{self.VALUE_WIDTH}.{decimals}f} {unit}"
 
-    def format_value_with_color(self, label: str, value: float, unit: str, color: str = "", width: int = 25, decimals: int = 0) -> str:
+    def format_value_with_color(self, label: str, value: float, unit: str,
+                               color: str = "", width: int = None,
+                               decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige mit Farbe.
 
@@ -63,11 +118,10 @@ class DisplayFormatter:
         Returns:
             Formatierter String mit Farbe
         """
-        reset = self.COLOR_RESET if self.enable_colors and color else ""
-        if decimals == 0:
-            return f"{label:<{width}} {color}{value:>10.0f} {unit}{reset}"
-        else:
-            return f"{label:<{width}} {color}{value:>10.{decimals}f} {unit}{reset}"
+        width = width or self.LABEL_WIDTH
+        formatted_value = f"{value:>{self.VALUE_WIDTH}.{decimals}f}" if decimals else f"{value:>{self.VALUE_WIDTH}.0f}"
+        colored_value = self._colorize(f"{formatted_value} {unit}", color)
+        return f"{label:<{width}} {colored_value}"
 
     def get_threshold_color(self, value: float, threshold_key: str) -> str:
         """
@@ -94,6 +148,8 @@ class DisplayFormatter:
         else:
             return self.COLOR_RED
 
+    # ========== Hauptanzeige-Methoden ==========
+
     def display_data(self, data: SolarData) -> None:
         """
         Zeigt die Daten formatiert an.
@@ -101,42 +157,16 @@ class DisplayFormatter:
         Args:
             data: Anzuzeigende Solardaten
         """
-        # Header
-        print("\n" + "=" * 60)
-        print(f"{'Zeitstempel:':<20} {data.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
+        self._display_data_header(data)
+        self._display_power_values(data)
+        self._display_grid_values(data)
 
-        # PV-Erzeugung mit Farbe
-        pv_color = self.get_threshold_color(data.pv_power, 'pv_power')
-        print(self.format_value_with_color("PV-Erzeugung:", data.pv_power, "W", pv_color))
-
-        # Hausverbrauch (ohne Farbe)
-        print(self.format_value("Hausverbrauch:", data.load_power, "W"))
-
-        # Gesamtproduktion
-        if data.has_battery:
-            total_prod_color = self.get_threshold_color(data.total_production, 'pv_power')
-            print(self.format_value_with_color("Gesamtproduktion:", data.total_production, "W", total_prod_color))
-
-        # Netz
-        if data.is_feeding_in:
-            print(self.format_value("Einspeisung:", data.feed_in_power, "W"))
-        elif data.grid_consumption > 0:
-            print(self.format_value("Netzbezug:", data.grid_consumption, "W"))
-        else:
-            print(self.format_value("Netz:", 0, "W"))
-
-        # Batterie
         if data.has_battery:
             self._display_battery_info(data)
 
-        # Separator
-        print("-" * 60)
-
-        # Berechnete Werte mit Farbe
+        self._print_separator(self.SUB_SEPARATOR_CHAR)
         self._display_calculated_values(data)
-
-        print("=" * 60)
+        self._print_separator()
 
     def display_data_with_devices(self, data: SolarData, device_manager) -> None:
         """
@@ -150,108 +180,7 @@ class DisplayFormatter:
         self.display_data(data)
 
         # Füge Geräte-Sektion hinzu
-        print("\n" + "-" * 60)
-        print("GERÄTESTEUERUNG:")
-        print("-" * 60)
-
-        # Berechne Gesamtverbrauch der gesteuerten Geräte
-        controlled_consumption = device_manager.get_total_consumption()
-
-        print(f"Gesteuerter Verbrauch:    {controlled_consumption:>10.0f} W")
-        print(f"Aktueller Überschuss:     {data.surplus_power:>10.0f} W")
-
-        # Optional: Zeige theoretischen Überschuss (wenn alle Geräte aus wären)
-        theoretical_surplus = data.surplus_power + controlled_consumption
-        if controlled_consumption > 0:
-            print(f"Theoretischer Überschuss: {theoretical_surplus:>10.0f} W (wenn alle Geräte aus)")
-        print()
-
-        # Zeige Gerätestatus
-        devices = device_manager.get_devices_by_priority()
-        if not devices:
-            print("Keine Geräte konfiguriert")
-        else:
-            print(f"{'Gerät':<20} {'Priorität':>9} {'Leistung':>10} {'Status':<12} {'Laufzeit heute':>14}")
-            print("-" * 75)
-
-            for device in devices:
-                # Status-Farbe
-                if device.state.value == "on":
-                    status_color = self.COLOR_GREEN
-                    status_text = "EIN"
-                elif device.state.value == "blocked":
-                    status_color = self.COLOR_YELLOW
-                    status_text = "BLOCKIERT"
-                else:
-                    status_color = self.COLOR_RED
-                    status_text = "AUS"
-
-                total_runtime = device.get_current_runtime(data.timestamp)
-
-                # Formatiere Laufzeit
-                hours = total_runtime // 60
-                minutes = total_runtime % 60
-                runtime_str = f"{hours}h {minutes}m"
-
-                # Zeige Zeile
-                status_colored = f"{status_color}{status_text:<10}{self.COLOR_RESET if self.enable_colors else ''}"
-                print(f"{device.name:<20} {device.priority:>9} {device.power_consumption:>9.0f}W "
-                      f"{status_colored} {runtime_str:>14}")
-
-                # Zeige zusätzliche Info bei Blockierung
-                if device.state.value == "blocked":
-                    if not device.can_run_today():
-                        remaining = device.get_remaining_runtime()
-                        print(f"  → Maximale Tageslaufzeit erreicht")
-                    elif not device.is_time_allowed(data.timestamp):
-                        print(f"  → Außerhalb der erlaubten Zeiten")
-
-        print("=" * 60)
-
-    def _display_battery_info(self, data: SolarData) -> None:
-        """
-        Zeigt Batterie-Informationen an.
-
-        Args:
-            data: Solardaten
-        """
-        # Batterie-Status
-        if abs(data.battery_power) < self.config.BATTERY_IDLE_THRESHOLD:
-            print(self.format_value("Batterie (Standby):", abs(data.battery_power), "W"))
-        elif data.battery_charging:
-            print(self.format_value("Batterie-Ladung:", data.battery_charge_power, "W"))
-        else:
-            print(self.format_value("Batterie-Entladung:", data.battery_discharge_power, "W"))
-
-        # Batterie-Ladestand mit Farbe
-        if data.battery_soc is not None:
-            color = self.get_threshold_color(data.battery_soc, 'battery_soc')
-            print(self.format_value_with_color("Batterie-Ladestand:", data.battery_soc, "%", color))
-
-    def _display_calculated_values(self, data: SolarData) -> None:
-        """
-        Zeigt berechnete Werte mit Farbe an.
-
-        Args:
-            data: Solardaten
-        """
-        # Eigenverbrauch und Autarkie mit Farbe
-        autarky_color = self.get_threshold_color(data.autarky_rate, 'autarky')
-        print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
-        print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
-
-        if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
-            # Spezielle Farblogik für Überschuss (Blau für wenig)
-            if not self.enable_colors:
-                surplus_color = ""
-            elif data.surplus_power >= self.config.THRESHOLDS['surplus']['high']:
-                surplus_color = self.COLOR_GREEN
-            elif data.surplus_power >= self.config.THRESHOLDS['surplus']['medium']:
-                surplus_color = self.COLOR_YELLOW
-            else:
-                surplus_color = self.COLOR_BLUE  # Blau für wenig Überschuss
-
-            print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
+        self._display_device_section(data, device_manager)
 
     def display_simple(self, data: SolarData) -> None:
         """
@@ -273,45 +202,217 @@ class DisplayFormatter:
         Args:
             stats: Anzuzeigende Tagesstatistiken
         """
-        print("\n" + "=" * 60)
-        print(f"{'TAGESSTATISTIK':<20} {stats.date.strftime('%d.%m.%Y')}")
-        print("=" * 60)
+        self._display_stats_header(stats)
+        self._display_energy_section(stats)
+        self._display_cost_section(stats)
+        self._display_power_section(stats)
+        self._display_metrics_section(stats)
+        self._print_separator()
 
-        # Energiewerte
+    # ========== Private Hilfsmethoden für display_data ==========
+
+    def _display_data_header(self, data: SolarData) -> None:
+        """Zeigt den Header mit Zeitstempel."""
+        timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        self._print_header(f"{'Zeitstempel:':<20}", timestamp)
+
+    def _display_power_values(self, data: SolarData) -> None:
+        """Zeigt die Leistungswerte an."""
+        # PV-Erzeugung mit Farbe
+        pv_color = self._get_color(self.get_threshold_color(data.pv_power, 'pv_power'))
+        print(self.format_value_with_color("PV-Erzeugung:", data.pv_power, "W", pv_color))
+
+        # Hausverbrauch (ohne Farbe)
+        print(self.format_value("Hausverbrauch:", data.load_power, "W"))
+
+        # Gesamtproduktion
+        if data.has_battery:
+            total_prod_color = self._get_color(self.get_threshold_color(data.total_production, 'pv_power'))
+            print(self.format_value_with_color("Gesamtproduktion:", data.total_production, "W", total_prod_color))
+
+    def _display_grid_values(self, data: SolarData) -> None:
+        """Zeigt die Netzwerte an."""
+        if data.is_feeding_in:
+            print(self.format_value("Einspeisung:", data.feed_in_power, "W"))
+        elif data.grid_consumption > 0:
+            print(self.format_value("Netzbezug:", data.grid_consumption, "W"))
+        else:
+            print(self.format_value("Netz:", 0, "W"))
+
+    def _display_battery_info(self, data: SolarData) -> None:
+        """Zeigt Batterie-Informationen an."""
+        # Batterie-Status
+        if abs(data.battery_power) < self.config.BATTERY_IDLE_THRESHOLD:
+            print(self.format_value("Batterie (Standby):", abs(data.battery_power), "W"))
+        elif data.battery_charging:
+            print(self.format_value("Batterie-Ladung:", data.battery_charge_power, "W"))
+        else:
+            print(self.format_value("Batterie-Entladung:", data.battery_discharge_power, "W"))
+
+        # Batterie-Ladestand mit Farbe
+        if data.battery_soc is not None:
+            color = self._get_color(self.get_threshold_color(data.battery_soc, 'battery_soc'))
+            print(self.format_value_with_color("Batterie-Ladestand:", data.battery_soc, "%", color))
+
+    def _display_calculated_values(self, data: SolarData) -> None:
+        """Zeigt berechnete Werte mit Farbe an."""
+        # Eigenverbrauch und Autarkie mit Farbe
+        autarky_color = self._get_color(self.get_threshold_color(data.autarky_rate, 'autarky'))
+        print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
+        print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
+
+        if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
+            surplus_color = self._get_surplus_color(data.surplus_power)
+            print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
+
+    def _get_surplus_color(self, surplus_power: float) -> str:
+        """Bestimmt die Farbe für Überschussanzeige."""
+        if not self.enable_colors:
+            return ""
+
+        if surplus_power >= self.config.THRESHOLDS['surplus']['high']:
+            return self.COLOR_GREEN
+        elif surplus_power >= self.config.THRESHOLDS['surplus']['medium']:
+            return self.COLOR_YELLOW
+        else:
+            return self.COLOR_BLUE  # Blau für wenig Überschuss
+
+    # ========== Private Hilfsmethoden für display_data_with_devices ==========
+
+    def _display_device_section(self, data: SolarData, device_manager) -> None:
+        """Zeigt die Gerätesteuerungs-Sektion."""
+        print("\n" + self.SUB_SEPARATOR_CHAR * self.SEPARATOR_WIDTH)
+        print("GERÄTESTEUERUNG:")
+        self._print_separator(self.SUB_SEPARATOR_CHAR)
+
+        self._display_device_summary(data, device_manager)
+        self._display_device_list(data, device_manager)
+        self._print_separator()
+
+    def _display_device_summary(self, data: SolarData, device_manager) -> None:
+        """Zeigt die Zusammenfassung der Gerätesteuerung."""
+        controlled_consumption = device_manager.get_total_consumption()
+
+        print(f"Gesteuerter Verbrauch:    {controlled_consumption:>10.0f} W")
+        print(f"Aktueller Überschuss:     {data.surplus_power:>10.0f} W")
+
+        # Optional: Zeige theoretischen Überschuss
+        if controlled_consumption > 0:
+            theoretical_surplus = data.surplus_power + controlled_consumption
+            print(f"Theoretischer Überschuss: {theoretical_surplus:>10.0f} W (wenn alle Geräte aus)")
+        print()
+
+    def _display_device_list(self, data: SolarData, device_manager) -> None:
+        """Zeigt die Liste der Geräte."""
+        devices = device_manager.get_devices_by_priority()
+
+        if not devices:
+            print("Keine Geräte konfiguriert")
+            return
+
+        # Header
+        print(f"{'Gerät':<20} {'Priorität':>9} {'Leistung':>10} {'Status':<12} {'Laufzeit heute':>14}")
+        print("-" * 75)
+
+        # Geräte
+        for device in devices:
+            self._display_device_row(device, data)
+
+    def _display_device_row(self, device, data: SolarData) -> None:
+        """Zeigt eine einzelne Gerätezeile."""
+        # Status ermitteln
+        status_text, status_color = self._get_device_status_display(device)
+
+        # Laufzeit formatieren
+        total_runtime = device.get_current_runtime(data.timestamp)
+        runtime_str = self._format_runtime(total_runtime)
+
+        # Zeile ausgeben
+        status_colored = self._colorize(f"{status_text:<10}", status_color)
+        print(f"{device.name:<20} {device.priority:>9} {device.power_consumption:>9.0f}W "
+              f"{status_colored} {runtime_str:>14}")
+
+        # Zusätzliche Info bei Blockierung
+        if device.state.value == "blocked":
+            self._display_device_block_reason(device, data)
+
+    def _get_device_status_display(self, device) -> tuple[str, str]:
+        """Gibt Status-Text und Farbe für ein Gerät zurück."""
+        if device.state.value == "on":
+            return "EIN", self._get_color(self.COLOR_GREEN)
+        elif device.state.value == "blocked":
+            return "BLOCKIERT", self._get_color(self.COLOR_YELLOW)
+        else:
+            return "AUS", self._get_color(self.COLOR_RED)
+
+    def _format_runtime(self, total_minutes: int) -> str:
+        """Formatiert Laufzeit in Stunden und Minuten."""
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{hours}h {minutes}m"
+
+    def _display_device_block_reason(self, device, data: SolarData) -> None:
+        """Zeigt den Grund für eine Geräteblockierung."""
+        if not device.can_run_today():
+            print(f"  → Maximale Tageslaufzeit erreicht")
+        elif not device.is_time_allowed(data.timestamp):
+            print(f"  → Außerhalb der erlaubten Zeiten")
+
+    # ========== Private Hilfsmethoden für display_daily_stats ==========
+
+    def _display_stats_header(self, stats: DailyStats) -> None:
+        """Zeigt den Header der Tagesstatistik."""
+        date_str = stats.date.strftime('%d.%m.%Y')
+        self._print_header("TAGESSTATISTIK", date_str)
+
+    def _display_energy_section(self, stats: DailyStats) -> None:
+        """Zeigt die Energie-Sektion der Tagesstatistik."""
         print("\nEnergie heute:")
-        print(self.format_value("PV-Produktion:", stats.pv_energy, "kWh", width=25, decimals=2))
-        print(self.format_value("Verbrauch:", stats.consumption_energy, "kWh", width=25, decimals=2))
-        print(self.format_value("Eigenverbrauch:", stats.self_consumption_energy, "kWh", width=25, decimals=2))
-        print(self.format_value("Einspeisung:", stats.feed_in_energy, "kWh", width=25, decimals=2))
-        print(self.format_value("Netzbezug:", stats.grid_energy, "kWh", width=25, decimals=2))
+
+        # Basis-Energiewerte
+        energy_values = [
+            ("PV-Produktion:", stats.pv_energy),
+            ("Verbrauch:", stats.consumption_energy),
+            ("Eigenverbrauch:", stats.self_consumption_energy),
+            ("Einspeisung:", stats.feed_in_energy),
+            ("Netzbezug:", stats.grid_energy)
+        ]
+
+        for label, value in energy_values:
+            print(self.format_value(label, value, "kWh", decimals=2))
+
+        # Detaillierter Netzbezug
         if stats.grid_energy_day > 0 or stats.grid_energy_night > 0:
             print(f"  → Tagtarif: {stats.grid_energy_day:>8.2f} kWh")
             print(f"  → Nachttarif: {stats.grid_energy_night:>8.2f} kWh")
 
         # Batterie wenn vorhanden
         if stats.battery_charge_energy > 0 or stats.battery_discharge_energy > 0:
-            print(self.format_value("Batterie geladen:", stats.battery_charge_energy, "kWh", width=25, decimals=2))
-            print(self.format_value("Batterie entladen:", stats.battery_discharge_energy, "kWh", width=25, decimals=2))
+            print(self.format_value("Batterie geladen:", stats.battery_charge_energy, "kWh", decimals=2))
+            print(self.format_value("Batterie entladen:", stats.battery_discharge_energy, "kWh", decimals=2))
 
-        # === NEUE KOSTENSEKTION ===
+    def _display_cost_section(self, stats: DailyStats) -> None:
+        """Zeigt die Kosten-Sektion der Tagesstatistik."""
         print("\nKostenberechnung:")
         currency = self.config.CURRENCY_SYMBOL
 
-        # Kosten formatieren mit Farbe
-        cost_color = self.COLOR_RED if self.enable_colors else ""
-        savings_color = self.COLOR_GREEN if self.enable_colors else ""
+        # Kosten mit Farben
+        cost_items = [
+            ("Stromkosten (Netzbezug):", stats.cost_grid_consumption, self.COLOR_RED),
+            ("Einspeisevergütung:", stats.revenue_feed_in, self.COLOR_GREEN),
+            ("Eingesparte Kosten:", stats.cost_saved, self.COLOR_GREEN)
+        ]
 
-        print(
-            f"{'Stromkosten (Netzbezug):':<25} {cost_color}{stats.cost_grid_consumption:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
-        print(
-            f"{'Einspeisevergütung:':<25} {savings_color}{stats.revenue_feed_in:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
-        print(
-            f"{'Eingesparte Kosten:':<25} {savings_color}{stats.cost_saved:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
-        print("-" * 60)
+        for label, value, color in cost_items:
+            colored_value = self._colorize(f"{value:>10.2f} {currency}", self._get_color(color))
+            print(f"{label:<25} {colored_value}")
 
-        benefit_color = self.COLOR_GREEN if stats.total_benefit > 0 else self.COLOR_RED
-        print(
-            f"{'GESAMTNUTZEN:':<25} {benefit_color if self.enable_colors else ''}{stats.total_benefit:>10.2f} {currency}{self.COLOR_RESET if self.enable_colors else ''}")
+        self._print_separator(self.SUB_SEPARATOR_CHAR)
+
+        # Gesamtnutzen
+        benefit_color = self._get_color(self.COLOR_GREEN if stats.total_benefit > 0 else self.COLOR_RED)
+        benefit_text = self._colorize(f"{stats.total_benefit:>10.2f} {currency}", benefit_color)
+        print(f"{'GESAMTNUTZEN:':<25} {benefit_text}")
 
         # Vergleichswert
         print(f"\n{'Kosten ohne Solar:':<25} {stats.cost_without_solar:>10.2f} {currency}")
@@ -319,37 +420,53 @@ class DisplayFormatter:
         # ROI
         if stats.cost_without_solar > 0:
             roi = (stats.total_benefit / stats.cost_without_solar) * 100
-            roi_color = self.get_threshold_color(roi, 'autarky')  # Nutze Autarkie-Schwellwerte
-            print(
-                f"{'Einsparungsquote:':<25} {roi_color}{roi:>10.1f} %{self.COLOR_RESET if self.enable_colors else ''}")
+            roi_color = self._get_color(self.get_threshold_color(roi, 'autarky'))
+            roi_text = self._colorize(f"{roi:>10.1f} %", roi_color)
+            print(f"{'Einsparungsquote:':<25} {roi_text}")
 
-        # Maximale Leistungswerte
+    def _display_power_section(self, stats: DailyStats) -> None:
+        """Zeigt die Leistungs-Sektion der Tagesstatistik."""
         print("\nMaximale Leistung:")
-        pv_max_color = self.get_threshold_color(stats.pv_power_max, 'pv_power')
+
+        # PV-Leistung mit Farbe
+        pv_max_color = self._get_color(self.get_threshold_color(stats.pv_power_max, 'pv_power'))
         print(self.format_value_with_color("PV-Leistung:", stats.pv_power_max, "W", pv_max_color))
+
+        # Andere Leistungswerte
         print(self.format_value("Verbrauch:", stats.consumption_power_max, "W"))
 
         if stats.surplus_power_max > 0:
-            surplus_color = self.get_threshold_color(stats.surplus_power_max, 'surplus')
+            surplus_color = self._get_color(self.get_threshold_color(stats.surplus_power_max, 'surplus'))
             print(self.format_value_with_color("Überschuss:", stats.surplus_power_max, "W", surplus_color))
 
         # Batterie Min/Max
         if stats.battery_soc_min is not None and stats.battery_soc_max is not None:
-            print(f"\nBatterie-Ladestand:")
-            min_color = self.get_threshold_color(stats.battery_soc_min, 'battery_soc')
-            max_color = self.get_threshold_color(stats.battery_soc_max, 'battery_soc')
-            print(f"  Min: {min_color}{stats.battery_soc_min:>5.1f}%{self.COLOR_RESET if self.enable_colors else ''} | "
-                  f"Max: {max_color}{stats.battery_soc_max:>5.1f}%{self.COLOR_RESET if self.enable_colors else ''}")
+            self._display_battery_stats(stats)
 
-        # Durchschnitte und Berechnungen
+    def _display_battery_stats(self, stats: DailyStats) -> None:
+        """Zeigt Batterie-Statistiken."""
+        print(f"\nBatterie-Ladestand:")
+
+        min_color = self._get_color(self.get_threshold_color(stats.battery_soc_min, 'battery_soc'))
+        max_color = self._get_color(self.get_threshold_color(stats.battery_soc_max, 'battery_soc'))
+
+        min_text = self._colorize(f"{stats.battery_soc_min:>5.1f}%", min_color)
+        max_text = self._colorize(f"{stats.battery_soc_max:>5.1f}%", max_color)
+
+        print(f"  Min: {min_text} | Max: {max_text}")
+
+    def _display_metrics_section(self, stats: DailyStats) -> None:
+        """Zeigt die Kennzahlen-Sektion der Tagesstatistik."""
         print("\nKennzahlen:")
-        autarky_color = self.get_threshold_color(stats.autarky_avg, 'autarky')
+
+        # Durchschnittlicher Autarkiegrad
+        autarky_color = self._get_color(self.get_threshold_color(stats.autarky_avg, 'autarky'))
         print(self.format_value_with_color("Ø Autarkiegrad:", stats.autarky_avg, "%", autarky_color, decimals=1))
 
-        # Autarkie basierend auf Energiewerten
-        energy_autarky_color = self.get_threshold_color(stats.self_sufficiency_rate, 'autarky')
-        print(self.format_value_with_color("Energie-Autarkie:", stats.self_sufficiency_rate, "%", energy_autarky_color,
-                                           decimals=1))
+        # Energie-Autarkie
+        energy_autarky_color = self._get_color(self.get_threshold_color(stats.self_sufficiency_rate, 'autarky'))
+        print(self.format_value_with_color("Energie-Autarkie:", stats.self_sufficiency_rate, "%",
+                                         energy_autarky_color, decimals=1))
 
+        # Laufzeit
         print(f"\nLaufzeit: {stats.runtime_hours:.1f} Stunden")
-        print("=" * 60)

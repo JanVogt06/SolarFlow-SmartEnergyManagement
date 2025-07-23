@@ -187,25 +187,6 @@ class BaseLogger(ABC):
         # Schreibe Zeile
         return self.csv_writer.append_row(self.filepath, row)
 
-    def get_current_filepath(self) -> Path:
-        """
-        Gibt den aktuellen Dateipfad zurück.
-
-        Returns:
-            Aktueller Dateipfad
-        """
-        return self.filepath
-
-    def get_log_directory(self) -> Path:
-        """
-        Gibt das Log-Verzeichnis zurück.
-
-        Returns:
-            Log-Verzeichnis
-        """
-        return self.log_dir
-
-
 class MultiFileLogger(BaseLogger):
     """
     Erweiterte Basisklasse für Logger mit mehreren Dateien.
