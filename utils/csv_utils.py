@@ -45,7 +45,7 @@ class CSVFormatter:
                 formatted = f"{value:+.{decimals}f}" if with_sign else f"{value:.{decimals}f}"
 
             # Dezimaltrennzeichen anpassen
-            if self.config.CSV_DECIMAL_SEPARATOR == ",":
+            if self.config.csv.decimal_separator == ",":
                 formatted = formatted.replace(".", ",")
 
             return formatted
@@ -80,9 +80,9 @@ class CSVFormatter:
         info_lines = [
             f"# {title}",
             f"# Erstellt: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"# CSV-Format: Delimiter='{self.config.CSV_DELIMITER}', "
-            f"Decimal='{self.config.CSV_DECIMAL_SEPARATOR}', "
-            f"Encoding='{self.config.CSV_ENCODING}'"
+            f"# CSV-Format: Delimiter='{self.config.csv.delimiter}', "
+            f"Decimal='{self.config.csv.decimal_separator}', "
+            f"Encoding='{self.config.csv.encoding}'"
         ]
 
         # Zusätzliche Infos
@@ -124,14 +124,14 @@ class CSVWriter:
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             with open(filepath, 'w', newline='',
-                      encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
+                      encoding=self.config.csv.encoding) as f:
+                writer = csv.writer(f, delimiter=self.config.csv.delimiter)
 
                 # Header schreiben
                 writer.writerow(headers)
 
                 # Info-Zeile wenn konfiguriert
-                if self.config.CSV_INCLUDE_INFO_ROW and hasattr(self.config, 'CSV_INFO_ROW'):
+                if self.config.csv.include_info_row and hasattr(self.config, 'CSV_INFO_ROW'):
                     writer.writerow(self.config.CSV_INFO_ROW)
 
                 # Session-Info
@@ -161,8 +161,8 @@ class CSVWriter:
         """
         try:
             with open(filepath, 'a', newline='',
-                      encoding=self.config.CSV_ENCODING) as f:
-                writer = csv.writer(f, delimiter=self.config.CSV_DELIMITER)
+                      encoding=self.config.csv.encoding) as f:
+                writer = csv.writer(f, delimiter=self.config.csv.delimiter)
                 writer.writerow(row)
             return True
 

@@ -69,8 +69,8 @@ class DailyStats:
             return False
 
         current_time = timestamp.time()
-        night_start = time.fromisoformat(self._config.NIGHT_TARIFF_START)
-        night_end = time.fromisoformat(self._config.NIGHT_TARIFF_END)
+        night_start = time.fromisoformat(self._config.costs.night_tariff_start)
+        night_end = time.fromisoformat(self._config.costs.night_tariff_end)
 
         # Über Mitternacht
         if night_start > night_end:
@@ -153,16 +153,16 @@ class DailyStats:
             return
 
         # Kosten für Netzbezug (mit Tag/Nacht-Tarif)
-        cost_day = self.grid_energy_day * self._config.ELECTRICITY_PRICE
-        cost_night = self.grid_energy_night * self._config.ELECTRICITY_PRICE_NIGHT
+        cost_day = self.grid_energy_day * self._config.costs.electricity_price
+        cost_night = self.grid_energy_night * self._config.costs.electricity_price_night
         self.cost_grid_consumption = cost_day + cost_night
 
         # Einnahmen durch Einspeisung
-        self.revenue_feed_in = self.feed_in_energy * self._config.FEED_IN_TARIFF
+        self.revenue_feed_in = self.feed_in_energy * self._config.costs.feed_in_tariff
 
         # Was hätte der gesamte Verbrauch ohne Solar gekostet?
         # Annahme: 70% Tag, 30% Nacht bei normalem Verbrauch
-        avg_price = 0.7 * self._config.ELECTRICITY_PRICE + 0.3 * self._config.ELECTRICITY_PRICE_NIGHT
+        avg_price = 0.7 * self._config.costs.electricity_price + 0.3 * self._config.costs.electricity_price_night
         self.cost_without_solar = self.consumption_energy * avg_price
 
         # Eingesparte Kosten = Was hätte es gekostet - Was hat es gekostet

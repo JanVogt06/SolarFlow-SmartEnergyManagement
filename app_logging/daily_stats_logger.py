@@ -21,9 +21,9 @@ class DailyStatsLogger(BaseLogger):
         """
         super().__init__(
             config=config,
-            base_dir=config.DATA_LOG_DIR,
-            sub_dir=config.DAILY_STATS_DIR,
-            base_filename=config.DAILY_STATS_BASE_NAME,
+            base_dir=config.directories.data_log_dir,
+            sub_dir=config.directories.daily_stats_dir,
+            base_filename=config.directories.daily_stats_base_name,
             session_based=False
         )
 
@@ -35,7 +35,7 @@ class DailyStatsLogger(BaseLogger):
 
     def _get_headers(self) -> List[str]:
         """Gibt die CSV-Header zurück"""
-        if self.config.CSV_USE_GERMAN_HEADERS:
+        if self.config.csv.use_german_headers:
             headers = [
                 "Datum",
                 "Laufzeit (h)",
@@ -99,7 +99,7 @@ class DailyStatsLogger(BaseLogger):
         title = "Tagesstatistik Log"
         kwargs = {
             "Monatsdatei": "Ja",
-            "Statistik-Intervall": f"{self.config.DAILY_STATS_INTERVAL}s"
+            "Statistik-Intervall": f"{self.config.timing.daily_stats_interval}s"
         }
 
         return self.csv_formatter.create_session_info(title, **kwargs)

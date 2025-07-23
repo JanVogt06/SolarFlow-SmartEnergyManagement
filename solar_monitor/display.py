@@ -1,5 +1,5 @@
 """
-Anzeigeformatierung für den Fronius Solar Monitor - REFACTORED VERSION.
+Anzeigeformatierung für den Fronius Solar Monitor.
 """
 
 from typing import Optional
@@ -34,7 +34,7 @@ class DisplayFormatter:
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.enable_colors = config.ENABLE_COLORS
+        self.enable_colors = config.display.enable_colors
 
     # ========== Basis-Formatierungsmethoden ==========
 
@@ -242,7 +242,7 @@ class DisplayFormatter:
     def _display_battery_info(self, data: SolarData) -> None:
         """Zeigt Batterie-Informationen an."""
         # Batterie-Status
-        if abs(data.battery_power) < self.config.BATTERY_IDLE_THRESHOLD:
+        if abs(data.battery_power) < self.config.battery.idle_threshold:
             print(self.format_value("Batterie (Standby):", abs(data.battery_power), "W"))
         elif data.battery_charging:
             print(self.format_value("Batterie-Ladung:", data.battery_charge_power, "W"))
@@ -261,7 +261,7 @@ class DisplayFormatter:
         print(self.format_value_with_color("Eigenverbrauch:", data.self_consumption, "W", autarky_color))
         print(self.format_value_with_color("Autarkiegrad:", data.autarky_rate, "%", autarky_color))
 
-        if data.surplus_power >= self.config.SURPLUS_DISPLAY_THRESHOLD:
+        if data.surplus_power >= self.config.display.surplus_display_threshold:
             surplus_color = self._get_surplus_color(data.surplus_power)
             print(self.format_value_with_color("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color))
 
@@ -394,7 +394,7 @@ class DisplayFormatter:
     def _display_cost_section(self, stats: DailyStats) -> None:
         """Zeigt die Kosten-Sektion der Tagesstatistik."""
         print("\nKostenberechnung:")
-        currency = self.config.CURRENCY_SYMBOL
+        currency = self.config.costs.currency_symbol
 
         # Kosten mit Farben
         cost_items = [

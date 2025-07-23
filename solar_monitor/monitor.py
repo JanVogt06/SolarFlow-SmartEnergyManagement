@@ -32,30 +32,30 @@ class SolarMonitor:
         self.config.validate()
 
         # Komponenten initialisieren
-        self.api = FroniusAPI(self.config.FRONIUS_IP, self.config.REQUEST_TIMEOUT)
+        self.api = FroniusAPI(self.config.connection.fronius_ip, self.config.connection.request_timeout)
         self.display = DisplayFormatter(self.config)
         self.logger = logging.getLogger(__name__)
 
         # Database Logger
         self.db_manager = None
-        if self.config.ENABLE_DATABASE:
+        if self.config.database.enable_database:
             self.db_manager = DatabaseManager(self.config)
 
         # Data Logger nur wenn aktiviert
         self.data_logger = None
-        if self.config.ENABLE_DATA_LOGGING:
+        if self.config.logging.enable_data_logging:
             self.data_logger = SolarDataLogger(self.config, self.db_manager)
 
         # Daily Stats Logger
         self.daily_stats_logger = None
-        if self.config.ENABLE_DAILY_STATS_LOGGING:
+        if self.config.logging.enable_daily_stats_logging:
             self.daily_stats_logger = DailyStatsLogger(self.config, self.db_manager)
 
         # Gerätesteuerung initialisieren
         self.device_manager = None
         self.energy_controller = None
         self.device_logger = None
-        if self.config.ENABLE_DEVICE_CONTROL:
+        if self.config.devices.enable_control:
             self._init_device_control()
 
         self.running = False
@@ -82,15 +82,15 @@ class SolarMonitor:
     def _init_device_control(self) -> None:
         """Initialisiert die Gerätesteuerung"""
         try:
-            config_file = Path(self.config.DEVICE_CONFIG_FILE)
+            config_file = Path(self.config.devices.config_file)
             self.device_manager = DeviceManager(config_file)
             self.energy_controller = EnergyController(self.device_manager)
 
             # Setze Hysterese-Zeit
-            self.energy_controller.hysteresis_time = timedelta(minutes=self.config.DEVICE_HYSTERESIS_MINUTES)
+            self.energy_controller.hysteresis_time = timedelta(minutes=self.config.devices.hysteresis_minutes)
 
             # Device Logger initialisieren wenn Logging aktiviert
-            if self.config.ENABLE_DEVICE_LOGGING:
+            if self.config.logging.enable_device_logging:
                 self.device_logger = DeviceLogger(self.config, self.device_manager, self.db_manager)
 
             self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
@@ -114,7 +114,7 @@ class SolarMonitor:
         """Konfiguriert das System-Logging"""
         # Root Logger konfigurieren
         root_logger = logging.getLogger()
-        root_logger.setLevel(self.config.LOG_LEVEL)
+        root_logger.setLevel(self.config.logging.log_level)
 
         # Entferne alle bestehenden Handler
         root_logger.handlers = []
@@ -127,15 +127,15 @@ class SolarMonitor:
         # Console Handler
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(self.config.LOG_LEVEL)
+        console_handler.setLevel(self.config.logging.log_level)
         root_logger.addHandler(console_handler)
 
         # File Handler
-        if self.config.LOG_FILE:
+        if self.config.logging.log_file:
             try:
-                file_handler = logging.FileHandler(self.config.LOG_FILE)
+                file_handler = logging.FileHandler(self.config.logging.log_file)
                 file_handler.setFormatter(formatter)
-                file_handler.setLevel(self.config.LOG_LEVEL)
+                file_handler.setLevel(self.config.logging.log_level)
                 root_logger.addHandler(file_handler)
             except IOError as e:
                 print(f"Warnung: Konnte Log-Datei nicht erstellen: {e}")
@@ -143,8 +143,8 @@ class SolarMonitor:
     def start(self) -> None:
         """Startet den Monitor"""
         self.logger.info("Fronius Solar Monitor wird gestartet...")
-        self.logger.info(f"Konfiguration: IP={self.config.FRONIUS_IP}, "
-                         f"Intervall={self.config.UPDATE_INTERVAL}s")
+        self.logger.info(f"Konfiguration: IP={self.config.connection.fronius_ip}, "
+                         f"Intervall={self.config.timing.update_interval}s")
 
         # Teste Verbindung
         self.logger.info("Teste Verbindung zum Wechselrichter...")
@@ -174,7 +174,7 @@ class SolarMonitor:
                              f"Fehler: {self.stats['errors']}")
 
         # Tagesstatistiken beim Beenden anzeigen
-        if self.config.SHOW_DAILY_STATS and self.daily_stats.first_update:
+        if self.config.display.show_daily_stats and self.daily_stats.first_update:
             print("\n" + "="*60)
             print("ABSCHLUSS-STATISTIK")
             print("="*60)
@@ -199,14 +199,14 @@ class SolarMonitor:
             self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
 
             # Event loggen
-            if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+            if self.device_logger and self.config.logging.device_log_events:
                 self.device_logger.log_device_event(
                     device, "ausgeschaltet", "Programmende",
                     self.last_surplus_power or 0, old_state
                 )
 
         # Tageszusammenfassung erstellen
-        if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
+        if self.device_logger and self.config.logging.device_log_daily_summary:
             self.device_logger.log_daily_summary()
 
         # Speichere Gerätekonfiguration
@@ -230,7 +230,7 @@ class SolarMonitor:
                     break
 
                 # Warte bis zum nächsten Update
-                time.sleep(self.config.UPDATE_INTERVAL)
+                time.sleep(self.config.timing.update_interval)
 
         except KeyboardInterrupt:
             print("\n\nBeende Programm...")
@@ -240,15 +240,15 @@ class SolarMonitor:
         """Loggt Informationen beim Start"""
         self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
 
-        if self.config.SHOW_DAILY_STATS:
-            interval_min = self.config.DAILY_STATS_INTERVAL / 60
+        if self.config.display.show_daily_stats:
+            interval_min = self.config.timing.daily_stats_interval / 60
             self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
 
-        if self.config.ENABLE_DEVICE_CONTROL:
+        if self.config.devices.enable_control:
             self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
-            if self.config.ENABLE_DEVICE_LOGGING:
-                self.logger.info(f"Geräte-Logging aktiviert (Events: {self.config.DEVICE_LOG_EVENTS}, "
-                               f"Status: {self.config.DEVICE_LOG_STATUS} alle {self.config.DEVICE_LOG_INTERVAL}s)")
+            if self.config.logging.enable_device_logging:
+                self.logger.info(f"Geräte-Logging aktiviert (Events: {self.config.logging.device_log_events}, "
+                               f"Status: {self.config.logging.device_log_status} alle {self.config.timing.device_log_interval}s)")
 
     def _process_update_cycle(self, consecutive_errors: int, max_errors: int) -> int:
         """
@@ -293,7 +293,7 @@ class SolarMonitor:
         self._update_statistics()
 
         # Gerätesteuerung aktualisieren
-        if self.config.ENABLE_DEVICE_CONTROL:
+        if self.config.devices.enable_control:
             self._update_devices(data)
 
         # Daten anzeigen
@@ -318,7 +318,7 @@ class SolarMonitor:
         Args:
             data: Anzuzeigende Daten
         """
-        if self.config.ENABLE_DEVICE_CONTROL and self.device_manager:
+        if self.config.devices.enable_control and self.device_manager:
             self.display.display_data_with_devices(data, self.device_manager)
         else:
             self.display.display_data(data)
@@ -336,7 +336,7 @@ class SolarMonitor:
             self._handle_date_change(current_date, data)
 
         # Tagesstatistiken aktualisieren
-        self.daily_stats.update(data, self.config.UPDATE_INTERVAL)
+        self.daily_stats.update(data, self.config.timing.update_interval)
 
         # Periodische Anzeige
         if self._should_display_daily_stats():
@@ -366,14 +366,14 @@ class SolarMonitor:
 
     def _should_display_daily_stats(self) -> bool:
         """Prüft ob Tagesstatistiken angezeigt werden sollen"""
-        if not self.config.SHOW_DAILY_STATS:
+        if not self.config.display.show_daily_stats:
             return False
 
         if self.last_stats_display is None:
             self.last_stats_display = time.time()
             return False
 
-        return time.time() - self.last_stats_display >= self.config.DAILY_STATS_INTERVAL
+        return time.time() - self.last_stats_display >= self.config.timing.daily_stats_interval
 
     def _handle_data_error(self, consecutive_errors: int, max_errors: int) -> None:
         """
@@ -428,7 +428,7 @@ class SolarMonitor:
         Returns:
             True wenn Update notwendig
         """
-        if not self.config.DEVICE_UPDATE_ONLY_ON_CHANGE:
+        if not self.config.devices.update_only_on_change:
             return True
 
         # Berechne Änderung des Überschusses
@@ -460,7 +460,7 @@ class SolarMonitor:
             self.logger.info(f"Gerät '{device_name}' {action}")
 
         # Logge Änderungen in CSV
-        if self.device_logger and self.config.DEVICE_LOG_EVENTS:
+        if self.device_logger and self.config.logging.device_log_events:
             self.device_logger.log_changes(changes, data.surplus_power)
 
     def _log_device_status_if_needed(self, data: SolarData) -> None:
@@ -470,12 +470,12 @@ class SolarMonitor:
         Args:
             data: Aktuelle Solardaten
         """
-        if not (self.device_logger and self.config.DEVICE_LOG_STATUS):
+        if not (self.device_logger and self.config.logging.device_log_status):
             return
 
         if self.last_device_status_log is None:
             self.last_device_status_log = time.time()
-        elif time.time() - self.last_device_status_log >= self.config.DEVICE_LOG_INTERVAL:
+        elif time.time() - self.last_device_status_log >= self.config.timing.device_log_interval:
             self.device_logger.log_device_status(data.surplus_power)
             self.last_device_status_log = time.time()
 
@@ -488,7 +488,7 @@ class SolarMonitor:
         """
         if self.energy_controller and self.daily_stats.date != current_date:
             # Erstelle Tageszusammenfassung vor dem Reset
-            if self.device_logger and self.config.DEVICE_LOG_DAILY_SUMMARY:
+            if self.device_logger and self.config.logging.device_log_daily_summary:
                 self.device_logger.log_daily_summary()
 
             # Reset durchführen

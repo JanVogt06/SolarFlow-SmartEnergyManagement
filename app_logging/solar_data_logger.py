@@ -21,9 +21,9 @@ class SolarDataLogger(BaseLogger):
         """
         super().__init__(
             config=config,
-            base_dir=config.DATA_LOG_DIR,
-            sub_dir=config.SOLAR_DATA_DIR,
-            base_filename=config.DATA_LOG_BASE_NAME,
+            base_dir=config.directories.data_log_dir,
+            sub_dir=config.directories.solar_data_dir,
+            base_filename=config.directories.data_log_base_name,
             session_based=True
         )
 
@@ -31,7 +31,7 @@ class SolarDataLogger(BaseLogger):
 
     def _get_headers(self) -> List[str]:
         """Gibt die CSV-Header zurück"""
-        if self.config.CSV_USE_GERMAN_HEADERS:
+        if self.config.csv.use_german_headers:
             headers = [
                 "Zeitstempel",
                 "PV-Erzeugung (W)",
@@ -68,9 +68,9 @@ class SolarDataLogger(BaseLogger):
         """Gibt Session-spezifische Info-Zeilen zurück"""
         title = "Solar Data Log"
         kwargs = {
-            "Fronius IP": self.config.FRONIUS_IP,
-            "Update Interval": f"{self.config.UPDATE_INTERVAL}s",
-            "Logging aktiviert": "Ja" if self.config.ENABLE_DATA_LOGGING else "Nein"
+            "Fronius IP": self.config.connection.fronius_ip,
+            "Update Interval": f"{self.config.timing.update_interval}s",
+            "Logging aktiviert": "Ja" if self.config.logging.enable_data_logging else "Nein"
         }
 
         return self.csv_formatter.create_session_info(title, **kwargs)

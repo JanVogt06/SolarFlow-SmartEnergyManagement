@@ -141,12 +141,6 @@ Beispiele:
 
 Weitere Informationen:
   python main.py --help                   # Diese Hilfe anzeigen
-
-Umgebungsvariablen (alternativ zu Kommandozeilen-Optionen):
-  export FRONIUS_IP=192.168.178.100
-  export UPDATE_INTERVAL=10
-  export LOG_LEVEL=WARNING
-  export ENABLE_COLORS=false
 """
 
 
@@ -464,105 +458,105 @@ def parse_arguments():
 def apply_connection_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Verbindungs-Konfiguration an"""
     if args.ip:
-        config.FRONIUS_IP = args.ip
+        config.connection.fronius_ip = args.ip
 
     if args.timeout:
-        config.REQUEST_TIMEOUT = args.timeout
+        config.connection.request_timeout = args.timeout
 
 
 def apply_timing_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Timing-Konfiguration an"""
     if args.interval:
-        config.UPDATE_INTERVAL = args.interval
+        config.timing.update_interval = args.interval
 
     if args.daily_stats_interval is not None:
-        config.DAILY_STATS_INTERVAL = args.daily_stats_interval
+        config.timing.daily_stats_interval = args.daily_stats_interval
 
 
 def apply_display_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Anzeige-Konfiguration an"""
     if args.no_colors:
-        config.ENABLE_COLORS = False
+        config.display.enable_colors = False
 
     if args.no_daily_stats:
-        config.SHOW_DAILY_STATS = False
+        config.display.show_daily_stats = False
 
 def apply_cost_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Kosten-Konfiguration an"""
     if args.electricity_price is not None:
-        config.ELECTRICITY_PRICE = args.electricity_price
+        config.costs.electricity_price = args.electricity_price
 
     if args.electricity_price_night is not None:
-        config.ELECTRICITY_PRICE_NIGHT = args.electricity_price_night
+        config.costs.electricity_price_night = args.electricity_price_night
 
     if args.feed_in_tariff is not None:
-        config.FEED_IN_TARIFF = args.feed_in_tariff
+        config.costs.feed_in_tariff = args.feed_in_tariff
 
     if args.night_tariff_start:
-        config.NIGHT_TARIFF_START = args.night_tariff_start
+        config.costs.night_tariff_start = args.night_tariff_start
 
     if args.night_tariff_end:
-        config.NIGHT_TARIFF_END = args.night_tariff_end
+        config.costs.night_tariff_end = args.night_tariff_end
 
 def apply_logging_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Logging-Konfiguration an"""
     if args.no_logging:
-        config.ENABLE_DATA_LOGGING = False
+        config.logging.enable_data_logging = False
 
     if args.log_file:
-        config.LOG_FILE = args.log_file
+        config.logging.log_file = args.log_file
 
     if args.log_level:
         import logging
-        config.LOG_LEVEL = getattr(logging, args.log_level)
+        config.logging.log_level = getattr(logging, args.log_level)
 
     if args.no_daily_stats_logging:
-        config.ENABLE_DAILY_STATS_LOGGING = False
+        config.logging.enable_daily_stats_logging = False
 
     if args.no_database_logging:
-        config.ENABLE_DATABASE = False
+        config.database.enable_database = False
 
 
 def apply_csv_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet CSV-Format Konfiguration an"""
     if args.csv_delimiter:
-        config.CSV_DELIMITER = args.csv_delimiter
+        config.csv.delimiter = args.csv_delimiter
 
     if args.csv_encoding:
-        config.CSV_ENCODING = args.csv_encoding
+        config.csv.encoding = args.csv_encoding
 
     if args.csv_decimal:
-        config.CSV_DECIMAL_SEPARATOR = args.csv_decimal
+        config.csv.decimal_separator = args.csv_decimal
 
     if args.csv_english:
-        config.CSV_USE_GERMAN_HEADERS = False
+        config.csv.use_german_headers = False
 
     if args.csv_no_info:
-        config.CSV_INCLUDE_INFO_ROW = False
+        config.csv.include_info_row = False
 
 
 def apply_directory_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Verzeichnis-Konfiguration an"""
     if args.data_log_dir:
-        config.DATA_LOG_DIR = args.data_log_dir
+        config.directories.data_log_dir = args.data_log_dir
 
     if args.solar_data_dir:
-        config.SOLAR_DATA_DIR = args.solar_data_dir
+        config.directories.solar_data_dir = args.solar_data_dir
 
     if args.daily_stats_dir:
-        config.DAILY_STATS_DIR = args.daily_stats_dir
+        config.directories.daily_stats_dir = args.daily_stats_dir
 
     if args.device_log_dir:
-        config.DEVICE_LOG_DIR = args.device_log_dir
+        config.directories.device_log_dir = args.device_log_dir
 
     if args.database_log_dir:
-        config.DATABASE_LOG_DIR = args.database_log_dir
+        config.database.database_path = args.database_log_dir
 
 
 def apply_threshold_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Schwellwert-Konfiguration an"""
     if args.battery_idle is not None:
-        config.BATTERY_IDLE_THRESHOLD = args.battery_idle
+        config.battery.idle_threshold = args.battery_idle
 
     if args.battery_soc_high is not None:
         config.THRESHOLDS['battery_soc']['high'] = args.battery_soc_high
@@ -577,25 +571,25 @@ def apply_threshold_config(config: Config, args: argparse.Namespace) -> None:
         config.THRESHOLDS['autarky']['medium'] = args.autarky_medium
 
     if args.surplus_display is not None:
-        config.SURPLUS_DISPLAY_THRESHOLD = args.surplus_display
+        config.display.surplus_display_threshold = args.surplus_display
 
 
 def apply_device_config(config: Config, args: argparse.Namespace) -> None:
     """Wendet Gerätesteuerungs-Konfiguration an"""
     if args.disable_devices:
-        config.ENABLE_DEVICE_CONTROL = False
+        config.devices.enable_control = False
 
     if args.device_config:
-        config.DEVICE_CONFIG_FILE = args.device_config
+        config.devices.config_file = args.device_config
 
     if args.device_hysteresis is not None:
-        config.DEVICE_HYSTERESIS_MINUTES = args.device_hysteresis
+        config.devices.hysteresis_minutes = args.device_hysteresis
 
     if args.no_device_logging:
-        config.ENABLE_DEVICE_LOGGING = False
+        config.logging.enable_device_logging = False
 
     if args.device_log_interval is not None:
-        config.DEVICE_LOG_INTERVAL = args.device_log_interval
+        config.timing.device_log_interval = args.device_log_interval
 
 
 def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
@@ -633,7 +627,7 @@ def main():
                     data = monitor.get_current_data()
                     if data:
                         monitor.display.display_simple(data)
-                    time.sleep(config.UPDATE_INTERVAL)
+                    time.sleep(config.timing.update_interval)
             except KeyboardInterrupt:
                 print("\nSimple Mode beendet.")
                 return

@@ -34,7 +34,7 @@ class BaseLogger(ABC):
         self.csv_writer = CSVWriter(config)
 
         # Verzeichnisstruktur
-        self.base_dir = Path(config.DATA_LOG_DIR if hasattr(config, 'DATA_LOG_DIR') else base_dir)
+        self.base_dir = Path(config.directories.data_log_dir if hasattr(config, 'DATA_LOG_DIR') else base_dir)
         self.log_dir = self.base_dir / sub_dir
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -210,7 +210,7 @@ class MultiFileLogger(BaseLogger):
         self.csv_writer = CSVWriter(config)
 
         # Verzeichnisstruktur
-        self.base_dir = Path(config.DATA_LOG_DIR if hasattr(config, 'DATA_LOG_DIR') else base_dir)
+        self.base_dir = Path(config.directories.data_log_dir if hasattr(config, 'DATA_LOG_DIR') else base_dir)
         self.log_dir = self.base_dir / sub_dir
         self.log_dir.mkdir(parents=True, exist_ok=True)
 

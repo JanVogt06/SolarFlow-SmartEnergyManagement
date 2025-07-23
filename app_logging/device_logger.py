@@ -25,23 +25,23 @@ class DeviceLogger(MultiFileLogger):
         """
         super().__init__(
             config=config,
-            base_dir=config.DATA_LOG_DIR,
-            sub_dir=config.DEVICE_LOG_DIR
+            base_dir=config.directories.data_log_dir,
+            sub_dir=config.directories.device_log_dir
         )
 
         self.db_manager = db_manager
         self.device_manager = device_manager
 
         # Rest der Initialisierung bleibt gleich...
-        self.add_file('events', config.DEVICE_EVENTS_BASE_NAME, session_based=True)
-        self.add_file('status', config.DEVICE_STATUS_BASE_NAME, session_based=False, timestamp_format="%Y%m%d")
+        self.add_file('events', config.directories.device_events_base_name, session_based=True)
+        self.add_file('status', config.directories.device_status_base_name, session_based=False, timestamp_format="%Y%m%d")
         self._init_event_file()
         self._init_status_file()
         self.last_device_states = {}
 
     def _init_event_file(self) -> None:
         """Initialisiert die Event-Log-Datei"""
-        if self.config.CSV_USE_GERMAN_HEADERS:
+        if self.config.csv.use_german_headers:
             headers = [
                 "Zeitstempel",
                 "Gerät",
@@ -96,7 +96,7 @@ class DeviceLogger(MultiFileLogger):
 
         # Erstelle neue Datei mit Headers
         # Dynamische Header basierend auf konfigurierten Geräten
-        if self.config.CSV_USE_GERMAN_HEADERS:
+        if self.config.csv.use_german_headers:
             headers = ["Zeitstempel"]
             for device in self.device_manager.get_devices_by_priority():
                 headers.extend([
@@ -125,7 +125,7 @@ class DeviceLogger(MultiFileLogger):
 
         info_lines = self.csv_formatter.create_session_info(
             f"Geräte-Status-Log für {datetime.now().strftime('%Y-%m-%d')}",
-            **{"Status-Intervall": f"{self.config.DEVICE_LOG_INTERVAL}s"}
+            **{"Status-Intervall": f"{self.config.timing.device_log_interval}s"}
         )
 
         success = self.initialize_file('status', headers, info_lines)
@@ -211,7 +211,7 @@ class DeviceLogger(MultiFileLogger):
         if 'status' in self.files:
             expected_date = self.files['status'].stem.split('_')[-1]
             if current_date != expected_date:
-                self.add_file('status', self.config.DEVICE_STATUS_BASE_NAME,
+                self.add_file('status', self.config.directories.device_status_base_name,
                               session_based=False, timestamp_format="%Y%m%d")
                 self._init_status_file()
 
