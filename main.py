@@ -9,12 +9,331 @@ import time
 import subprocess
 import importlib.util
 from pathlib import Path
+from typing import Dict, Any, List
 
 # DEPENDENCY CHECK
 REQUIRED_DEPENDENCIES = {
     'requests': 'requests>=2.31.0',
 }
 
+# ========== ARGUMENT DEFINITIONS ==========
+
+ARGUMENT_GROUPS = {
+    'connection': {
+        'description': 'Verbindung',
+        'arguments': [
+            {
+                'name': '--ip',
+                'type': str,
+                'help': 'IP-Adresse des Fronius Wechselrichters (Standard: aus Config/Umgebung)',
+                'config_path': 'connection.fronius_ip'
+            },
+            {
+                'name': '--timeout',
+                'type': int,
+                'default': 5,
+                'help': 'Timeout für API-Anfragen in Sekunden (Standard: 5)',
+                'config_path': 'connection.request_timeout'
+            }
+        ]
+    },
+
+    'timing': {
+        'description': 'Timing',
+        'arguments': [
+            {
+                'name': '--interval',
+                'type': int,
+                'help': 'Update-Intervall in Sekunden (Standard: aus Config)',
+                'config_path': 'timing.update_interval'
+            },
+            {
+                'name': '--daily-stats-interval',
+                'type': int,
+                'help': 'Intervall für Tagesstatistik-Anzeige in Sekunden (Standard: 1800 = 30 Min)',
+                'config_path': 'timing.daily_stats_interval'
+            }
+        ]
+    },
+
+    'display': {
+        'description': 'Anzeige',
+        'arguments': [
+            {
+                'name': '--no-colors',
+                'action': 'store_true',
+                'help': 'Deaktiviert farbige Ausgabe',
+                'config_path': 'display.enable_colors',
+                'config_value': lambda args: not args.no_colors
+            },
+            {
+                'name': '--simple',
+                'action': 'store_true',
+                'help': 'Verwendet vereinfachte Anzeige (eine Zeile)'
+            },
+            {
+                'name': '--no-daily-stats',
+                'action': 'store_true',
+                'help': 'Deaktiviert die periodische Anzeige der Tagesstatistiken',
+                'config_path': 'display.show_daily_stats',
+                'config_value': lambda args: not args.no_daily_stats
+            }
+        ]
+    },
+
+    'cost': {
+        'description': 'Kostenberechnung',
+        'arguments': [
+            {
+                'name': '--electricity-price',
+                'type': float,
+                'help': 'Strompreis in EUR/kWh (Standard: 0.40)',
+                'config_path': 'costs.electricity_price'
+            },
+            {
+                'name': '--electricity-price-night',
+                'type': float,
+                'help': 'Nachtstrompreis in EUR/kWh (Standard: 0.30)',
+                'config_path': 'costs.electricity_price_night'
+            },
+            {
+                'name': '--feed-in-tariff',
+                'type': float,
+                'help': 'Einspeisevergütung in EUR/kWh (Standard: 0.082)',
+                'config_path': 'costs.feed_in_tariff'
+            },
+            {
+                'name': '--night-tariff-start',
+                'type': str,
+                'help': 'Beginn Nachttarif (Standard: 22:00)',
+                'config_path': 'costs.night_tariff_start'
+            },
+            {
+                'name': '--night-tariff-end',
+                'type': str,
+                'help': 'Ende Nachttarif (Standard: 06:00)',
+                'config_path': 'costs.night_tariff_end'
+            }
+        ]
+    },
+
+    'logging': {
+        'description': 'Logging',
+        'arguments': [
+            {
+                'name': '--no-logging',
+                'action': 'store_true',
+                'help': 'Deaktiviert CSV-Datenlogging',
+                'config_path': 'logging.enable_data_logging',
+                'config_value': lambda args: not args.no_logging
+            },
+            {
+                'name': '--log-file',
+                'type': str,
+                'help': 'Pfad zur Log-Datei (Standard: solar_monitor.log)',
+                'config_path': 'logging.log_file'
+            },
+            {
+                'name': '--log-level',
+                'choices': ['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                'default': 'INFO',
+                'help': 'Log-Level für Konsole und Datei (Standard: INFO)',
+                'config_path': 'logging.log_level',
+                'config_value': lambda args: getattr(logging, args.log_level)
+            },
+            {
+                'name': '--no-daily-stats-logging',
+                'action': 'store_true',
+                'help': 'Deaktiviert das CSV-Logging der Tagesstatistiken',
+                'config_path': 'logging.enable_daily_stats_logging',
+                'config_value': lambda args: not args.no_daily_stats_logging
+            },
+            {
+                'name': '--no-database-logging',
+                'action': 'store_true',
+                'help': 'Deaktiviert das Datenbank-Logging',
+                'config_path': 'database.enable_database',
+                'config_value': lambda args: not args.no_database_logging
+            }
+        ]
+    },
+
+    'csv': {
+        'description': 'CSV-Format',
+        'arguments': [
+            {
+                'name': '--csv-delimiter',
+                'type': str,
+                'choices': [',', ';', '\t', '|'],
+                'help': 'CSV Trennzeichen (Standard: ;)',
+                'config_path': 'csv.delimiter'
+            },
+            {
+                'name': '--csv-encoding',
+                'type': str,
+                'choices': ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1'],
+                'help': 'CSV Encoding (Standard: utf-8)',
+                'config_path': 'csv.encoding'
+            },
+            {
+                'name': '--csv-decimal',
+                'type': str,
+                'choices': ['.', ','],
+                'help': 'Dezimaltrennzeichen (Standard: ,)',
+                'config_path': 'csv.decimal_separator'
+            },
+            {
+                'name': '--csv-english',
+                'action': 'store_true',
+                'help': 'Verwendet englische CSV-Header statt deutsche',
+                'config_path': 'csv.use_german_headers',
+                'config_value': lambda args: not args.csv_english
+            },
+            {
+                'name': '--csv-no-info',
+                'action': 'store_true',
+                'help': 'Keine Info-Zeile unter CSV-Header',
+                'config_path': 'csv.include_info_row',
+                'config_value': lambda args: not args.csv_no_info
+            }
+        ]
+    },
+
+    'directories': {
+        'description': 'Verzeichnisse',
+        'arguments': [
+            {
+                'name': '--data-log-dir',
+                'type': str,
+                'help': 'Hauptverzeichnis für Log-Dateien (Standard: Datalogs)',
+                'config_path': 'directories.data_log_dir'
+            },
+            {
+                'name': '--solar-data-dir',
+                'type': str,
+                'help': 'Unterverzeichnis für Solardaten (Standard: Solardata)',
+                'config_path': 'directories.solar_data_dir'
+            },
+            {
+                'name': '--daily-stats-dir',
+                'type': str,
+                'help': 'Unterverzeichnis für Tagesstatistiken (Standard: Dailystats)',
+                'config_path': 'directories.daily_stats_dir'
+            },
+            {
+                'name': '--device-log-dir',
+                'type': str,
+                'help': 'Unterverzeichnis für Geräte-Logs (Standard: Devicelogs)',
+                'config_path': 'directories.device_log_dir'
+            },
+            {
+                'name': '--database-log-dir',
+                'type': str,
+                'help': 'Verzeichnis für Datenbank-Logs',
+                'config_path': 'database.database_path'
+            }
+        ]
+    },
+
+    'thresholds': {
+        'description': 'Schwellwerte',
+        'arguments': [
+            {
+                'name': '--battery-idle',
+                'type': float,
+                'help': 'Batterie Idle-Schwellwert in Watt (Standard: 10)',
+                'config_path': 'battery.idle_threshold'
+            },
+            {
+                'name': '--battery-soc-high',
+                'type': float,
+                'help': 'Batterie SOC Schwellwert für grün in %% (Standard: 80)',
+                'config_path': 'thresholds.battery_soc.high'
+            },
+            {
+                'name': '--battery-soc-medium',
+                'type': float,
+                'help': 'Batterie SOC Schwellwert für gelb in %% (Standard: 30)',
+                'config_path': 'thresholds.battery_soc.medium'
+            },
+            {
+                'name': '--autarky-high',
+                'type': float,
+                'help': 'Autarkie Schwellwert für grün in %% (Standard: 75)',
+                'config_path': 'thresholds.autarky.high'
+            },
+            {
+                'name': '--autarky-medium',
+                'type': float,
+                'help': 'Autarkie Schwellwert für gelb in %% (Standard: 50)',
+                'config_path': 'thresholds.autarky.medium'
+            },
+            {
+                'name': '--surplus-display',
+                'type': float,
+                'help': 'Überschuss Anzeige-Schwellwert in Watt (Standard: 0)',
+                'config_path': 'display.surplus_display_threshold'
+            }
+        ]
+    },
+
+    'device_control': {
+        'description': 'Gerätesteuerung',
+        'arguments': [
+            {
+                'name': '--disable-devices',
+                'action': 'store_true',
+                'help': 'Deaktiviert die intelligente Gerätesteuerung (standardmäßig aktiviert)',
+                'config_path': 'devices.enable_control',
+                'config_value': lambda args: not args.disable_devices
+            },
+            {
+                'name': '--device-config',
+                'type': str,
+                'help': 'Pfad zur Gerätekonfigurationsdatei (Standard: devices.json)',
+                'config_path': 'devices.config_file'
+            },
+            {
+                'name': '--device-hysteresis',
+                'type': int,
+                'help': 'Hysterese-Zeit in Minuten für Geräteschaltungen (Standard: 5)',
+                'config_path': 'devices.hysteresis_minutes'
+            },
+            {
+                'name': '--no-device-logging',
+                'action': 'store_true',
+                'help': 'Deaktiviert das Geräte-Logging komplett',
+                'config_path': 'logging.enable_device_logging',
+                'config_value': lambda args: not args.no_device_logging
+            },
+            {
+                'name': '--device-log-interval',
+                'type': int,
+                'help': 'Intervall für Geräte-Status-Logging in Sekunden (Standard: 60)',
+                'config_path': 'timing.device_log_interval'
+            }
+        ]
+    },
+
+    'system': {
+        'description': 'System',
+        'arguments': [
+            {
+                'name': '--skip-check',
+                'action': 'store_true',
+                'help': 'Überspringe automatische Dependency-Prüfung'
+            },
+            {
+                'name': '--version',
+                'action': 'version',
+                'version': 'Fronius Solar Monitor 1.0.0'
+            }
+        ]
+    }
+}
+
+
+# ========== HELPER FUNCTIONS ==========
 
 def check_single_dependency(module_name, pip_package):
     """
@@ -119,6 +438,10 @@ if not check_dependencies('--skip-check' in sys.argv):
 sys.path.insert(0, str(Path(__file__).parent))
 
 from solar_monitor import SolarMonitor, Config
+import logging
+
+
+# ========== ARGUMENT PARSING ==========
 
 def create_base_parser():
     """Erstellt den Basis-ArgumentParser"""
@@ -144,465 +467,120 @@ Weitere Informationen:
 """
 
 
-def add_connection_arguments(parser):
-    """Fügt Verbindungs-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Verbindung')
+def add_arguments_from_config(parser: argparse.ArgumentParser,
+                              groups: Dict[str, Dict[str, Any]]) -> None:
+    """
+    Fügt Argumente basierend auf Dictionary-Konfiguration hinzu.
 
-    group.add_argument(
-        '--ip',
-        type=str,
-        help='IP-Adresse des Fronius Wechselrichters (Standard: aus Config/Umgebung)'
-    )
+    Args:
+        parser: ArgumentParser-Instanz
+        groups: Dictionary mit Argument-Gruppen-Definitionen
+    """
+    for group_name, group_config in groups.items():
+        group = parser.add_argument_group(group_config['description'])
 
-    group.add_argument(
-        '--timeout',
-        type=int,
-        default=5,
-        help='Timeout für API-Anfragen in Sekunden (Standard: 5)'
-    )
+        for arg_config in group_config['arguments']:
+            # Kopiere Dictionary um Original nicht zu verändern
+            arg = arg_config.copy()
 
+            # Entferne custom fields
+            arg_name = arg.pop('name')
+            arg.pop('config_path', None)
+            arg.pop('config_value', None)
 
-def add_timing_arguments(parser):
-    """Fügt Timing-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Timing')
-
-    group.add_argument(
-        '--interval',
-        type=int,
-        help='Update-Intervall in Sekunden (Standard: aus Config)'
-    )
-
-    group.add_argument(
-        '--daily-stats-interval',
-        type=int,
-        help='Intervall für Tagesstatistik-Anzeige in Sekunden (Standard: 1800 = 30 Min)'
-    )
-
-
-def add_display_arguments(parser):
-    """Fügt Anzeige-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Anzeige')
-
-    group.add_argument(
-        '--no-colors',
-        action='store_true',
-        help='Deaktiviert farbige Ausgabe'
-    )
-
-    group.add_argument(
-        '--simple',
-        action='store_true',
-        help='Verwendet vereinfachte Anzeige (eine Zeile)'
-    )
-
-    group.add_argument(
-        '--no-daily-stats',
-        action='store_true',
-        help='Deaktiviert die periodische Anzeige der Tagesstatistiken'
-    )
-
-def add_cost_arguments(parser):
-    """Fügt Kosten-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Kostenberechnung')
-
-    group.add_argument(
-        '--electricity-price',
-        type=float,
-        help='Strompreis in EUR/kWh (Standard: 0.40)'
-    )
-
-    group.add_argument(
-        '--electricity-price-night',
-        type=float,
-        help='Nachtstrompreis in EUR/kWh (Standard: 0.30)'
-    )
-
-    group.add_argument(
-        '--feed-in-tariff',
-        type=float,
-        help='Einspeisevergütung in EUR/kWh (Standard: 0.082)'
-    )
-
-    group.add_argument(
-        '--night-tariff-start',
-        type=str,
-        help='Beginn Nachttarif (Standard: 22:00)'
-    )
-
-    group.add_argument(
-        '--night-tariff-end',
-        type=str,
-        help='Ende Nachttarif (Standard: 06:00)'
-    )
-
-
-def add_logging_arguments(parser):
-    """Fügt Logging-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Logging')
-
-    group.add_argument(
-        '--no-logging',
-        action='store_true',
-        help='Deaktiviert CSV-Datenlogging'
-    )
-
-    group.add_argument(
-        '--log-file',
-        type=str,
-        help='Pfad zur Log-Datei (Standard: solar_monitor.log)'
-    )
-
-    group.add_argument(
-        '--log-level',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        default='INFO',
-        help='Log-Level für Konsole und Datei (Standard: INFO)'
-    )
-
-    group.add_argument(
-        '--no-daily-stats-logging',
-        action='store_true',
-        help='Deaktiviert das CSV-Logging der Tagesstatistiken'
-    )
-
-    group.add_argument(
-        '--no-database-logging',
-        help='Deaktiviert das Datenbank-Logging'
-    )
-
-
-def add_csv_arguments(parser):
-    """Fügt CSV-Format Argumente hinzu"""
-    group = parser.add_argument_group('CSV-Format')
-
-    group.add_argument(
-        '--csv-delimiter',
-        type=str,
-        choices=[',', ';', '\t', '|'],
-        help='CSV Trennzeichen (Standard: ;)'
-    )
-
-    group.add_argument(
-        '--csv-encoding',
-        type=str,
-        choices=['utf-8', 'latin-1', 'cp1252', 'iso-8859-1'],
-        help='CSV Encoding (Standard: utf-8)'
-    )
-
-    group.add_argument(
-        '--csv-decimal',
-        type=str,
-        choices=['.', ','],
-        help='Dezimaltrennzeichen (Standard: ,)'
-    )
-
-    group.add_argument(
-        '--csv-english',
-        action='store_true',
-        help='Verwendet englische CSV-Header statt deutsche'
-    )
-
-    group.add_argument(
-        '--csv-no-info',
-        action='store_true',
-        help='Keine Info-Zeile unter CSV-Header'
-    )
-
-
-def add_directory_arguments(parser):
-    """Fügt Verzeichnis-bezogene Argumente hinzu"""
-    group = parser.add_argument_group('Verzeichnisse')
-
-    group.add_argument(
-        '--data-log-dir',
-        type=str,
-        help='Hauptverzeichnis für Log-Dateien (Standard: Datalogs)'
-    )
-
-    group.add_argument(
-        '--solar-data-dir',
-        type=str,
-        help='Unterverzeichnis für Solardaten (Standard: Solardata)'
-    )
-
-    group.add_argument(
-        '--daily-stats-dir',
-        type=str,
-        help='Unterverzeichnis für Tagesstatistiken (Standard: Dailystats)'
-    )
-
-    group.add_argument(
-        '--device-log-dir',
-        type=str,
-        help='Unterverzeichnis für Geräte-Logs (Standard: Devicelogs)'
-    )
-
-    group.add_argument(
-        '--database-log-dir',
-        type=str,
-        help='Verzeichnis für Datenbank-Logs'
-    )
-
-
-def add_threshold_arguments(parser):
-    """Fügt Schwellwert-Argumente hinzu"""
-    group = parser.add_argument_group('Schwellwerte')
-
-    group.add_argument(
-        '--battery-idle',
-        type=float,
-        help='Batterie Idle-Schwellwert in Watt (Standard: 10)'
-    )
-
-    group.add_argument(
-        '--battery-soc-high',
-        type=float,
-        help='Batterie SOC Schwellwert für grün in %% (Standard: 80)'
-    )
-
-    group.add_argument(
-        '--battery-soc-medium',
-        type=float,
-        help='Batterie SOC Schwellwert für gelb in %% (Standard: 30)'
-    )
-
-    group.add_argument(
-        '--autarky-high',
-        type=float,
-        help='Autarkie Schwellwert für grün in %% (Standard: 75)'
-    )
-
-    group.add_argument(
-        '--autarky-medium',
-        type=float,
-        help='Autarkie Schwellwert für gelb in %% (Standard: 50)'
-    )
-
-    group.add_argument(
-        '--surplus-display',
-        type=float,
-        help='Überschuss Anzeige-Schwellwert in Watt (Standard: 0)'
-    )
-
-
-def add_device_control_arguments(parser):
-    """Fügt Gerätesteuerungs-Argumente hinzu"""
-    group = parser.add_argument_group('Gerätesteuerung')
-
-    group.add_argument(
-        '--disable-devices',
-        action='store_true',
-        help='Deaktiviert die intelligente Gerätesteuerung (standardmäßig aktiviert)'
-    )
-
-    group.add_argument(
-        '--device-config',
-        type=str,
-        help='Pfad zur Gerätekonfigurationsdatei (Standard: devices.json)'
-    )
-
-    group.add_argument(
-        '--device-hysteresis',
-        type=int,
-        help='Hysterese-Zeit in Minuten für Geräteschaltungen (Standard: 5)'
-    )
-
-    group.add_argument(
-        '--no-device-logging',
-        action='store_true',
-        help='Deaktiviert das Geräte-Logging komplett'
-    )
-
-    group.add_argument(
-        '--device-log-interval',
-        type=int,
-        help='Intervall für Geräte-Status-Logging in Sekunden (Standard: 60)'
-    )
-
-
-def add_system_arguments(parser):
-    """Fügt System-Argumente hinzu"""
-    group = parser.add_argument_group('System')
-
-    group.add_argument(
-        '--skip-check',
-        action='store_true',
-        help='Überspringe automatische Dependency-Prüfung'
-    )
-
-    group.add_argument(
-        '--version',
-        action='version',
-        version='Fronius Solar Monitor 1.0.0'
-    )
+            # Füge Argument hinzu
+            group.add_argument(arg_name, **arg)
 
 
 def parse_arguments():
     """Kommandozeilen-Argumente parsen"""
     parser = create_base_parser()
 
-    # Füge alle Argument-Gruppen hinzu
-    add_connection_arguments(parser)
-    add_timing_arguments(parser)
-    add_display_arguments(parser)
-    add_cost_arguments(parser)
-    add_logging_arguments(parser)
-    add_csv_arguments(parser)
-    add_directory_arguments(parser)
-    add_threshold_arguments(parser)
-    add_device_control_arguments(parser)
-    add_system_arguments(parser)
+    # Füge alle Argumente aus der Konfiguration hinzu
+    add_arguments_from_config(parser, ARGUMENT_GROUPS)
 
     return parser.parse_args()
 
-def apply_connection_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Verbindungs-Konfiguration an"""
-    if args.ip:
-        config.connection.fronius_ip = args.ip
 
-    if args.timeout:
-        config.connection.request_timeout = args.timeout
+# ========== CONFIG APPLICATION ==========
 
+def get_nested_attr(obj: Any, path: str) -> Any:
+    """
+    Holt ein verschachteltes Attribut über einen Punkt-getrennten Pfad.
 
-def apply_timing_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Timing-Konfiguration an"""
-    if args.interval:
-        config.timing.update_interval = args.interval
+    Args:
+        obj: Objekt
+        path: Punkt-getrennter Pfad (z.B. "connection.fronius_ip")
 
-    if args.daily_stats_interval is not None:
-        config.timing.daily_stats_interval = args.daily_stats_interval
-
-
-def apply_display_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Anzeige-Konfiguration an"""
-    if args.no_colors:
-        config.display.enable_colors = False
-
-    if args.no_daily_stats:
-        config.display.show_daily_stats = False
-
-def apply_cost_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Kosten-Konfiguration an"""
-    if args.electricity_price is not None:
-        config.costs.electricity_price = args.electricity_price
-
-    if args.electricity_price_night is not None:
-        config.costs.electricity_price_night = args.electricity_price_night
-
-    if args.feed_in_tariff is not None:
-        config.costs.feed_in_tariff = args.feed_in_tariff
-
-    if args.night_tariff_start:
-        config.costs.night_tariff_start = args.night_tariff_start
-
-    if args.night_tariff_end:
-        config.costs.night_tariff_end = args.night_tariff_end
-
-def apply_logging_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Logging-Konfiguration an"""
-    if args.no_logging:
-        config.logging.enable_data_logging = False
-
-    if args.log_file:
-        config.logging.log_file = args.log_file
-
-    if args.log_level:
-        import logging
-        config.logging.log_level = getattr(logging, args.log_level)
-
-    if args.no_daily_stats_logging:
-        config.logging.enable_daily_stats_logging = False
-
-    if args.no_database_logging:
-        config.database.enable_database = False
+    Returns:
+        Attributwert
+    """
+    attrs = path.split('.')
+    for attr in attrs:
+        obj = getattr(obj, attr)
+    return obj
 
 
-def apply_csv_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet CSV-Format Konfiguration an"""
-    if args.csv_delimiter:
-        config.csv.delimiter = args.csv_delimiter
+def set_nested_attr(obj: Any, path: str, value: Any) -> None:
+    """
+    Setzt ein verschachteltes Attribut über einen Punkt-getrennten Pfad.
 
-    if args.csv_encoding:
-        config.csv.encoding = args.csv_encoding
+    Args:
+        obj: Objekt
+        path: Punkt-getrennter Pfad (z.B. "connection.fronius_ip")
+        value: Zu setzender Wert
+    """
+    attrs = path.split('.')
 
-    if args.csv_decimal:
-        config.csv.decimal_separator = args.csv_decimal
+    # Navigate to parent
+    for attr in attrs[:-1]:
+        obj = getattr(obj, attr)
 
-    if args.csv_english:
-        config.csv.use_german_headers = False
-
-    if args.csv_no_info:
-        config.csv.include_info_row = False
-
-
-def apply_directory_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Verzeichnis-Konfiguration an"""
-    if args.data_log_dir:
-        config.directories.data_log_dir = args.data_log_dir
-
-    if args.solar_data_dir:
-        config.directories.solar_data_dir = args.solar_data_dir
-
-    if args.daily_stats_dir:
-        config.directories.daily_stats_dir = args.daily_stats_dir
-
-    if args.device_log_dir:
-        config.directories.device_log_dir = args.device_log_dir
-
-    if args.database_log_dir:
-        config.database.database_path = args.database_log_dir
-
-
-def apply_threshold_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Schwellwert-Konfiguration an"""
-    if args.battery_idle is not None:
-        config.battery.idle_threshold = args.battery_idle
-
-    if args.battery_soc_high is not None:
-        config.THRESHOLDS['battery_soc']['high'] = args.battery_soc_high
-
-    if args.battery_soc_medium is not None:
-        config.THRESHOLDS['battery_soc']['medium'] = args.battery_soc_medium
-
-    if args.autarky_high is not None:
-        config.THRESHOLDS['autarky']['high'] = args.autarky_high
-
-    if args.autarky_medium is not None:
-        config.THRESHOLDS['autarky']['medium'] = args.autarky_medium
-
-    if args.surplus_display is not None:
-        config.display.surplus_display_threshold = args.surplus_display
-
-
-def apply_device_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet Gerätesteuerungs-Konfiguration an"""
-    if args.disable_devices:
-        config.devices.enable_control = False
-
-    if args.device_config:
-        config.devices.config_file = args.device_config
-
-    if args.device_hysteresis is not None:
-        config.devices.hysteresis_minutes = args.device_hysteresis
-
-    if args.no_device_logging:
-        config.logging.enable_device_logging = False
-
-    if args.device_log_interval is not None:
-        config.timing.device_log_interval = args.device_log_interval
+    # Handle dictionary access for last attribute
+    if '.' in attrs[-1]:  # For paths like "thresholds.battery_soc.high"
+        parts = attrs[-1].split('.')
+        parent = getattr(obj, parts[0])
+        parent[parts[1]] = value
+    else:
+        # Set final attribute
+        setattr(obj, attrs[-1], value)
 
 
 def apply_args_to_config(config: Config, args: argparse.Namespace) -> None:
-    """Wendet alle Kommandozeilen-Argumente auf die Konfiguration an"""
-    apply_connection_config(config, args)
-    apply_timing_config(config, args)
-    apply_display_config(config, args)
-    apply_cost_config(config, args)
-    apply_logging_config(config, args)
-    apply_csv_config(config, args)
-    apply_directory_config(config, args)
-    apply_threshold_config(config, args)
-    apply_device_config(config, args)
+    """
+    Wendet alle Kommandozeilen-Argumente auf die Konfiguration an.
+
+    Args:
+        config: Config-Instanz
+        args: Geparste Argumente
+    """
+    for group_name, group_config in ARGUMENT_GROUPS.items():
+        for arg_config in group_config['arguments']:
+            # Skip wenn kein config_path definiert
+            if 'config_path' not in arg_config:
+                continue
+
+            # Hole Argument-Name (ohne --)
+            arg_name = arg_config['name'].lstrip('-').replace('-', '_')
+
+            # Prüfe ob Argument gesetzt wurde
+            if hasattr(args, arg_name) and getattr(args, arg_name) is not None:
+                # Bestimme den zu setzenden Wert
+                if 'config_value' in arg_config:
+                    # Custom value function
+                    value = arg_config['config_value'](args)
+                else:
+                    # Direkter Wert
+                    value = getattr(args, arg_name)
+
+                # Setze Konfigurationswert
+                try:
+                    set_nested_attr(config, arg_config['config_path'], value)
+                except AttributeError as e:
+                    print(f"Warnung: Konnte {arg_config['config_path']} nicht setzen: {e}")
+
+
+# ========== MAIN FUNCTION ==========
 
 def main():
     """Hauptfunktion"""
