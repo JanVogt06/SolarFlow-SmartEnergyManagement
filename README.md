@@ -8,15 +8,6 @@
   <strong>Intelligentes Energie-Management-System für Fronius Solaranlagen</strong>
 </p>
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#verwendung">Verwendung</a> •
-  <a href="#konfiguration">Konfiguration</a> •
-  <a href="#gerätesteuerung">Gerätesteuerung</a> •
-  <a href="#dokumentation">Dokumentation</a>
-</p>
-
 ---
 
 ## 📋 Überblick
@@ -87,7 +78,7 @@ Der **Smart Energy Manager** ist ein Python-basiertes Energie-Management-System,
    
    Oder manuell:
    ```bash
-   pip install requests
+   pip install -r requirements.txt
    ```
 
 3. **Konfiguration anpassen**
