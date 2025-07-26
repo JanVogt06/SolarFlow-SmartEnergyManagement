@@ -43,7 +43,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --name SolarFlow main.py
+        pyinstaller --onefile --name SolarFlow --icon assets/logo.ico main.py
 
     - name: Rename executable
       run: |
