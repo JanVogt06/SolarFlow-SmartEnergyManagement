@@ -1,93 +1,321 @@
-# SolarDatenSteuerung
+# Smart Energy Manager
 
+<p align="center">
+  <img src="assets/logo_without-background.png" alt="Smart Energy Manager Logo" width="512">
+</p>
 
+<p align="center">
+  <strong>Intelligentes Energie-Management-System für Fronius Solaranlagen</strong>
+</p>
 
-## Getting started
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#verwendung">Verwendung</a> •
+  <a href="#konfiguration">Konfiguration</a> •
+  <a href="#gerätesteuerung">Gerätesteuerung</a> •
+  <a href="#dokumentation">Dokumentation</a>
+</p>
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 📋 Überblick
 
-## Add your files
+Der **Smart Energy Manager** ist ein Python-basiertes Energie-Management-System, das speziell für Fronius Wechselrichter entwickelt wurde. Es überwacht Ihre Solaranlage in Echtzeit und steuert elektrische Verbraucher intelligent basierend auf der verfügbaren Überschussenergie. Dies maximiert Ihren Eigenverbrauch und reduziert Ihre Stromkosten erheblich.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### 🎯 Hauptziele
+- **Maximierung des Eigenverbrauchs** durch intelligente Lastverteilung
+- **Kostenoptimierung** durch zeitbasierte Tarife und Einspeisevergütung
+- **Automatisierung** von Verbrauchern basierend auf Solarenergie
+- **Detaillierte Analyse** durch umfangreiches Logging und Statistiken
+
+## ✨ Features
+
+### 🌞 Solar-Monitoring
+- **Echtzeit-Überwachung** aller relevanten Leistungsdaten
+- Unterstützung für **Batteriespeicher** (automatische Erkennung)
+- Berechnung von Eigenverbrauch, Autarkiegrad und Überschuss
+- Farbcodierte Anzeige basierend auf konfigurierbaren Schwellwerten
+
+### 🔌 Intelligente Gerätesteuerung
+- **Prioritätsbasierte Steuerung** (10 Prioritätsstufen)
+- Berücksichtigung von Mindest- und Maximallaufzeiten
+- **Zeitbasierte Einschränkungen** (z.B. Waschmaschine nur tagsüber)
+- **Hysterese-Funktionalität** verhindert häufiges Ein-/Ausschalten
+- Unterstützung für beliebig viele Geräte
+
+### 📊 Datenerfassung & Analyse
+- **CSV-Logging** mit konfigurierbarem Format
+- **SQLite-Datenbank** für langfristige Speicherung
+- Tages-, Wochen- und Monatsstatistiken
+- **Kostenberechnung** mit Tag-/Nachttarifen
+- Export-Funktionen für weitere Analysen
+
+### 💰 Kostenoptimierung
+- Berechnung der eingesparten Stromkosten
+- Berücksichtigung von Einspeisevergütung
+- **ROI-Berechnung** (Return on Investment)
+- Unterstützung für zeitbasierte Stromtarife
+
+### 🖥️ Flexible Anzeige
+- Detaillierte Konsolen-Ausgabe mit Farbunterstützung
+- **Simple Mode** für kleine Displays (einzeilig)
+- Periodische Tagesstatistiken
+- Konfigurierbare Anzeigeschwellwerte
+
+## 🚀 Installation
+
+### Voraussetzungen
+- Python 3.8 oder höher
+- Fronius Wechselrichter mit aktivierter Solar API
+- Netzwerkverbindung zum Wechselrichter
+
+### Schnellstart
+
+1. **Repository klonen**
+   ```bash
+   git clone https://github.com/yourusername/smart-energy-manager.git
+   cd smart-energy-manager
+   ```
+
+2. **Abhängigkeiten installieren**
+   
+   Das Programm prüft automatisch beim Start, ob alle benötigten Pakete installiert sind und bietet eine automatische Installation an:
+   ```bash
+   python main.py
+   ```
+   
+   Oder manuell:
+   ```bash
+   pip install requests
+   ```
+
+3. **Konfiguration anpassen**
+   ```bash
+   # IP-Adresse des Fronius Wechselrichters setzen
+   python main.py --ip 192.168.178.100
+   ```
+
+## 📖 Verwendung
+
+### Basis-Verwendung (Beispiele)
+
+```bash
+# Standard-Ausführung mit automatischer Gerätesteuerung
+python main.py
+
+# Mit spezifischer IP-Adresse
+python main.py --ip 192.168.178.100
+
+# Mit angepasstem Update-Intervall (10 Sekunden)
+python main.py --interval 10
+
+# Simple Mode für kleine Displays
+python main.py --simple
+
+# Ohne Farben (für Terminals ohne ANSI-Support)
+python main.py --no-colors
+```
+
+### Erweiterte Optionen (Beispiele)
+
+```bash
+# Kostenparameter setzen
+python main.py --electricity-price 0.35 --feed-in-tariff 0.08
+
+# Logging deaktivieren
+python main.py --no-logging
+
+# Gerätesteuerung deaktivieren
+python main.py --disable-devices
+
+# Alle Optionen anzeigen
+python main.py --help
+```
+
+## ⚙️ Konfiguration
+
+### Umgebungsvariablen
+
+Die Konfiguration kann über Umgebungsvariablen erfolgen:
+
+```bash
+export FRONIUS_IP="192.168.178.100"
+export UPDATE_INTERVAL="5"
+export ELECTRICITY_PRICE="0.40"
+export ENABLE_DEVICE_CONTROL="True"
+```
+
+### Kommandozeilen-Argumente
+
+Alle Konfigurationsoptionen können über Kommandozeilen-Argumente überschrieben werden:
+
+| Kategorie | Option | Beschreibung | Standard |
+|-----------|--------|--------------|----------|
+| **Verbindung** | `--ip` | IP-Adresse des Wechselrichters | 192.168.178.90 |
+| | `--timeout` | API-Timeout in Sekunden | 5 |
+| **Timing** | `--interval` | Update-Intervall in Sekunden | 5 |
+| | `--daily-stats-interval` | Statistik-Anzeigeintervall in Sekunden | 1800 (30 Min) |
+| | `--device-log-interval` | Intervall für Geräte-Status-Logging in Sekunden | 60 |
+| **Anzeige** | `--no-colors` | Deaktiviert farbige Ausgabe | False |
+| | `--simple` | Verwendet vereinfachte Anzeige (eine Zeile) | False |
+| | `--no-daily-stats` | Deaktiviert die periodische Anzeige der Tagesstatistiken | False |
+| | `--surplus-display` | Überschuss Anzeige-Schwellwert in Watt | 0 |
+| **Kosten** | `--electricity-price` | Strompreis in EUR/kWh | 0.40 |
+| | `--electricity-price-night` | Nachtstrompreis in EUR/kWh | 0.30 |
+| | `--feed-in-tariff` | Einspeisevergütung in EUR/kWh | 0.082 |
+| | `--night-tariff-start` | Beginn Nachttarif | 22:00 |
+| | `--night-tariff-end` | Ende Nachttarif | 06:00 |
+| **Logging** | `--no-logging` | Deaktiviert CSV-Datenlogging | False |
+| | `--log-file` | Pfad zur Log-Datei | solar_monitor.log |
+| | `--log-level` | Log-Level (DEBUG/INFO/WARNING/ERROR) | INFO |
+| | `--no-daily-stats-logging` | Deaktiviert das CSV-Logging der Tagesstatistiken | False |
+| | `--no-database-logging` | Deaktiviert das Datenbank-Logging | False |
+| | `--no-device-logging` | Deaktiviert das Geräte-Logging komplett | False |
+| **CSV-Format** | `--csv-delimiter` | CSV Trennzeichen (,/;/\t/\|) | ; |
+| | `--csv-encoding` | CSV Encoding (utf-8/latin-1/cp1252/iso-8859-1) | utf-8 |
+| | `--csv-decimal` | Dezimaltrennzeichen (./,) | , |
+| | `--csv-english` | Verwendet englische CSV-Header statt deutsche | False |
+| | `--csv-no-info` | Keine Info-Zeile unter CSV-Header | False |
+| **Verzeichnisse** | `--data-log-dir` | Hauptverzeichnis für Log-Dateien | Datalogs |
+| | `--solar-data-dir` | Unterverzeichnis für Solardaten | Solardata |
+| | `--daily-stats-dir` | Unterverzeichnis für Tagesstatistiken | Dailystats |
+| | `--device-log-dir` | Unterverzeichnis für Geräte-Logs | Devicelogs |
+| | `--database-log-dir` | Verzeichnis für Datenbank-Logs | Datalogs/solar_energy.db |
+| **Schwellwerte** | `--battery-idle` | Batterie Idle-Schwellwert in Watt | 10 |
+| | `--battery-soc-high` | Batterie SOC Schwellwert für grün in % | 80 |
+| | `--battery-soc-medium` | Batterie SOC Schwellwert für gelb in % | 30 |
+| | `--autarky-high` | Autarkie Schwellwert für grün in % | 75 |
+| | `--autarky-medium` | Autarkie Schwellwert für gelb in % | 50 |
+| **Gerätesteuerung** | `--disable-devices` | Deaktiviert die intelligente Gerätesteuerung | False |
+| | `--device-config` | Pfad zur Gerätekonfigurationsdatei | devices.json |
+| | `--device-hysteresis` | Hysterese-Zeit in Minuten für Geräteschaltungen | 5 |
+| **System** | `--skip-check` | Überspringe automatische Dependency-Prüfung | False |
+| | `--version` | Zeigt Versionsinformationen | - |
+
+## 🔧 Gerätesteuerung
+
+### Gerätekonfiguration
+
+Geräte werden in der Datei `devices.json` konfiguriert:
+
+```json
+[
+  {
+    "name": "Waschmaschine",
+    "description": "Waschmaschine im Keller",
+    "power_consumption": 2000,
+    "priority": 3,
+    "min_runtime": 30,
+    "max_runtime_per_day": 180,
+    "switch_on_threshold": 2200,
+    "switch_off_threshold": 1800,
+    "allowed_time_ranges": [
+      ["08:00", "20:00"]
+    ]
+  },
+  {
+    "name": "Poolpumpe",
+    "description": "Filterpumpe für Pool",
+    "power_consumption": 750,
+    "priority": 7,
+    "min_runtime": 60,
+    "max_runtime_per_day": 480,
+    "switch_on_threshold": 1000,
+    "switch_off_threshold": 500,
+    "allowed_time_ranges": [
+      ["09:00", "18:00"]
+    ]
+  }
+]
+```
+
+### Prioritätsstufen
+
+| Priorität | Bezeichnung | Verwendung |
+|-----------|-------------|------------|
+| 1 | Kritisch | Wichtige Geräte (z.B. Kühlschrank) |
+| 2-3 | Hoch | Häufig benötigte Geräte |
+| 4-6 | Mittel | Standard-Verbraucher |
+| 7-8 | Niedrig | Optionale Verbraucher |
+| 9-10 | Optional | Nur bei viel Überschuss |
+
+### Steuerungslogik
+
+1. **Einschalten**: Geräte werden nach Priorität eingeschaltet, wenn genügend Überschuss vorhanden ist
+2. **Hysterese**: 5 Minuten Wartezeit zwischen Schaltvorgängen (konfigurierbar)
+3. **Zeitfenster**: Geräte laufen nur in erlaubten Zeiträumen
+4. **Laufzeiten**: Mindest- und Maximallaufzeiten werden beachtet
+
+## 📊 Ausgabe-Beispiel
+
+### Standard-Anzeige
 
 ```
-cd existing_repo
-git remote add origin https://git.uni-jena.de/yi47ciq/solardatensteuerung.git
-git branch -M main
-git push -uf origin main
+============================================================
+Zeitstempel:         2025-07-26 14:32:15
+============================================================
+PV-Erzeugung:              4,235 W
+Hausverbrauch:             1,842 W
+Einspeisung:               2,393 W
+Batterie-Ladestand:         85.2 %
+------------------------------------------------------------
+Eigenverbrauch:            1,842 W
+Autarkiegrad:              100.0 %
+Verfügbarer Überschuss:    2,393 W
+============================================================
+
+GERÄTESTEUERUNG:
+------------------------------------------------------------
+Gesteuerter Verbrauch:          0 W
+Aktueller Überschuss:       2,393 W
+
+Gerät                Priorität  Leistung Status       Laufzeit heute
+---------------------------------------------------------------------------
+Waschmaschine                3     2000W AUS              0h 0m
+Poolpumpe                    7      750W EIN             2h 15m
 ```
 
-## Integrate with your tools
+### Tagesstatistik
 
-- [ ] [Set up project integrations](https://git.uni-jena.de/yi47ciq/solardatensteuerung/-/settings/integrations)
+```
+============================================================
+TAGESSTATISTIK              26.07.2025
+============================================================
 
-## Collaborate with your team
+Energie heute:
+PV-Produktion:              24.83 kWh
+Verbrauch:                  18.42 kWh
+Eigenverbrauch:             15.31 kWh
+Einspeisung:                 9.52 kWh
+Netzbezug:                   3.11 kWh
+  → Tagtarif:                2.14 kWh
+  → Nachttarif:              0.97 kWh
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+Kostenberechnung:
+Stromkosten (Netzbezug):     1.14 €
+Einspeisevergütung:          0.78 €
+Eingesparte Kosten:          6.23 €
+------------------------------------------------------------
+GESAMTNUTZEN:                7.01 €
 
-## Test and Deploy
+Kosten ohne Solar:           7.37 €
+Einsparungsquote:           95.1 %
+```
 
-Use the built-in continuous integration in GitLab.
+## 🔒 Sicherheit
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+- Keine Authentifizierung erforderlich (lokales Netzwerk)
+- Nur lesender Zugriff auf Fronius API
+- Keine Steuerung des Wechselrichters
+- Gerätesteuerung nur über externe Schnittstellen
 
-***
+## 📝 Lizenz
 
-# Editing this README
+Dieses Projekt ist unter der MIT-Lizenz lizenziert. Siehe [LICENSE](LICENSE) für Details.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+<p align="center">
+  Made with ❤️ for sustainable energy management
+</p>
