@@ -1,3 +1,7 @@
 ﻿__pycache__/
 *.pyc
 .idea/
+
+# Logs und Daten
+Datalogs/
+solar_monitor.log
