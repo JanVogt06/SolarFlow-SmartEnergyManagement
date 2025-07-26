@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # z.B. v1.0.0, v1.1.2
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: SolarFlow.exe
+            asset_name: SolarFlow-windows-x64.exe
+          - os: macos-latest
+            artifact_name: SolarFlow
+            asset_name: SolarFlow-macos-x64
+          - os: ubuntu-latest
+            artifact_name: SolarFlow
+            asset_name: SolarFlow-linux-x64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller --onefile --name SolarFlow main.py
+
+    - name: Rename executable
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          mv dist/SolarFlow.exe dist/${{ matrix.asset_name }}
+        else
+          mv dist/SolarFlow dist/${{ matrix.asset_name }}
+        fi
+      shell: bash
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: dist/${{ matrix.asset_name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: List downloaded files
+      run: |
+        echo "Downloaded artifacts:"
+        ls -la ./artifacts/
+        ls -la ./artifacts/*/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./artifacts/SolarFlow-windows-x64.exe/SolarFlow-windows-x64.exe
+          ./artifacts/SolarFlow-macos-x64/SolarFlow-macos-x64
+          ./artifacts/SolarFlow-linux-x64/SolarFlow-linux-x64
+        body: |
+          ## ☀️ SolarFlow Release
+
+          Diese Version wurde automatisch von GitHub Actions erstellt.
+
+          ### 🧾 Plattformen
+          - **Windows:** `SolarFlow-windows-x64.exe`
+          - **macOS:** `SolarFlow-macos-x64`
+          - **Linux:** `SolarFlow-linux-x64`
+
+          ### 🔧 Nutzung
+          1. Passende Datei für dein System herunterladen
+          2. (Linux/macOS) Datei ausführbar machen: `chmod +x SolarFlow-*`
+          3. Ausführen: `./SolarFlow-*`
+
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
