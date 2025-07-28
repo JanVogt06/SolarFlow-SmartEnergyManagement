@@ -1,5 +1,5 @@
 """
-Verwaltung mehrerer Geräte für den Smart Energy Manager - KORRIGIERT.
+Verwaltung mehrerer Geräte für den Smart Energy Manager.
 """
 
 import json
@@ -24,7 +24,7 @@ class DeviceManager:
         """
         self.logger = logging.getLogger(__name__)
         self.devices: List[Device] = []
-        self.config_file = config_file or Path("devices.json")
+        self.config_file = config_file or Path("../devices.json")
 
         # Lade Geräte wenn Konfiguration existiert
         if self.config_file.exists():
