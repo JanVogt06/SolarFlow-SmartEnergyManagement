@@ -2,7 +2,7 @@
 Device Logger - Orchestriert das Logging von Geräte-Daten.
 """
 
-import log_system
+import logging
 from typing import Any, List, Dict
 from datetime import datetime
 from ..core.log_manager import LogManager
@@ -20,7 +20,7 @@ class DeviceLogger:
             log_manager: Zentraler LogManager
         """
         self.log_manager = log_manager
-        self.logger = log_system.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         # Cache für letzte Zustände
         self.last_device_states: Dict[str, Any] = {}

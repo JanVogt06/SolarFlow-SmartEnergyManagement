@@ -2,7 +2,7 @@
 Basis-Writer für das Logging-System.
 """
 
-import log_system
+import logging
 from typing import Dict, Any, Optional, List
 from ..core.interfaces import LogWriter
 
@@ -18,7 +18,7 @@ class BaseWriter(LogWriter):
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.logger = log_system.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self._buffer: List[Dict[str, Any]] = []
         self._buffer_size = 10  # Anzahl Einträge bevor automatischer Flush
 

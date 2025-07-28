@@ -2,7 +2,7 @@
 Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung und neuem Logging-System.
 """
 
-import log_system as system_logging
+import logging
 import time
 from datetime import datetime, timedelta, date as DateType
 from typing import Optional, Dict, Tuple, Any
@@ -45,7 +45,7 @@ class SolarMonitor:
             self.config.connection.request_timeout
         )
         self.display: DisplayFormatter = DisplayFormatter(self.config)
-        self.logger = system_logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         # Neues Logging-System initialisieren
         self._init_logging_system()
@@ -136,19 +136,19 @@ class SolarMonitor:
     def _setup_system_logging(self) -> None:
         """Konfiguriert das System-Logging"""
         # Root Logger konfigurieren
-        root_logger = system_logging.getLogger()
+        root_logger = logging.getLogger()
         root_logger.setLevel(self.config.logging.log_level)
 
         # Entferne alle bestehenden Handler
         root_logger.handlers = []
 
         # Formatter
-        formatter = system_logging.Formatter(
+        formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
 
         # Console Handler
-        console_handler = system_logging.StreamHandler()
+        console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(self.config.logging.log_level)
         root_logger.addHandler(console_handler)
@@ -156,7 +156,7 @@ class SolarMonitor:
         # File Handler
         if self.config.logging.log_file:
             try:
-                file_handler = system_logging.FileHandler(self.config.logging.log_file)
+                file_handler = logging.FileHandler(self.config.logging.log_file)
                 file_handler.setFormatter(formatter)
                 file_handler.setLevel(self.config.logging.log_level)
                 root_logger.addHandler(file_handler)

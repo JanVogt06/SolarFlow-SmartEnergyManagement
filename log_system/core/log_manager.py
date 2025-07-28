@@ -2,7 +2,7 @@
 Zentraler Log-Manager für Koordination.
 """
 
-import log_system
+import logging
 from typing import Dict, List, Any, Optional
 from .interfaces import LogFormatter, LogWriter, LogHandler
 from .log_entry import LogEntry, LogType
@@ -19,7 +19,7 @@ class LogManager:
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.logger = log_system.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         # Registries für Komponenten
         self.formatters: Dict[str, LogFormatter] = {}

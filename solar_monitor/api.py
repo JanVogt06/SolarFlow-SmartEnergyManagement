@@ -3,7 +3,7 @@ Fronius API-Kommunikationsmodul.
 """
 
 import json
-import log_system
+import logging
 from typing import Dict, Optional, Any, Union
 
 import requests
@@ -25,7 +25,7 @@ class FroniusAPI:
         self.ip_address: str = ip_address
         self.timeout: int = timeout
         self.base_url: str = f"http://{ip_address}"
-        self.logger = log_system.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         # API-Endpunkt für Leistungsdaten
         self.power_flow_endpoint: str = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'

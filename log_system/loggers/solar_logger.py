@@ -2,7 +2,7 @@
 Solar Logger - Orchestriert das Logging von Solar-Daten.
 """
 
-import log_system
+import logging
 from typing import Any, Optional
 from ..core.log_manager import LogManager
 from ..core.log_entry import SolarLogEntry
@@ -19,7 +19,7 @@ class SolarLogger:
             log_manager: Zentraler LogManager
         """
         self.log_manager = log_manager
-        self.logger = log_system.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
     def log(self, solar_data: Any) -> bool:
         """

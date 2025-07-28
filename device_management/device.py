@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, time
 from typing import Optional, List, Tuple
 from enum import Enum, IntEnum
-import log_system
+import logging
 
 
 class DeviceState(Enum):
@@ -78,7 +78,7 @@ class Device:
 
     def __post_init__(self):
         """Validierung nach Initialisierung"""
-        self.logger = log_system.getLogger(f"{__name__}.{self.name}")
+        self.logger = logging.getLogger(f"{__name__}.{self.name}")
 
         # Priorität validieren
         if not isinstance(self.priority, DevicePriority):
