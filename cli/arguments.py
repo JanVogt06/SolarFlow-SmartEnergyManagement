@@ -2,7 +2,7 @@
 Argument-Definitionen für den Smart Energy Manager CLI.
 """
 
-import log_system
+import logging
 from typing import Dict, Any, List
 
 ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
@@ -51,7 +51,7 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'action': 'store_true',
                 'help': 'Deaktiviert farbige Ausgabe',
                 'config_path': 'display.enable_colors',
-                'config_value': lambda args: not args.no_colors
+                'config_value': lambda args: not getattr(args, 'no_colors', False)
             },
             {
                 'name': '--simple',
@@ -63,7 +63,7 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'action': 'store_true',
                 'help': 'Deaktiviert die periodische Anzeige der Tagesstatistiken',
                 'config_path': 'display.show_daily_stats',
-                'config_value': lambda args: not args.no_daily_stats
+                'config_value': lambda args: not getattr(args, 'no_daily_stats', False)
             }
         ]
     },
@@ -104,43 +104,43 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
         ]
     },
 
-    'log_system': {
+    'logging': {
         'description': 'Logging',
         'arguments': [
             {
-                'name': '--no-log_system',
+                'name': '--no-logging',
                 'action': 'store_true',
                 'help': 'Deaktiviert CSV-Datenlogging',
-                'config_path': 'log_system.enable_data_logging',
-                'config_value': lambda args: not args.no_logging
+                'config_path': 'logging.enable_data_logging',
+                'config_value': lambda args: not getattr(args, 'no_logging', False)
             },
             {
                 'name': '--log-file',
                 'type': str,
                 'help': 'Pfad zur Log-Datei (Standard: solar_monitor.log)',
-                'config_path': 'log_system.log_file'
+                'config_path': 'logging.log_file'
             },
             {
                 'name': '--log-level',
                 'choices': ['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                 'default': 'INFO',
                 'help': 'Log-Level für Konsole und Datei (Standard: INFO)',
-                'config_path': 'log_system.log_level',
-                'config_value': lambda args: getattr(log_system, args.log_level)
+                'config_path': 'logging.log_level',
+                'config_value': lambda args: getattr(logging, args.log_level)
             },
             {
-                'name': '--no-daily-stats-log_system',
+                'name': '--no-daily-stats-logging',
                 'action': 'store_true',
                 'help': 'Deaktiviert das CSV-Logging der Tagesstatistiken',
-                'config_path': 'log_system.enable_daily_stats_logging',
-                'config_value': lambda args: not args.no_daily_stats_logging
+                'config_path': 'logging.enable_daily_stats_logging',
+                'config_value': lambda args: not getattr(args, 'no_daily_stats_logging', False)
             },
             {
-                'name': '--no-database-log_system',
+                'name': '--no-database-logging',
                 'action': 'store_true',
                 'help': 'Deaktiviert das Datenbank-Logging',
                 'config_path': 'database.enable_database',
-                'config_value': lambda args: not args.no_database_logging
+                'config_value': lambda args: not getattr(args, 'no_database_logging', False)
             }
         ]
     },
@@ -174,14 +174,14 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'action': 'store_true',
                 'help': 'Verwendet englische CSV-Header statt deutsche',
                 'config_path': 'csv.use_german_headers',
-                'config_value': lambda args: not args.csv_english
+                'config_value': lambda args: not getattr(args, 'csv_english', False)
             },
             {
                 'name': '--csv-no-info',
                 'action': 'store_true',
                 'help': 'Keine Info-Zeile unter CSV-Header',
                 'config_path': 'csv.include_info_row',
-                'config_value': lambda args: not args.csv_no_info
+                'config_value': lambda args: not getattr(args, 'csv_no_info', False)
             }
         ]
     },
@@ -272,7 +272,7 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'action': 'store_true',
                 'help': 'Deaktiviert die intelligente Gerätesteuerung (standardmäßig aktiviert)',
                 'config_path': 'devices.enable_control',
-                'config_value': lambda args: not args.disable_devices
+                'config_value': lambda args: not getattr(args, 'disable_devices', False)
             },
             {
                 'name': '--device-config',
@@ -287,11 +287,11 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'config_path': 'devices.hysteresis_minutes'
             },
             {
-                'name': '--no-device-log_system',
+                'name': '--no-device-logging',
                 'action': 'store_true',
                 'help': 'Deaktiviert das Geräte-Logging komplett',
-                'config_path': 'log_system.enable_device_logging',
-                'config_value': lambda args: not args.no_device_logging
+                'config_path': 'logging.enable_device_logging',
+                'config_value': lambda args: not getattr(args, 'no_device_logging', False)
             },
             {
                 'name': '--device-log-interval',
