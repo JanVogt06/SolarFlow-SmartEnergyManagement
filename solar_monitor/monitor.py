@@ -4,9 +4,9 @@ Hauptmonitor-Klasse für den Fronius Solar Monitor mit Gerätesteuerung und Logg
 
 import logging
 import time
-from typing import Optional, Dict, Tuple
+from datetime import datetime, timedelta, date as DateType
+from typing import Optional, Dict, Tuple, Any
 from pathlib import Path
-from datetime import timedelta, datetime
 
 from .api import FroniusAPI
 from .config import Config
@@ -41,14 +41,14 @@ class SolarMonitor:
         if self.config.database.enable_database:
             self.db_manager = DatabaseManager(self.config)
 
-        # Data Logger nur wenn aktiviert
+        # Daily Stats Logger
         self.data_logger: Optional[SolarDataLogger] = None
-        if self.config.logging.enable_data_logging:
+        if self.config.logging.enable_data_logging and self.db_manager:
             self.data_logger = SolarDataLogger(self.config, self.db_manager)
 
         # Daily Stats Logger
         self.daily_stats_logger: Optional[DailyStatsLogger] = None
-        if self.config.logging.enable_daily_stats_logging:
+        if self.config.logging.enable_daily_stats_logging and self.db_manager:
             self.daily_stats_logger = DailyStatsLogger(self.config, self.db_manager)
 
         # Gerätesteuerung initialisieren
@@ -90,7 +90,7 @@ class SolarMonitor:
             self.energy_controller.hysteresis_time = timedelta(minutes=self.config.devices.hysteresis_minutes)
 
             # Device Logger initialisieren wenn Logging aktiviert
-            if self.config.logging.enable_device_logging:
+            if self.config.logging.enable_device_logging and self.db_manager:
                 self.device_logger = DeviceLogger(self.config, self.device_manager, self.db_manager)
 
             self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
@@ -192,25 +192,26 @@ class SolarMonitor:
         """Schaltet alle Geräte aus und erstellt Zusammenfassung"""
         self.logger.info("Schalte alle Geräte aus...")
 
-        # Alle aktiven Geräte ausschalten
-        for device in self.device_manager.get_active_devices():
-            old_state = device.state
-            device.state = DeviceState.OFF
-            self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
+        if self.device_manager:
+            # Alle aktiven Geräte ausschalten
+            for device in self.device_manager.get_active_devices():
+                old_state = device.state
+                device.state = DeviceState.OFF
+                self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
 
-            # Event loggen
-            if self.device_logger and self.config.logging.device_log_events:
-                self.device_logger.log_device_event(
-                    device, "ausgeschaltet", "Programmende",
-                    self.last_surplus_power or 0, old_state
-                )
+                # Event loggen
+                if self.device_logger and self.config.logging.device_log_events:
+                    self.device_logger.log_device_event(
+                        device, "ausgeschaltet", "Programmende",
+                        self.last_surplus_power or 0, old_state
+                    )
 
-        # Tageszusammenfassung erstellen
-        if self.device_logger and self.config.logging.device_log_daily_summary:
-            self.device_logger.log_daily_summary()
+            # Tageszusammenfassung erstellen
+            if self.device_logger and self.config.logging.device_log_daily_summary:
+                self.device_logger.log_daily_summary()
 
-        # Speichere Gerätekonfiguration
-        self.device_manager.save_devices()
+            # Speichere Gerätekonfiguration
+            self.device_manager.save_devices()
 
     def run(self) -> None:
         """Hauptschleife des Monitors"""
@@ -331,9 +332,10 @@ class SolarMonitor:
             data: Aktuelle Solardaten
         """
         # Prüfe auf Tageswechsel
-        current_date = data.timestamp.date()
-        if self.daily_stats.date != current_date:
-            self._handle_date_change(current_date, data)
+        if data.timestamp:
+            current_date = data.timestamp.date()
+            if self.daily_stats.date != current_date:
+                self._handle_date_change(current_date, data)
 
         # Tagesstatistiken aktualisieren
         self.daily_stats.update(data, self.config.timing.update_interval)
@@ -343,7 +345,7 @@ class SolarMonitor:
             self.display.display_daily_stats(self.daily_stats)
             self.last_stats_display = time.time()
 
-    def _handle_date_change(self, new_date: datetime.date, data: SolarData) -> None:
+    def _handle_date_change(self, new_date: DateType, data: SolarData) -> None:
         """
         Behandelt einen Tageswechsel.
 
@@ -353,7 +355,7 @@ class SolarMonitor:
         """
         # Speichere gestrige Statistiken
         if self.daily_stats_logger and self.daily_stats.runtime_hours > 0:
-            self.daily_stats_logger.log_daily_stats(self.daily_stats)
+            self.daily_stats_logger.log(self.daily_stats)
             self.logger.info(f"Tagesstatistik für {self.daily_stats.date} gespeichert")
 
         # Reset für neuen Tag
@@ -479,7 +481,7 @@ class SolarMonitor:
             self.device_logger.log_device_status(data.surplus_power)
             self.last_device_status_log = time.time()
 
-    def _check_daily_device_reset(self, current_date: datetime.date) -> None:
+    def _check_daily_device_reset(self, current_date: DateType) -> None:
         """
         Prüft und führt täglichen Reset der Gerätestatistiken durch.
 

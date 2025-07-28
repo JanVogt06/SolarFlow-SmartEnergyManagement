@@ -2,6 +2,7 @@
 Solar Data Logger für den Smart Energy Manager.
 """
 
+from datetime import datetime
 from typing import List, Any
 
 from .base_logger import BaseLogger
@@ -86,7 +87,10 @@ class SolarDataLogger(BaseLogger):
             Liste mit formatierten Werten
         """
         # Formatiere Zeitstempel
-        timestamp = self.csv_formatter.format_timestamp(data.timestamp)
+        if data.timestamp:
+            timestamp = self.csv_formatter.format_timestamp(data.timestamp)
+        else:
+            timestamp = self.csv_formatter.format_timestamp(datetime.now())
 
         # Formatiere alle Werte
         row = [

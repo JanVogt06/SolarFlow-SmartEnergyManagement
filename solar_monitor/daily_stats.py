@@ -109,7 +109,7 @@ class DailyStats:
         self.last_update = data.timestamp
 
         # Prüfe ob neuer Tag
-        if data.timestamp.date() != self.date:
+        if data.timestamp and data.timestamp.date() != self.date:
             self.reset()
             self.date = data.timestamp.date()
             self.first_update = data.timestamp
@@ -125,7 +125,7 @@ class DailyStats:
 
         # Netzbezug nach Tarif aufteilen
         grid_energy_interval = data.grid_consumption * hours / 1000
-        if self._is_night_tariff(data.timestamp):
+        if data.timestamp and self._is_night_tariff(data.timestamp):
             self.grid_energy_night += grid_energy_interval
         else:
             self.grid_energy_day += grid_energy_interval

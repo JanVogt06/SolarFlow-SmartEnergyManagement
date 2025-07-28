@@ -101,7 +101,9 @@ class EnergyController:
         # Prüfe Zeitbeschränkungen
         if not device.is_time_allowed(current_time):
             if device.state == DeviceState.ON:
-                return self._switch_off(device, current_time, "Außerhalb erlaubter Zeit")
+                action = self._switch_off(device, current_time, "Außerhalb erlaubter Zeit")
+                if action:
+                    return action
             device.state = DeviceState.BLOCKED
             return None
 
@@ -141,7 +143,7 @@ class EnergyController:
 
         return "eingeschaltet"
 
-    def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> str:
+    def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> Optional[str]:
         """
         Schaltet ein Gerät aus.
 

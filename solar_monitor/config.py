@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 from pathlib import Path
-
+from typing import Dict, Optional, Any
 
 @dataclass
 class ConnectionConfig:
@@ -211,7 +211,7 @@ class Config:
 
         return True
 
-    def to_dict(self) -> Dict[str, any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Konvertiert die Konfiguration in ein Dictionary"""
         return {
             'connection': self.connection.__dict__,

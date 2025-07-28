@@ -37,7 +37,7 @@ class DeviceLogger(MultiFileLogger):
         self.add_file('status', config.directories.device_status_base_name, session_based=False, timestamp_format="%Y%m%d")
         self._init_event_file()
         self._init_status_file()
-        self.last_device_states = {}
+        self.last_device_states: Dict[str, DeviceState] = {}
 
     def _init_event_file(self) -> None:
         """Initialisiert die Event-Log-Datei"""
@@ -170,7 +170,7 @@ class DeviceLogger(MultiFileLogger):
 
         # Datenbank-Logging
         db_success = True
-        if self.use_database and self.db_manager:
+        if self.db_manager:  # Nur db_manager prüfen
             db_success = self.db_manager.insert_device_event(
                 device, action, reason, surplus_power, old_state
             )

@@ -225,7 +225,11 @@ class DisplayFormatter:
 
     def _display_data_header(self, data: SolarData) -> None:
         """Zeigt den Header mit Zeitstempel."""
-        timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        # Expliziter Check für None
+        if data.timestamp is not None:
+            timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            timestamp = "N/A"
         self._print_header(f"{'Zeitstempel:':<20}", timestamp)
 
     def _display_power_values(self, data: SolarData) -> None:
@@ -471,13 +475,15 @@ class DisplayFormatter:
         """Zeigt Batterie-Statistiken."""
         print(f"\nBatterie-Ladestand:")
 
-        min_color = self._get_color(self.get_threshold_color(stats.battery_soc_min, 'battery_soc'))
-        max_color = self._get_color(self.get_threshold_color(stats.battery_soc_max, 'battery_soc'))
+        # Check for None values
+        if stats.battery_soc_min is not None and stats.battery_soc_max is not None:
+            min_color = self._get_color(self.get_threshold_color(stats.battery_soc_min, 'battery_soc'))
+            max_color = self._get_color(self.get_threshold_color(stats.battery_soc_max, 'battery_soc'))
 
-        min_text = self._colorize(f"{stats.battery_soc_min:>5.1f}%", min_color)
-        max_text = self._colorize(f"{stats.battery_soc_max:>5.1f}%", max_color)
+            min_text = self._colorize(f"{stats.battery_soc_min:>5.1f}%", min_color)
+            max_text = self._colorize(f"{stats.battery_soc_max:>5.1f}%", max_color)
 
-        print(f"  Min: {min_text} | Max: {max_text}")
+            print(f"  Min: {min_text} | Max: {max_text}")
 
     def _display_metrics_section(self, stats: DailyStats) -> None:
         """Zeigt die Kennzahlen-Sektion der Tagesstatistik."""

@@ -540,7 +540,13 @@ def set_nested_attr(obj: Any, path: str, value: Any) -> None:
     if '.' in attrs[-1]:  # For paths like "thresholds.battery_soc.high"
         parts = attrs[-1].split('.')
         parent = getattr(obj, parts[0])
-        parent[parts[1]] = value
+
+        # Type check für Dictionary
+        if isinstance(parent, dict):
+            parent[parts[1]] = value
+        else:
+            # Fallback: versuche als Attribut zu setzen
+            setattr(parent, parts[1], value)
     else:
         # Set final attribute
         setattr(obj, attrs[-1], value)
