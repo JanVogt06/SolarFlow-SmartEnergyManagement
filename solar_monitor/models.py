@@ -16,9 +16,9 @@ class SolarData:
     battery_power: float = 0.0  # Watt - Batterie (negativ = Laden, positiv = Entladen)
     load_power: float = 0.0  # Watt - Hausverbrauch
     battery_soc: Optional[float] = None  # Prozent - Batterieladestand
-    timestamp: datetime = None
+    timestamp: Optional[datetime] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialisierung nach der Erstellung"""
         if self.timestamp is None:
             self.timestamp = datetime.now()

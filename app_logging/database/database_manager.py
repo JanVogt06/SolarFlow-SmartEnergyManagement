@@ -6,7 +6,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime, date
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Generator
 from contextlib import contextmanager
 
 from solar_monitor.models import SolarData
@@ -16,25 +16,24 @@ from device_management import Device, DeviceState
 
 class DatabaseManager:
     """Datenbank-Manager für SQLite"""
-    
-    def __init__(self, config):
+
+    def __init__(self, config: Any) -> None:
         """
         Initialisiert den Datenbank-Manager.
-        
+
         Args:
             config: Konfigurationsobjekt
         """
-
         self.config = config
-        self.db_path = Path(config.database.database_path)
+        self.db_path: Path = Path(config.database.database_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
-        
+
         # Datenbank initialisieren
         self._init_database()
-        
-    def _init_database(self):
-        """Erstellt die Tabellen falls sie nicht existieren"""
+
+    def _init_database(self) -> None:
+        """Erstellt die Tabellen, falls sie nicht existieren"""
         with self.get_connection() as conn:
             # Solar-Daten Tabelle
             conn.execute("""
@@ -61,7 +60,7 @@ class DatabaseManager:
                          CREATE INDEX IF NOT EXISTS idx_solar_timestamp
                              ON solar_data (timestamp)
                          """)
-            
+
             # Tagesstatistiken Tabelle
             conn.execute("""
                          CREATE TABLE IF NOT EXISTS daily_stats
@@ -74,8 +73,8 @@ class DatabaseManager:
                              self_consumption_energy  REAL NOT NULL,
                              feed_in_energy           REAL NOT NULL,
                              grid_energy              REAL NOT NULL,
-                             grid_energy_day          REAL     DEFAULT 0, -- NEU
-                             grid_energy_night        REAL     DEFAULT 0, -- NEU
+                             grid_energy_day          REAL     DEFAULT 0,
+                             grid_energy_night        REAL     DEFAULT 0,
                              battery_charge_energy    REAL     DEFAULT 0,
                              battery_discharge_energy REAL     DEFAULT 0,
                              pv_power_max             REAL NOT NULL,
@@ -87,15 +86,15 @@ class DatabaseManager:
                              battery_soc_max          REAL,
                              autarky_avg              REAL NOT NULL,
                              self_sufficiency_rate    REAL NOT NULL,
-                             cost_grid_consumption    REAL     DEFAULT 0, -- NEU
-                             revenue_feed_in          REAL     DEFAULT 0, -- NEU
-                             cost_saved               REAL     DEFAULT 0, -- NEU
-                             total_benefit            REAL     DEFAULT 0, -- NEU
-                             cost_without_solar       REAL     DEFAULT 0, -- NEU
+                             cost_grid_consumption    REAL     DEFAULT 0,
+                             revenue_feed_in          REAL     DEFAULT 0,
+                             cost_saved               REAL     DEFAULT 0,
+                             total_benefit            REAL     DEFAULT 0,
+                             cost_without_solar       REAL     DEFAULT 0,
                              created_at               DATETIME DEFAULT CURRENT_TIMESTAMP
                          )
                          """)
-            
+
             # Geräte-Events Tabelle
             conn.execute("""
                          CREATE TABLE IF NOT EXISTS device_events
@@ -114,14 +113,14 @@ class DatabaseManager:
                              created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
                          )
                          """)
-            
+
             # Index für Geräte-Abfragen
             conn.execute("""
                          CREATE INDEX IF NOT EXISTS idx_device_events
                              ON device_events (device_name, timestamp)
                          """)
-            
-            # Geräte-Status Tabelle (für regelmäßige Snapshots)
+
+            # Geräte-Status Tabelle
             conn.execute("""
                          CREATE TABLE IF NOT EXISTS device_status
                          (
@@ -134,11 +133,11 @@ class DatabaseManager:
                              created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
                          )
                          """)
-            
+
             self.logger.info(f"Datenbank initialisiert: {self.db_path}")
-    
+
     @contextmanager
-    def get_connection(self):
+    def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
         """Context Manager für Datenbankverbindungen"""
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row  # Ermöglicht Zugriff über Spaltennamen
@@ -151,14 +150,14 @@ class DatabaseManager:
             raise
         finally:
             conn.close()
-    
+
     def insert_solar_data(self, data: SolarData) -> bool:
         """
         Fügt Solar-Daten in die Datenbank ein.
-        
+
         Args:
             data: SolarData-Objekt
-            
+
         Returns:
             True bei Erfolg
         """
@@ -193,25 +192,24 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 conn.execute("""
-                                INSERT OR REPLACE INTO daily_stats (
-                                    date, runtime_hours, pv_energy, consumption_energy,
-                                    self_consumption_energy, feed_in_energy, grid_energy,
-                                    battery_charge_energy, battery_discharge_energy,
-                                    pv_power_max, consumption_power_max, feed_in_power_max,
-                                    grid_power_max, surplus_power_max, battery_soc_min,
-                                    battery_soc_max, autarky_avg, self_sufficiency_rate
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (
-                    stats.date, stats.runtime_hours, stats.pv_energy,
-                    stats.consumption_energy, stats.self_consumption_energy,
-                    stats.feed_in_energy, stats.grid_energy,
-                    stats.battery_charge_energy, stats.battery_discharge_energy,
-                    stats.pv_power_max, stats.consumption_power_max,
-                    stats.feed_in_power_max, stats.grid_power_max,
-                    stats.surplus_power_max, stats.battery_soc_min,
-                    stats.battery_soc_max, stats.autarky_avg,
-                    stats.self_sufficiency_rate
-                ))
+                             INSERT OR REPLACE INTO daily_stats (date, runtime_hours, pv_energy, consumption_energy,
+                                                      self_consumption_energy, feed_in_energy, grid_energy,
+                                                      battery_charge_energy, battery_discharge_energy,
+                                                      pv_power_max, consumption_power_max, feed_in_power_max,
+                                                      grid_power_max, surplus_power_max, battery_soc_min,
+                                                      battery_soc_max, autarky_avg, self_sufficiency_rate)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         """, (
+                                 stats.date, stats.runtime_hours, stats.pv_energy,
+                                 stats.consumption_energy, stats.self_consumption_energy,
+                                 stats.feed_in_energy, stats.grid_energy,
+                                 stats.battery_charge_energy, stats.battery_discharge_energy,
+                                 stats.pv_power_max, stats.consumption_power_max,
+                                 stats.feed_in_power_max, stats.grid_power_max,
+                                 stats.surplus_power_max, stats.battery_soc_min,
+                                 stats.battery_soc_max, stats.autarky_avg,
+                                 stats.self_sufficiency_rate
+                             ))
             return True
         except Exception as e:
             self.logger.error(f"Fehler beim Einfügen von Tagesstatistiken: {e}")

@@ -21,48 +21,48 @@ from device_management import DeviceManager, EnergyController, DeviceState
 class SolarMonitor:
     """Hauptklasse für den Solar Monitor mit Gerätesteuerung"""
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None) -> None:
         """
         Initialisiert den SolarMonitor.
 
         Args:
             config: Konfigurationsobjekt (optional)
         """
-        self.config = config or Config()
+        self.config: Config = config or Config()
         self.config.validate()
 
         # Komponenten initialisieren
-        self.api = FroniusAPI(self.config.connection.fronius_ip, self.config.connection.request_timeout)
-        self.display = DisplayFormatter(self.config)
+        self.api: FroniusAPI = FroniusAPI(self.config.connection.fronius_ip, self.config.connection.request_timeout)
+        self.display: DisplayFormatter = DisplayFormatter(self.config)
         self.logger = logging.getLogger(__name__)
 
         # Database Logger
-        self.db_manager = None
+        self.db_manager: Optional[DatabaseManager] = None
         if self.config.database.enable_database:
             self.db_manager = DatabaseManager(self.config)
 
         # Data Logger nur wenn aktiviert
-        self.data_logger = None
+        self.data_logger: Optional[SolarDataLogger] = None
         if self.config.logging.enable_data_logging:
             self.data_logger = SolarDataLogger(self.config, self.db_manager)
 
         # Daily Stats Logger
-        self.daily_stats_logger = None
+        self.daily_stats_logger: Optional[DailyStatsLogger] = None
         if self.config.logging.enable_daily_stats_logging:
             self.daily_stats_logger = DailyStatsLogger(self.config, self.db_manager)
 
         # Gerätesteuerung initialisieren
-        self.device_manager = None
-        self.energy_controller = None
-        self.device_logger = None
+        self.device_manager: Optional[DeviceManager] = None
+        self.energy_controller: Optional[EnergyController] = None
+        self.device_logger: Optional[DeviceLogger] = None
         if self.config.devices.enable_control:
             self._init_device_control()
 
-        self.running = False
+        self.running: bool = False
         self._setup_logging()
 
         # Statistiken
-        self.stats = {
+        self.stats: Dict[str, Any] = {
             'updates': 0,
             'errors': 0,
             'start_time': None,
@@ -70,14 +70,14 @@ class SolarMonitor:
         }
 
         # Tagesstatistiken mit Config initialisieren
-        self.daily_stats = DailyStats()
+        self.daily_stats: DailyStats = DailyStats()
         self.daily_stats.set_config(self.config)
-        self.last_stats_display = None  # Zeitpunkt der letzten Statistik-Anzeige
+        self.last_stats_display: Optional[float] = None  # Zeitpunkt der letzten Statistik-Anzeige
 
         # Gerätesteuerung
-        self.last_device_update = None  # Zeitpunkt der letzten Geräte-Aktualisierung
-        self.last_surplus_power = None  # Letzter Überschuss für Änderungserkennung
-        self.last_device_status_log = None  # Zeitpunkt des letzten Status-Logs
+        self.last_device_update: Optional[float] = None  # Zeitpunkt der letzten Geräte-Aktualisierung
+        self.last_surplus_power: Optional[float] = None  # Letzter Überschuss für Änderungserkennung
+        self.last_device_status_log: Optional[float] = None  # Zeitpunkt des letzten Status-Logs
 
     def _init_device_control(self) -> None:
         """Initialisiert die Gerätesteuerung"""
@@ -105,7 +105,7 @@ class SolarMonitor:
 
         except Exception as e:
             self.logger.error(f"Fehler bei der Initialisierung der Gerätesteuerung: {e}")
-            self.config.ENABLE_DEVICE_CONTROL = False
+            self.config.devices.enable_control = False
             self.device_manager = None
             self.energy_controller = None
             self.device_logger = None
@@ -216,8 +216,8 @@ class SolarMonitor:
         """Hauptschleife des Monitors"""
         self._log_startup_info()
 
-        consecutive_errors = 0
-        max_consecutive_errors = 5
+        consecutive_errors: int = 0
+        max_consecutive_errors: int = 5
 
         try:
             while self.running:

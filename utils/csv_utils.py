@@ -5,14 +5,14 @@ CSV Utilities für den Smart Energy Manager.
 import csv
 import logging
 from pathlib import Path
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 from datetime import datetime
 
 
 class CSVFormatter:
     """Zentrale Klasse für CSV-Formatierung"""
 
-    def __init__(self, config):
+    def __init__(self, config: Any) -> None:
         """
         Initialisiert den CSVFormatter.
 
@@ -66,7 +66,7 @@ class CSVFormatter:
         """
         return timestamp.strftime(format_string)
 
-    def create_session_info(self, title: str, **kwargs) -> List[str]:
+    def create_session_info(self, title: str, **kwargs: Any) -> List[str]:
         """
         Erstellt Session-Info-Zeilen für CSV-Header.
 
@@ -77,7 +77,7 @@ class CSVFormatter:
         Returns:
             Liste mit Info-Zeilen
         """
-        info_lines = [
+        info_lines: List[str] = [
             f"# {title}",
             f"# Erstellt: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"# CSV-Format: Delimiter='{self.config.csv.delimiter}', "
@@ -95,7 +95,7 @@ class CSVFormatter:
 class CSVWriter:
     """Thread-safe CSV Writer"""
 
-    def __init__(self, config):
+    def __init__(self, config: Any) -> None:
         """
         Initialisiert den CSVWriter.
 
@@ -104,7 +104,7 @@ class CSVWriter:
         """
         self.config = config
         self.logger = logging.getLogger(__name__)
-        self._file_locks = {}  # Für Thread-Safety
+        self._file_locks: Dict[str, Any] = {}  # Für Thread-Safety
 
     def write_header(self, filepath: Path, headers: List[str],
                      info_lines: Optional[List[str]] = None) -> bool:

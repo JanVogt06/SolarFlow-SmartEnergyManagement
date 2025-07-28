@@ -1,3 +1,7 @@
+"""
+Tagesstatistiken für die Solaranlage mit Kostenberechnung
+"""
+
 from dataclasses import dataclass, field
 from datetime import datetime, date, time
 from typing import Optional, Any, Dict
@@ -59,12 +63,25 @@ class DailyStats:
     # Konfiguration für Kostenberechnung
     _config: Optional[Any] = None
 
-    def set_config(self, config) -> None:
-        """Setzt die Konfiguration für Kostenberechnungen"""
+    def set_config(self, config: Any) -> None:
+        """
+        Setzt die Konfiguration für Kostenberechnungen.
+
+        Args:
+            config: Konfigurationsobjekt
+        """
         self._config = config
 
     def _is_night_tariff(self, timestamp: datetime) -> bool:
-        """Prüft ob Nachttarif gilt"""
+        """
+        Prüft ob Nachttarif gilt.
+
+        Args:
+            timestamp: Zeitpunkt zur Prüfung
+
+        Returns:
+            True wenn Nachttarif gilt
+        """
         if not self._config:
             return False
 
@@ -172,7 +189,12 @@ class DailyStats:
         self.total_benefit = self.cost_saved + self.revenue_feed_in
 
     def get_cost_summary(self) -> Dict[str, float]:
-        """Gibt eine Zusammenfassung der Kosten zurück"""
+        """
+        Gibt eine Zusammenfassung der Kosten zurück.
+
+        Returns:
+            Dictionary mit Kostenzusammenfassung
+        """
         return {
             'grid_cost': self.cost_grid_consumption,
             'feed_in_revenue': self.revenue_feed_in,
@@ -180,7 +202,7 @@ class DailyStats:
             'total_benefit': self.total_benefit,
             'without_solar': self.cost_without_solar,
             'roi_percentage': (self.total_benefit / self.cost_without_solar * 100)
-                            if self.cost_without_solar > 0 else 0
+            if self.cost_without_solar > 0 else 0
         }
 
     def reset(self) -> None:
@@ -227,7 +249,12 @@ class DailyStats:
 
     @property
     def runtime_hours(self) -> float:
-        """Gibt die Laufzeit in Stunden zurück"""
+        """
+        Gibt die Laufzeit in Stunden zurück.
+
+        Returns:
+            Laufzeit in Stunden
+        """
         if self.first_update and self.last_update:
             delta = self.last_update - self.first_update
             return delta.total_seconds() / 3600.0
@@ -235,7 +262,12 @@ class DailyStats:
 
     @property
     def self_sufficiency_rate(self) -> float:
-        """Autarkiegrad basierend auf Energiewerten"""
+        """
+        Autarkiegrad basierend auf Energiewerten.
+
+        Returns:
+            Autarkiegrad in Prozent
+        """
         if self.consumption_energy > 0:
             return (self.self_consumption_energy / self.consumption_energy) * 100
         return 0.0

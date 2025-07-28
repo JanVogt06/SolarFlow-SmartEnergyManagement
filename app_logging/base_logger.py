@@ -14,8 +14,8 @@ from utils.csv_utils import CSVFormatter, CSVWriter
 class BaseLogger(ABC):
     """Abstrakte Basisklasse für alle CSV-Logger"""
 
-    def __init__(self, config, base_dir: str, sub_dir: str,
-                 base_filename: str, session_based: bool = True):
+    def __init__(self, config: Any, base_dir: str, sub_dir: str,
+                 base_filename: str, session_based: bool = True) -> None:
         """
         Initialisiert den BaseLogger.
 
@@ -194,7 +194,7 @@ class MultiFileLogger(BaseLogger):
     Z.B. für DeviceLogger mit Events und Status in separaten Dateien.
     """
 
-    def __init__(self, config, base_dir: str, sub_dir: str):
+    def __init__(self, config: Any, base_dir: str, sub_dir: str) -> None:
         """
         Initialisiert den MultiFileLogger.
 

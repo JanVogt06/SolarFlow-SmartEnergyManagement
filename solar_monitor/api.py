@@ -4,7 +4,7 @@ Fronius API-Kommunikationsmodul.
 
 import json
 import logging
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Union
 
 import requests
 
@@ -14,7 +14,7 @@ from .models import SolarData
 class FroniusAPI:
     """Klasse für die Kommunikation mit der Fronius Solar API"""
 
-    def __init__(self, ip_address: str, timeout: int = 5):
+    def __init__(self, ip_address: str, timeout: int = 5) -> None:
         """
         Initialisiert die API-Verbindung.
 
@@ -22,15 +22,15 @@ class FroniusAPI:
             ip_address: IP-Adresse des Fronius Wechselrichters
             timeout: Timeout für HTTP-Requests in Sekunden
         """
-        self.ip_address = ip_address
-        self.timeout = timeout
-        self.base_url = f"http://{ip_address}"
+        self.ip_address: str = ip_address
+        self.timeout: int = timeout
+        self.base_url: str = f"http://{ip_address}"
         self.logger = logging.getLogger(__name__)
 
         # API-Endpunkt für Leistungsdaten
-        self.power_flow_endpoint = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'
+        self.power_flow_endpoint: str = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'
 
-    def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
         Führt einen HTTP-Request aus und gibt JSON zurück.
 
@@ -123,7 +123,7 @@ class FroniusAPI:
         except (ValueError, TypeError):
             return default
 
-    def _extract_battery_soc(self, data: Dict) -> Optional[float]:
+    def _extract_battery_soc(self, data: Dict[str, Any]) -> Optional[float]:
         """
         Extrahiert den Batterie-Ladestand aus den Daten.
 

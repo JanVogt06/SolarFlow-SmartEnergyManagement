@@ -2,11 +2,11 @@
 Anzeigeformatierung für den Fronius Solar Monitor.
 """
 
-from typing import Optional
+from typing import Optional, Tuple, List, Any
 from .models import SolarData
 from .config import Config
 from .daily_stats import DailyStats
-from device_management import DeviceState
+from device_management import DeviceState, Device, DeviceManager
 
 
 class DisplayFormatter:
@@ -26,7 +26,7 @@ class DisplayFormatter:
     LABEL_WIDTH = 25
     VALUE_WIDTH = 10
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config) -> None:
         """
         Initialisiert den DisplayFormatter.
 
@@ -34,7 +34,7 @@ class DisplayFormatter:
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.enable_colors = config.display.enable_colors
+        self.enable_colors: bool = config.display.enable_colors
 
     # ========== Basis-Formatierungsmethoden ==========
 
@@ -65,14 +65,26 @@ class DisplayFormatter:
             return text
         return f"{color}{text}{self.COLOR_RESET}"
 
-    def _print_separator(self, char: str = None, width: int = None) -> None:
-        """Druckt eine Trennlinie."""
+    def _print_separator(self, char: Optional[str] = None, width: Optional[int] = None) -> None:
+        """
+        Druckt eine Trennlinie.
+
+        Args:
+            char: Zeichen für die Trennlinie
+            width: Breite der Trennlinie
+        """
         char = char or self.SEPARATOR_CHAR
         width = width or self.SEPARATOR_WIDTH
         print(char * width)
 
-    def _print_header(self, title: str, subtitle: str = None) -> None:
-        """Druckt einen formatierten Header."""
+    def _print_header(self, title: str, subtitle: Optional[str] = None) -> None:
+        """
+        Druckt einen formatierten Header.
+
+        Args:
+            title: Haupttitel
+            subtitle: Optionaler Untertitel
+        """
         self._print_separator()
         if subtitle:
             print(f"{title:<20} {subtitle}")
@@ -81,7 +93,7 @@ class DisplayFormatter:
         self._print_separator()
 
     def format_value(self, label: str, value: float, unit: str,
-                    width: int = None, decimals: int = 0) -> str:
+                    width: Optional[int] = None, decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige.
 
@@ -102,7 +114,7 @@ class DisplayFormatter:
             return f"{label:<{width}} {value:>{self.VALUE_WIDTH}.{decimals}f} {unit}"
 
     def format_value_with_color(self, label: str, value: float, unit: str,
-                               color: str = "", width: int = None,
+                               color: str = "", width: Optional[int] = None,
                                decimals: int = 0) -> str:
         """
         Formatiert einen Wert für die Anzeige mit Farbe.
@@ -168,7 +180,7 @@ class DisplayFormatter:
         self._display_calculated_values(data)
         self._print_separator()
 
-    def display_data_with_devices(self, data: SolarData, device_manager) -> None:
+    def display_data_with_devices(self, data: SolarData, device_manager: DeviceManager) -> None:
         """
         Zeigt die Daten mit Gerätestatus formatiert an.
 
@@ -218,14 +230,10 @@ class DisplayFormatter:
 
     def _display_power_values(self, data: SolarData) -> None:
         """Zeigt die Leistungswerte an."""
-        # PV-Erzeugung mit Farbe
         pv_color = self._get_color(self.get_threshold_color(data.pv_power, 'pv_power'))
         print(self.format_value_with_color("PV-Erzeugung:", data.pv_power, "W", pv_color))
-
-        # Hausverbrauch (ohne Farbe)
         print(self.format_value("Hausverbrauch:", data.load_power, "W"))
 
-        # Gesamtproduktion
         if data.has_battery:
             total_prod_color = self._get_color(self.get_threshold_color(data.total_production, 'pv_power'))
             print(self.format_value_with_color("Gesamtproduktion:", data.total_production, "W", total_prod_color))
@@ -336,8 +344,16 @@ class DisplayFormatter:
         if device.state.value == "blocked":
             self._display_device_block_reason(device, data)
 
-    def _get_device_status_display(self, device) -> tuple[str, str]:
-        """Gibt Status-Text und Farbe für ein Gerät zurück."""
+    def _get_device_status_display(self, device: Device) -> Tuple[str, str]:
+        """
+        Gibt Status-Text und Farbe für ein Gerät zurück.
+
+        Args:
+            device: Gerät dessen Status angezeigt werden soll
+
+        Returns:
+            Tuple aus (Status-Text, Farbcode)
+        """
         if device.state.value == "on":
             return "EIN", self._get_color(self.COLOR_GREEN)
         elif device.state.value == "blocked":
@@ -346,7 +362,15 @@ class DisplayFormatter:
             return "AUS", self._get_color(self.COLOR_RED)
 
     def _format_runtime(self, total_minutes: int) -> str:
-        """Formatiert Laufzeit in Stunden und Minuten."""
+        """
+        Formatiert Laufzeit in Stunden und Minuten.
+
+        Args:
+            total_minutes: Gesamtlaufzeit in Minuten
+
+        Returns:
+            Formatierter String (z.B. "2h 30m")
+        """
         hours = total_minutes // 60
         minutes = total_minutes % 60
         return f"{hours}h {minutes}m"

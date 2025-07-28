@@ -1,5 +1,5 @@
 """
-Energie-Steuerung für den Smart Energy Manager - KORRIGIERT.
+Energie-Steuerung für den Smart Energy Manager.
 """
 
 import logging
@@ -13,7 +13,7 @@ from .device_manager import DeviceManager
 class EnergyController:
     """Steuert Geräte basierend auf verfügbarer Energie"""
 
-    def __init__(self, device_manager: DeviceManager):
+    def __init__(self, device_manager: DeviceManager) -> None:
         """
         Initialisiert den EnergyController.
 
@@ -24,7 +24,7 @@ class EnergyController:
         self.logger = logging.getLogger(__name__)
 
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
-        self.hysteresis_time = timedelta(minutes=5)
+        self.hysteresis_time: timedelta = timedelta(minutes=5)
 
     def update(self, surplus_power: float, current_time: Optional[datetime] = None) -> Dict[str, str]:
         """
@@ -40,7 +40,7 @@ class EnergyController:
         if current_time is None:
             current_time = datetime.now()
 
-        changes = {}
+        changes: Dict[str, str] = {}
 
         # Sortiere Geräte nach Priorität
         devices = self.device_manager.get_devices_by_priority()
@@ -123,7 +123,16 @@ class EnergyController:
         return None
 
     def _switch_on(self, device: Device, current_time: datetime) -> str:
-        """Schaltet ein Gerät ein"""
+        """
+        Schaltet ein Gerät ein.
+
+        Args:
+            device: Einzuschaltendes Gerät
+            current_time: Aktuelle Zeit
+
+        Returns:
+            Aktionsbeschreibung
+        """
         device.state = DeviceState.ON
         device.last_state_change = current_time
 
@@ -133,7 +142,17 @@ class EnergyController:
         return "eingeschaltet"
 
     def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> str:
-        """Schaltet ein Gerät aus"""
+        """
+        Schaltet ein Gerät aus.
+
+        Args:
+            device: Auszuschaltendes Gerät
+            current_time: Aktuelle Zeit
+            reason: Grund für das Ausschalten
+
+        Returns:
+            Aktionsbeschreibung
+        """
         # Berechne und addiere Laufzeit zur Tagesstatistik
         if device.last_state_change:
             runtime = int((current_time - device.last_state_change).total_seconds() / 60)
@@ -156,6 +175,13 @@ class EnergyController:
         Prüft ob Hysterese-Zeit seit dem letzten Ausschalten abgelaufen ist.
 
         Dies verhindert zu schnelles Wiedereinschalten nach dem Ausschalten.
+
+        Args:
+            device: Zu prüfendes Gerät
+            current_time: Aktuelle Zeit
+
+        Returns:
+            True wenn Einschalten erlaubt
         """
         if device.last_switch_off is None:
             # Gerät wurde noch nie ausgeschaltet oder ist beim Start aus
@@ -172,7 +198,16 @@ class EnergyController:
         return can_switch_on
 
     def _check_min_runtime(self, device: Device, current_time: datetime) -> bool:
-        """Prüft ob Mindestlaufzeit erreicht ist"""
+        """
+        Prüft ob Mindestlaufzeit erreicht ist.
+
+        Args:
+            device: Zu prüfendes Gerät
+            current_time: Aktuelle Zeit
+
+        Returns:
+            True wenn Mindestlaufzeit erreicht oder keine definiert
+        """
         if device.min_runtime == 0 or device.last_state_change is None:
             return True
 
