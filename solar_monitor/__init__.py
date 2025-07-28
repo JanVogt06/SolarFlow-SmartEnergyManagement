@@ -5,7 +5,6 @@ Fronius Solar Monitor Package
 from .config import Config
 from .models import SolarData
 from .api import FroniusAPI
-from .display import DisplayFormatter
 from .monitor import SolarMonitor
 from .daily_stats import DailyStats
 
@@ -16,7 +15,6 @@ __all__ = [
     "Config",
     "SolarData",
     "FroniusAPI",
-    "DisplayFormatter",
     "SolarMonitor",
     "DailyStats",
 ]

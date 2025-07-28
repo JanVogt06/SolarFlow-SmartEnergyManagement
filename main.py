@@ -39,7 +39,7 @@ def main():
                 while True:
                     data = monitor.get_current_data()
                     if data:
-                        monitor.display.display_simple(data)
+                        monitor.display.show_simple(data)
                     time.sleep(config.timing.update_interval)
             except KeyboardInterrupt:
                 print("\nSimple Mode beendet.")

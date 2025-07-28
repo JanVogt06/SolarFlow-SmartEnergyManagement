@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .api import FroniusAPI
 from .config import Config
-from .display import DisplayFormatter
+from display import DisplayManager
 from .models import SolarData
 from .daily_stats import DailyStats
 
@@ -44,7 +44,7 @@ class SolarMonitor:
             self.config.connection.fronius_ip,
             self.config.connection.request_timeout
         )
-        self.display: DisplayFormatter = DisplayFormatter(self.config)
+        self.display = DisplayManager(self.config)
         self.logger = logging.getLogger(__name__)
 
         # Neues Logging-System initialisieren
@@ -205,7 +205,7 @@ class SolarMonitor:
             print("\n" + "="*60)
             print("ABSCHLUSS-STATISTIK")
             print("="*60)
-            self.display.display_daily_stats(self.daily_stats)
+            self.display.show_daily_stats(self.daily_stats)
 
         # Tagesstatistiken beim Beenden speichern
         if self.daily_stats.runtime_hours > 0:
@@ -355,10 +355,7 @@ class SolarMonitor:
         Args:
             data: Anzuzeigende Daten
         """
-        if self.config.devices.enable_control and self.device_manager:
-            self.display.display_data_with_devices(data, self.device_manager)
-        else:
-            self.display.display_data(data)
+        self.display.show_solar_data(data, self.device_manager)
 
     def _process_daily_statistics(self, data: SolarData) -> None:
         """
@@ -378,7 +375,7 @@ class SolarMonitor:
 
         # Periodische Anzeige
         if self._should_display_daily_stats():
-            self.display.display_daily_stats(self.daily_stats)
+            self.display.show_daily_stats(self.daily_stats)
             self.last_stats_display = time.time()
 
     def _handle_date_change(self, new_date: DateType, data: SolarData) -> None:
