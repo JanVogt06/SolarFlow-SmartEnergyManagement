@@ -2,7 +2,7 @@
 Energie-Steuerung für den Smart Energy Manager.
 """
 
-import logging
+import log_system
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
@@ -21,7 +21,7 @@ class EnergyController:
             device_manager: Verwaltung der Geräte
         """
         self.device_manager = device_manager
-        self.logger = logging.getLogger(__name__)
+        self.logger = log_system.getLogger(__name__)
 
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)

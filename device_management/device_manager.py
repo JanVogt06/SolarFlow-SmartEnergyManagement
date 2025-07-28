@@ -3,7 +3,7 @@ Verwaltung mehrerer Geräte für den Smart Energy Manager - KORRIGIERT.
 """
 
 import json
-import logging
+import log_system
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import time, datetime
@@ -22,7 +22,7 @@ class DeviceManager:
         Args:
             config_file: Pfad zur JSON-Konfigurationsdatei
         """
-        self.logger = logging.getLogger(__name__)
+        self.logger = log_system.getLogger(__name__)
         self.devices: List[Device] = []
         self.config_file = config_file or Path("devices.json")
 

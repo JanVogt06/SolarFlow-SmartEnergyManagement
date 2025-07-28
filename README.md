@@ -115,7 +115,7 @@ python main.py --no-colors
 python main.py --electricity-price 0.35 --feed-in-tariff 0.08
 
 # Logging deaktivieren
-python main.py --no-logging
+python main.py --no-log_system
 
 # Gerätesteuerung deaktivieren
 python main.py --disable-devices

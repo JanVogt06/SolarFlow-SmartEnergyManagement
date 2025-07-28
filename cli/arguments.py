@@ -2,7 +2,7 @@
 Argument-Definitionen für den Smart Energy Manager CLI.
 """
 
-import logging
+import log_system
 from typing import Dict, Any, List
 
 ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
@@ -104,39 +104,39 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
         ]
     },
 
-    'logging': {
+    'log_system': {
         'description': 'Logging',
         'arguments': [
             {
-                'name': '--no-logging',
+                'name': '--no-log_system',
                 'action': 'store_true',
                 'help': 'Deaktiviert CSV-Datenlogging',
-                'config_path': 'logging.enable_data_logging',
+                'config_path': 'log_system.enable_data_logging',
                 'config_value': lambda args: not args.no_logging
             },
             {
                 'name': '--log-file',
                 'type': str,
                 'help': 'Pfad zur Log-Datei (Standard: solar_monitor.log)',
-                'config_path': 'logging.log_file'
+                'config_path': 'log_system.log_file'
             },
             {
                 'name': '--log-level',
                 'choices': ['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                 'default': 'INFO',
                 'help': 'Log-Level für Konsole und Datei (Standard: INFO)',
-                'config_path': 'logging.log_level',
-                'config_value': lambda args: getattr(logging, args.log_level)
+                'config_path': 'log_system.log_level',
+                'config_value': lambda args: getattr(log_system, args.log_level)
             },
             {
-                'name': '--no-daily-stats-logging',
+                'name': '--no-daily-stats-log_system',
                 'action': 'store_true',
                 'help': 'Deaktiviert das CSV-Logging der Tagesstatistiken',
-                'config_path': 'logging.enable_daily_stats_logging',
+                'config_path': 'log_system.enable_daily_stats_logging',
                 'config_value': lambda args: not args.no_daily_stats_logging
             },
             {
-                'name': '--no-database-logging',
+                'name': '--no-database-log_system',
                 'action': 'store_true',
                 'help': 'Deaktiviert das Datenbank-Logging',
                 'config_path': 'database.enable_database',
@@ -287,10 +287,10 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'config_path': 'devices.hysteresis_minutes'
             },
             {
-                'name': '--no-device-logging',
+                'name': '--no-device-log_system',
                 'action': 'store_true',
                 'help': 'Deaktiviert das Geräte-Logging komplett',
-                'config_path': 'logging.enable_device_logging',
+                'config_path': 'log_system.enable_device_logging',
                 'config_value': lambda args: not args.no_device_logging
             },
             {

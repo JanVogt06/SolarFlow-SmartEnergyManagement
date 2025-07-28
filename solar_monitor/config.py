@@ -2,7 +2,7 @@
 Konfigurationsmodul für den Fronius Solar Monitor.
 """
 
-import logging
+import log_system
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional
@@ -27,7 +27,7 @@ class TimingConfig:
 @dataclass
 class LoggingConfig:
     """Logging-Einstellungen"""
-    log_level: int = field(default_factory=lambda: getattr(logging, os.getenv("LOG_LEVEL", "INFO")))
+    log_level: int = field(default_factory=lambda: getattr(log_system, os.getenv("LOG_LEVEL", "INFO")))
     log_file: str = field(default_factory=lambda: os.getenv("LOG_FILE", "solar_monitor.log"))
 
     # Feature-Flags
@@ -206,7 +206,7 @@ class Config:
 
         if errors:
             for error in errors:
-                logging.error(f"Konfigurationsfehler: {error}")
+                log_system.error(f"Konfigurationsfehler: {error}")
             return False
 
         return True
@@ -216,7 +216,7 @@ class Config:
         return {
             'connection': self.connection.__dict__,
             'timing': self.timing.__dict__,
-            'logging': self.logging.__dict__,
+            'log_system': self.logging.__dict__,
             'directories': self.directories.__dict__,
             'csv': self.csv.__dict__,
             'devices': self.devices.__dict__,

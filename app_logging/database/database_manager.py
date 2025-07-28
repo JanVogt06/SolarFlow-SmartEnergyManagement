@@ -3,7 +3,7 @@ SQLite Datenbank-Integration für den Smart Energy Manager.
 """
 
 import sqlite3
-import logging
+import log_system
 from pathlib import Path
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any, Generator
@@ -27,7 +27,7 @@ class DatabaseManager:
         self.config = config
         self.db_path: Path = Path(config.database.database_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.logger = logging.getLogger(__name__)
+        self.logger = log_system.getLogger(__name__)
 
         # Datenbank initialisieren
         self._init_database()

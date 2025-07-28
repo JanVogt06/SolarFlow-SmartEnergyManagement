@@ -2,7 +2,7 @@
 Abstrakte Basisklasse für alle Logger im Smart Energy Manager.
 """
 
-import logging
+import log_system
 from abc import ABC, abstractmethod
 from pathlib import Path
 from datetime import datetime
@@ -27,7 +27,7 @@ class BaseLogger(ABC):
             session_based: Ob pro Session eine neue Datei erstellt wird
         """
         self.config = config
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = log_system.getLogger(self.__class__.__name__)
 
         # CSV-Utilities
         self.csv_formatter = CSVFormatter(config)
@@ -205,7 +205,7 @@ class MultiFileLogger(BaseLogger):
         """
         # Initialisiere ohne automatische Datei-Erstellung
         self.config = config
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = log_system.getLogger(self.__class__.__name__)
         self.csv_formatter = CSVFormatter(config)
         self.csv_writer = CSVWriter(config)
 

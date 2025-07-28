@@ -3,7 +3,7 @@ CSV Utilities für den Smart Energy Manager.
 """
 
 import csv
-import logging
+import log_system
 from pathlib import Path
 from typing import List, Any, Optional, Dict
 from datetime import datetime
@@ -20,7 +20,7 @@ class CSVFormatter:
             config: Konfigurationsobjekt mit CSV-Einstellungen
         """
         self.config = config
-        self.logger = logging.getLogger(__name__)
+        self.logger = log_system.getLogger(__name__)
 
     def format_number(self, value: Optional[float], decimals: int = 0,
                       with_sign: bool = False) -> str:
@@ -103,7 +103,7 @@ class CSVWriter:
             config: Konfigurationsobjekt
         """
         self.config = config
-        self.logger = logging.getLogger(__name__)
+        self.logger = log_system.getLogger(__name__)
         self._file_locks: Dict[str, Any] = {}  # Für Thread-Safety
 
     def write_header(self, filepath: Path, headers: List[str],
