@@ -21,18 +21,18 @@ class StatsDisplay(BaseDisplay):
         self.separator = Separator()
         self.progress = ProgressBar(color_manager=self.color_manager)
 
-    def display(self, stats: Any) -> None:
+    def display(self, data: Any, **kwargs: Any) -> None:
         """
         Zeigt die Tagesstatistiken an.
 
         Args:
             stats: DailyStats-Objekt
         """
-        self._display_header(stats)
-        self._display_energy_section(stats)
-        self._display_cost_section(stats)
-        self._display_power_section(stats)
-        self._display_metrics_section(stats)
+        self._display_header(data)
+        self._display_energy_section(data)
+        self._display_cost_section(data)
+        self._display_power_section(data)
+        self._display_metrics_section(data)
         self.separator.line()
 
     def _display_header(self, stats: Any) -> None:

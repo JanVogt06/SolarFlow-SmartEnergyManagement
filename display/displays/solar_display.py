@@ -21,7 +21,7 @@ class SolarDisplay(BaseDisplay):
         self.progress = ProgressBar(color_manager=self.color_manager)
         self.separator = Separator()
 
-    def display(self, data: Any) -> None:
+    def display(self, data: Any, **kwargs: Any) -> None:
         """
         Zeigt die Solar-Daten an.
 

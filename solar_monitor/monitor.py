@@ -348,7 +348,8 @@ class SolarMonitor:
             self.solar_logger.log(data)
 
         # DEVICE STATUS LOGGING
-        if self.config.devices.enable_control and self.config.logging.device_log_status:
+        if (self.config.devices.enable_control and self.config.logging.device_log_status and
+                self.device_manager is not None):
             devices = self.device_manager.get_devices_by_priority()
             self.device_logger.log_status(devices, data.surplus_power)
 

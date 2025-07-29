@@ -156,7 +156,7 @@ class DatabaseWriter(BaseWriter):
             return True
 
         # Gruppiere nach log_type
-        grouped = {}
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
         for entry in self._buffer:
             log_type = entry['metadata'].get('log_type')
             if log_type not in grouped:
@@ -204,7 +204,7 @@ class DatabaseWriter(BaseWriter):
                 return self._write_stats_batch(conn, data_list)
             elif log_type == 'device_event':
                 return self._write_device_event_batch(conn, data_list)
-            elif log_type == 'device_status':  # NEU
+            elif log_type == 'device_status':
                 return self._write_device_status_batch(conn, data_list)
             else:
                 self.logger.warning(f"Unbekannter log_type für Datenbank: {log_type}")
@@ -259,32 +259,32 @@ class DatabaseWriter(BaseWriter):
             if existing:
                 # UPDATE: Addiere Energiewerte, aktualisiere Max-Werte
                 sql = """
-                      UPDATE daily_stats \
-                      SET runtime_hours            = runtime_hours + ?, \
-                          pv_energy                = pv_energy + ?, \
-                          consumption_energy       = consumption_energy + ?, \
-                          self_consumption_energy  = self_consumption_energy + ?, \
-                          feed_in_energy           = feed_in_energy + ?, \
-                          grid_energy              = grid_energy + ?, \
-                          grid_energy_day          = grid_energy_day + ?, \
-                          grid_energy_night        = grid_energy_night + ?, \
-                          battery_charge_energy    = battery_charge_energy + ?, \
-                          battery_discharge_energy = battery_discharge_energy + ?, \
-                          pv_power_max             = MAX(pv_power_max, ?), \
-                          consumption_power_max    = MAX(consumption_power_max, ?), \
-                          feed_in_power_max        = MAX(feed_in_power_max, ?), \
-                          grid_power_max           = MAX(grid_power_max, ?), \
-                          surplus_power_max        = MAX(surplus_power_max, ?), \
-                          battery_soc_min          = MIN(COALESCE(battery_soc_min, ?), ?), \
-                          battery_soc_max          = MAX(COALESCE(battery_soc_max, ?), ?), \
-                          autarky_avg              = ?, \
-                          self_sufficiency_rate    = ?, \
-                          cost_grid_consumption    = cost_grid_consumption + ?, \
-                          revenue_feed_in          = revenue_feed_in + ?, \
-                          cost_saved               = cost_saved + ?, \
-                          total_benefit            = total_benefit + ?, \
+                      UPDATE daily_stats
+                      SET runtime_hours            = runtime_hours + ?,
+                          pv_energy                = pv_energy + ?,
+                          consumption_energy       = consumption_energy + ?,
+                          self_consumption_energy  = self_consumption_energy + ?,
+                          feed_in_energy           = feed_in_energy + ?,
+                          grid_energy              = grid_energy + ?,
+                          grid_energy_day          = grid_energy_day + ?,
+                          grid_energy_night        = grid_energy_night + ?,
+                          battery_charge_energy    = battery_charge_energy + ?,
+                          battery_discharge_energy = battery_discharge_energy + ?,
+                          pv_power_max             = MAX(pv_power_max, ?),
+                          consumption_power_max    = MAX(consumption_power_max, ?),
+                          feed_in_power_max        = MAX(feed_in_power_max, ?),
+                          grid_power_max           = MAX(grid_power_max, ?),
+                          surplus_power_max        = MAX(surplus_power_max, ?),
+                          battery_soc_min          = MIN(COALESCE(battery_soc_min, ?), ?),
+                          battery_soc_max          = MAX(COALESCE(battery_soc_max, ?), ?),
+                          autarky_avg              = ?,
+                          self_sufficiency_rate    = ?,
+                          cost_grid_consumption    = cost_grid_consumption + ?,
+                          revenue_feed_in          = revenue_feed_in + ?,
+                          cost_saved               = cost_saved + ?,
+                          total_benefit            = total_benefit + ?,
                           cost_without_solar       = cost_without_solar + ?
-                      WHERE date = ?
+                      WHERE date = ? \
                       """
 
                 values = (

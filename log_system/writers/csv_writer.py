@@ -60,7 +60,7 @@ class CSVWriter(BaseWriter):
             return True
 
         # Gruppiere Buffer nach log_type
-        grouped = {}
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
         for entry in self._buffer:
             log_type = entry['metadata'].get('log_type')
             if log_type not in grouped:

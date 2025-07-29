@@ -21,14 +21,18 @@ class DeviceDisplay(BaseDisplay):
         self.table = Table(self.color_manager)
         self.separator = Separator()
 
-    def display(self, data: Any, device_manager: Any) -> None:
+    def display(self, data: Any, **kwargs: Any) -> None:
         """
-        Zeigt die Gerätesteuerung an.
+        Hauptmethode zum Anzeigen der Daten (überschreibt abstrakte Methode).
 
         Args:
-            data: SolarData-Objekt
-            device_manager: DeviceManager-Instanz
+            data: Kann ein Tupel (SolarData, DeviceManager) oder nur SolarData sein
         """
+        device_manager = kwargs.get('device_manager')
+        if not device_manager:
+            print("Keine Gerätedaten verfügbar")
+            return
+
         self.separator.section("GERÄTESTEUERUNG")
         self._display_summary(data, device_manager)
         self._display_device_list(data, device_manager)

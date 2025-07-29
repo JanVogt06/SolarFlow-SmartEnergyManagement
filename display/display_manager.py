@@ -39,7 +39,7 @@ class DisplayManager:
         self.solar.display(data)
 
         if self.device and device_manager:
-            self.device.display(data, device_manager)
+            self.device.display(data, device_manager=device_manager)
 
     def show_daily_stats(self, stats: Any) -> None:
         """

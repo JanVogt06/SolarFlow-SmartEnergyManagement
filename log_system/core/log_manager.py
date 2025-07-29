@@ -27,7 +27,7 @@ class LogManager:
         self.handlers: Dict[str, LogHandler] = {}
 
         # Mapping von LogType zu Komponenten
-        self.type_mapping: Dict[LogType, Dict[str, List[str]]] = {
+        self.type_mapping: Dict[LogType, Dict[str, Any]] = {
             LogType.SOLAR: {
                 'formatter': 'solar',
                 'writers': ['csv', 'database']
@@ -45,7 +45,6 @@ class LogManager:
                 'writers': ['csv', 'database']
             }
         }
-
     def register_formatter(self, name: str, formatter: LogFormatter) -> None:
         """
         Registriert einen Formatter.

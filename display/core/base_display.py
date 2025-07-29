@@ -88,12 +88,12 @@ class BaseDisplay(ABC):
         """Druckt eine Leerzeile."""
         print()
 
-    @abstractmethod
-    def display(self, data: Any) -> None:
+    def display(self, data: Any, **kwargs: Any) -> None:
         """
         Hauptmethode zum Anzeigen der Daten.
 
         Args:
             data: Anzuzeigende Daten
+            **kwargs: Zusätzliche Keyword-Argumente
         """
         pass

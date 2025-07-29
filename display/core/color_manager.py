@@ -2,9 +2,14 @@
 Farb-Management für das Display-System.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypedDict
 from .constants import Colors
 
+class ColorRule(TypedDict):
+    """Type definition für Farbregel"""
+    high: float
+    medium: float
+    colors: Dict[str, str]
 
 class ColorManager:
     """Verwaltet Farben und Themes"""
@@ -18,8 +23,8 @@ class ColorManager:
         """
         self.enable_colors = enable_colors
 
-        # Threshold-basierte Farbregeln
-        self.color_rules = {
+        # Threshold-basierte Farbregeln mit korrektem Type
+        self.color_rules: Dict[str, ColorRule] = {
             'battery_soc': {
                 'high': 80,
                 'medium': 30,
@@ -127,6 +132,7 @@ class ColorManager:
         rule = self.color_rules[threshold_key]
         colors = rule['colors']
 
+        # Jetzt weiß mypy, dass rule['high'] und rule['medium'] floats sind
         if value >= rule['high']:
             return colors['high']
         elif value >= rule['medium']:

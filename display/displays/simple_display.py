@@ -16,7 +16,7 @@ class SimpleDisplay(BaseDisplay):
         """
         super().__init__(config)
 
-    def display(self, data: Any) -> None:
+    def display(self, data: Any, **kwargs: Any) -> None:
         """
         Zeigt eine einzeilige Zusammenfassung.
 
