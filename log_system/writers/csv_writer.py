@@ -96,7 +96,8 @@ class CSVWriter(BaseWriter):
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             # Prüfe ob Header geschrieben werden muss
-            write_header = filepath not in self._files_with_headers
+            file_exists = filepath.exists()
+            write_header = filepath not in self._files_with_headers and not file_exists
 
             # Hole Feldnamen
             fieldnames = self._get_fieldnames(log_type, entries[0]['data'])

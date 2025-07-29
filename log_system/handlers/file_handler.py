@@ -30,7 +30,7 @@ class FileHandler(FileManager):
             'solar': {
                 'sub_dir': config.directories.solar_data_dir,
                 'base_name': config.directories.data_log_base_name,
-                'session_based': True
+                'session_based': False
             },
             'stats': {
                 'sub_dir': config.directories.daily_stats_dir,

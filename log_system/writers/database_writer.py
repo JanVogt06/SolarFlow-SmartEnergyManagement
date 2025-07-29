@@ -246,51 +246,124 @@ class DatabaseWriter(BaseWriter):
 
     def _write_stats_batch(self, conn: sqlite3.Connection,
                            data_list: List[Dict[str, Any]]) -> bool:
-        """Schreibt Tagesstatistiken"""
-        sql = """
-              INSERT OR REPLACE INTO daily_stats (date, runtime_hours, pv_energy, consumption_energy, \
-                                       self_consumption_energy, feed_in_energy, grid_energy, \
-                                       grid_energy_day, grid_energy_night, \
-                                       battery_charge_energy, battery_discharge_energy, \
-                                       pv_power_max, consumption_power_max, feed_in_power_max, \
-                                       grid_power_max, surplus_power_max, battery_soc_min, \
-                                       battery_soc_max, autarky_avg, self_sufficiency_rate, \
-                                       cost_grid_consumption, revenue_feed_in, cost_saved, \
-                                       total_benefit, cost_without_solar) \
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
-              """
+        """Schreibt Tagesstatistiken (akkumulierend)"""
 
-        values = []
         for data in data_list:
-            values.append((
-                data.get('date'),
-                self._parse_number(data.get('runtime_hours')),
-                self._parse_number(data.get('pv_energy')),
-                self._parse_number(data.get('consumption_energy')),
-                self._parse_number(data.get('self_consumption_energy')),
-                self._parse_number(data.get('feed_in_energy')),
-                self._parse_number(data.get('grid_energy')),
-                self._parse_number(data.get('grid_energy_day')),
-                self._parse_number(data.get('grid_energy_night')),
-                self._parse_number(data.get('battery_charge_energy')),
-                self._parse_number(data.get('battery_discharge_energy')),
-                self._parse_number(data.get('pv_power_max')),
-                self._parse_number(data.get('consumption_power_max')),
-                self._parse_number(data.get('feed_in_power_max')),
-                self._parse_number(data.get('grid_power_max')),
-                self._parse_number(data.get('surplus_power_max')),
-                self._parse_number(data.get('battery_soc_min')),
-                self._parse_number(data.get('battery_soc_max')),
-                self._parse_number(data.get('autarky_avg')),
-                self._parse_number(data.get('self_sufficiency_rate')),
-                self._parse_number(data.get('cost_grid_consumption')),
-                self._parse_number(data.get('revenue_feed_in')),
-                self._parse_number(data.get('cost_saved')),
-                self._parse_number(data.get('total_benefit')),
-                self._parse_number(data.get('cost_without_solar'))
-            ))
+            date_str = data.get('date')
 
-        conn.executemany(sql, values)
+            # Prüfe ob Eintrag für dieses Datum bereits existiert
+            existing = conn.execute(
+                "SELECT * FROM daily_stats WHERE date = ?", (date_str,)
+            ).fetchone()
+
+            if existing:
+                # UPDATE: Addiere Energiewerte, aktualisiere Max-Werte
+                sql = """
+                      UPDATE daily_stats \
+                      SET runtime_hours            = runtime_hours + ?, \
+                          pv_energy                = pv_energy + ?, \
+                          consumption_energy       = consumption_energy + ?, \
+                          self_consumption_energy  = self_consumption_energy + ?, \
+                          feed_in_energy           = feed_in_energy + ?, \
+                          grid_energy              = grid_energy + ?, \
+                          grid_energy_day          = grid_energy_day + ?, \
+                          grid_energy_night        = grid_energy_night + ?, \
+                          battery_charge_energy    = battery_charge_energy + ?, \
+                          battery_discharge_energy = battery_discharge_energy + ?, \
+                          pv_power_max             = MAX(pv_power_max, ?), \
+                          consumption_power_max    = MAX(consumption_power_max, ?), \
+                          feed_in_power_max        = MAX(feed_in_power_max, ?), \
+                          grid_power_max           = MAX(grid_power_max, ?), \
+                          surplus_power_max        = MAX(surplus_power_max, ?), \
+                          battery_soc_min          = MIN(COALESCE(battery_soc_min, ?), ?), \
+                          battery_soc_max          = MAX(COALESCE(battery_soc_max, ?), ?), \
+                          autarky_avg              = ?, \
+                          self_sufficiency_rate    = ?, \
+                          cost_grid_consumption    = cost_grid_consumption + ?, \
+                          revenue_feed_in          = revenue_feed_in + ?, \
+                          cost_saved               = cost_saved + ?, \
+                          total_benefit            = total_benefit + ?, \
+                          cost_without_solar       = cost_without_solar + ?
+                      WHERE date = ?
+                      """
+
+                values = (
+                    self._parse_number(data.get('runtime_hours')),
+                    self._parse_number(data.get('pv_energy')),
+                    self._parse_number(data.get('consumption_energy')),
+                    self._parse_number(data.get('self_consumption_energy')),
+                    self._parse_number(data.get('feed_in_energy')),
+                    self._parse_number(data.get('grid_energy')),
+                    self._parse_number(data.get('grid_energy_day')),
+                    self._parse_number(data.get('grid_energy_night')),
+                    self._parse_number(data.get('battery_charge_energy')),
+                    self._parse_number(data.get('battery_discharge_energy')),
+                    self._parse_number(data.get('pv_power_max')),
+                    self._parse_number(data.get('consumption_power_max')),
+                    self._parse_number(data.get('feed_in_power_max')),
+                    self._parse_number(data.get('grid_power_max')),
+                    self._parse_number(data.get('surplus_power_max')),
+                    self._parse_number(data.get('battery_soc_min')),
+                    self._parse_number(data.get('battery_soc_min')),
+                    self._parse_number(data.get('battery_soc_max')),
+                    self._parse_number(data.get('battery_soc_max')),
+                    self._parse_number(data.get('autarky_avg')),
+                    self._parse_number(data.get('self_sufficiency_rate')),
+                    self._parse_number(data.get('cost_grid_consumption')),
+                    self._parse_number(data.get('revenue_feed_in')),
+                    self._parse_number(data.get('cost_saved')),
+                    self._parse_number(data.get('total_benefit')),
+                    self._parse_number(data.get('cost_without_solar')),
+                    date_str
+                )
+
+                conn.execute(sql, values)
+
+            else:
+                # INSERT: Neuer Eintrag
+                sql = """
+                      INSERT INTO daily_stats (date, runtime_hours, pv_energy, consumption_energy, \
+                                               self_consumption_energy, feed_in_energy, grid_energy, \
+                                               grid_energy_day, grid_energy_night, \
+                                               battery_charge_energy, battery_discharge_energy, \
+                                               pv_power_max, consumption_power_max, feed_in_power_max, \
+                                               grid_power_max, surplus_power_max, battery_soc_min, \
+                                               battery_soc_max, autarky_avg, self_sufficiency_rate, \
+                                               cost_grid_consumption, revenue_feed_in, cost_saved, \
+                                               total_benefit, cost_without_solar) \
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      """
+
+                values = (
+                    date_str,
+                    self._parse_number(data.get('runtime_hours')),
+                    self._parse_number(data.get('pv_energy')),
+                    self._parse_number(data.get('consumption_energy')),
+                    self._parse_number(data.get('self_consumption_energy')),
+                    self._parse_number(data.get('feed_in_energy')),
+                    self._parse_number(data.get('grid_energy')),
+                    self._parse_number(data.get('grid_energy_day')),
+                    self._parse_number(data.get('grid_energy_night')),
+                    self._parse_number(data.get('battery_charge_energy')),
+                    self._parse_number(data.get('battery_discharge_energy')),
+                    self._parse_number(data.get('pv_power_max')),
+                    self._parse_number(data.get('consumption_power_max')),
+                    self._parse_number(data.get('feed_in_power_max')),
+                    self._parse_number(data.get('grid_power_max')),
+                    self._parse_number(data.get('surplus_power_max')),
+                    self._parse_number(data.get('battery_soc_min')),
+                    self._parse_number(data.get('battery_soc_max')),
+                    self._parse_number(data.get('autarky_avg')),
+                    self._parse_number(data.get('self_sufficiency_rate')),
+                    self._parse_number(data.get('cost_grid_consumption')),
+                    self._parse_number(data.get('revenue_feed_in')),
+                    self._parse_number(data.get('cost_saved')),
+                    self._parse_number(data.get('total_benefit')),
+                    self._parse_number(data.get('cost_without_solar'))
+                )
+
+                conn.execute(sql, values)
+
         return True
 
     def _write_device_event_batch(self, conn: sqlite3.Connection,

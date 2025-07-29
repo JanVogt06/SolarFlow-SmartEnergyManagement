@@ -225,7 +225,16 @@ class SolarMonitor:
             # Alle aktiven Geräte ausschalten
             for device in self.device_manager.get_active_devices():
                 old_state = device.state
+
+                # WICHTIG: Laufzeit berechnen bevor Status geändert wird
+                if device.last_state_change:
+                    runtime = int((datetime.now() - device.last_state_change).total_seconds() / 60)
+                    device.runtime_today += runtime
+                    self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten, "
+                                      f"Gesamt heute: {device.runtime_today} Minuten")
+
                 device.state = DeviceState.OFF
+                device.last_state_change = datetime.now()
                 self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
 
                 # Event loggen
