@@ -142,16 +142,19 @@ class DeviceLogger:
         """
         try:
             summary_file = output_dir / f"device_summary_{datetime.now().strftime('%Y%m%d')}.txt"
+            current_time = datetime.now()
 
             with open(summary_file, 'w', encoding='utf-8') as f:
-                f.write(f"Geräte-Tageszusammenfassung - {datetime.now().strftime('%d.%m.%Y')}\n")
+                f.write(f"Geräte-Tageszusammenfassung - {current_time.strftime('%d.%m.%Y %H:%M:%S')}\n")
                 f.write("=" * 60 + "\n\n")
 
                 total_energy = 0.0
 
                 for device in sorted(devices,
                                      key=lambda d: d.priority.value if hasattr(d.priority, 'value') else d.priority):
-                    energy = device.runtime_today * device.power_consumption / 60000
+                    # Verwende get_current_runtime() um auch laufende Sessions zu berücksichtigen
+                    current_runtime = device.get_current_runtime(current_time)
+                    energy = current_runtime * device.power_consumption / 60000
                     total_energy += energy
 
                     f.write(f"{device.name}:\n")
@@ -161,7 +164,14 @@ class DeviceLogger:
                         f.write(f" ({device.priority.label()})")
                     f.write("\n")
                     f.write(f"  Leistung: {device.power_consumption}W\n")
-                    f.write(f"  Laufzeit heute: {device.runtime_today} Minuten\n")
+                    f.write(f"  Laufzeit heute: {current_runtime} Minuten")
+
+                    # Zeige aktuelle Session-Dauer wenn Gerät läuft
+                    if device.state.value == 'on' and device.last_state_change:
+                        session_minutes = int((current_time - device.last_state_change).total_seconds() / 60)
+                        f.write(f" (davon aktuelle Session: {session_minutes} Minuten)")
+
+                    f.write("\n")
                     f.write(f"  Energieverbrauch: {energy:.2f} kWh\n")
                     f.write(f"  Status: {device.state.value if hasattr(device.state, 'value') else device.state}\n")
                     f.write("\n")
