@@ -112,10 +112,25 @@ class DatabaseWriter(BaseWriter):
                              )
                              """)
 
-                # Index für Geräte-Abfragen
+                # Geräte-Status Tabelle
                 conn.execute("""
-                             CREATE INDEX IF NOT EXISTS idx_device_events
-                                 ON device_events (device_name, timestamp)
+                             CREATE TABLE IF NOT EXISTS device_status
+                             (
+                                 id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 timestamp         DATETIME NOT NULL,
+                                 total_devices_on  INTEGER  NOT NULL DEFAULT 0,
+                                 total_consumption REAL     NOT NULL DEFAULT 0,
+                                 surplus_power     REAL     NOT NULL DEFAULT 0,
+                                 used_surplus      REAL     NOT NULL DEFAULT 0,
+                                 device_states     TEXT, -- JSON mit Gerätezuständen
+                                 created_at        DATETIME          DEFAULT CURRENT_TIMESTAMP
+                             )
+                             """)
+
+                # Index für Zeitabfragen
+                conn.execute("""
+                             CREATE INDEX IF NOT EXISTS idx_device_status_timestamp
+                                 ON device_status (timestamp)
                              """)
 
                 conn.commit()
@@ -189,6 +204,8 @@ class DatabaseWriter(BaseWriter):
                 return self._write_stats_batch(conn, data_list)
             elif log_type == 'device_event':
                 return self._write_device_event_batch(conn, data_list)
+            elif log_type == 'device_status':  # NEU
+                return self._write_device_status_batch(conn, data_list)
             else:
                 self.logger.warning(f"Unbekannter log_type für Datenbank: {log_type}")
                 return True  # Kein Fehler, nur nicht unterstützt
@@ -298,6 +315,40 @@ class DatabaseWriter(BaseWriter):
                 self._parse_number(data.get('device_power')),
                 self._parse_number(data.get('priority')),
                 self._parse_number(data.get('runtime_today'))
+            ))
+
+        conn.executemany(sql, values)
+        return True
+
+    def _write_device_status_batch(self, conn: sqlite3.Connection,
+                                   data_list: List[Dict[str, Any]]) -> bool:
+        """Schreibt Device-Status Daten"""
+        sql = """
+              INSERT INTO device_status (timestamp, total_devices_on, total_consumption, \
+                                         surplus_power, used_surplus, device_states) \
+              VALUES (?, ?, ?, ?, ?, ?) \
+              """
+
+        values = []
+        for data in data_list:
+            # Sammle Gerätezustände als JSON
+            device_states = {}
+
+            # Extrahiere Geräte-spezifische Daten
+            for key, value in data.items():
+                if '_state' in key or '_runtime' in key:
+                    device_states[key] = value
+
+            import json
+            device_states_json = json.dumps(device_states)
+
+            values.append((
+                self._parse_timestamp(data.get('timestamp')),
+                self._parse_number(data.get('total_on')),
+                self._parse_number(data.get('total_consumption')),
+                self._parse_number(data.get('surplus_power')),
+                self._parse_number(data.get('used_surplus')),
+                device_states_json
             ))
 
         conn.executemany(sql, values)

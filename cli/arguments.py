@@ -293,12 +293,6 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'config_path': 'logging.enable_device_logging',
                 'config_value': lambda args: not getattr(args, 'no_device_logging', False)
             },
-            {
-                'name': '--device-log-interval',
-                'type': int,
-                'help': 'Intervall für Geräte-Status-Logging in Sekunden (Standard: 60)',
-                'config_path': 'timing.device_log_interval'
-            }
         ]
     },
 

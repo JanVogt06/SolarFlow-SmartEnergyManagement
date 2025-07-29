@@ -21,7 +21,6 @@ class TimingConfig:
     """Zeit- und Intervall-Einstellungen"""
     update_interval: int = field(default_factory=lambda: int(os.getenv("UPDATE_INTERVAL", "5")))
     daily_stats_interval: int = field(default_factory=lambda: int(os.getenv("DAILY_STATS_INTERVAL", "1800")))
-    device_log_interval: int = field(default_factory=lambda: int(os.getenv("DEVICE_LOG_INTERVAL", "60")))
 
 
 @dataclass
@@ -176,9 +175,6 @@ class Config:
 
         if self.timing.daily_stats_interval < 60:
             errors.append("daily_stats_interval sollte mindestens 60 Sekunden sein")
-
-        if self.timing.device_log_interval < 10:
-            errors.append("device_log_interval sollte mindestens 10 Sekunden sein")
 
         # Connection-Validierung
         if self.connection.request_timeout < 1:
