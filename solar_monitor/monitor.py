@@ -508,11 +508,25 @@ class SolarMonitor:
         if not self.config.logging.device_log_status:
             return
 
+        # Initialisiere beim ersten Aufruf
         if self.last_device_status_log is None:
             self.last_device_status_log = time.time()
-        elif time.time() - self.last_device_status_log >= self.config.timing.device_log_interval:
+            # Logge sofort beim Start
             devices = self.device_manager.get_devices_by_priority()
+            self.logger.debug(f"Initialer Device Status Log für {len(devices)} Geräte")
             self.device_logger.log_status(devices, data.surplus_power)
+            return
+
+        # Prüfe ob Intervall erreicht
+        time_since_last = time.time() - self.last_device_status_log
+        if time_since_last >= self.config.timing.device_log_interval:
+            devices = self.device_manager.get_devices_by_priority()
+            self.logger.debug(f"Periodischer Device Status Log für {len(devices)} Geräte")
+            success = self.device_logger.log_status(devices, data.surplus_power)
+            if success:
+                self.logger.debug("Device Status erfolgreich geloggt")
+            else:
+                self.logger.warning("Fehler beim Device Status Logging")
             self.last_device_status_log = time.time()
 
     def _check_daily_device_reset(self, current_date: DateType) -> None:

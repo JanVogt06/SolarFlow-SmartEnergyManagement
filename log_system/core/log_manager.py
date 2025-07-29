@@ -42,7 +42,7 @@ class LogManager:
             },
             LogType.DEVICE_STATUS: {
                 'formatter': 'device_status',
-                'writers': ['csv']
+                'writers': ['csv', 'database']
             }
         }
 
