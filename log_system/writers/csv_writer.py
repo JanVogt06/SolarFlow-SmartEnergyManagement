@@ -92,34 +92,36 @@ class CSVWriter(BaseWriter):
             # Hole aktuellen Pfad
             filepath = self.file_manager.get_current_path(log_type)
 
-            # Prüfe ob Rotation nötig
-            if self.file_manager.should_rotate(log_type):
-                filepath = self.file_manager.rotate(log_type)
-                # Entferne aus Header-Cache
-                self._files_with_headers.discard(filepath)
-
             # Stelle sicher dass Verzeichnis existiert
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             # Prüfe ob Header geschrieben werden muss
             write_header = filepath not in self._files_with_headers
 
+            # Hole Feldnamen
+            fieldnames = self._get_fieldnames(log_type, entries[0]['data'])
+
             # Öffne Datei
             mode = 'w' if write_header else 'a'
             with open(filepath, mode, newline='', encoding=self.encoding) as f:
                 writer = csv.DictWriter(
                     f,
-                    fieldnames=self._get_fieldnames(log_type, entries[0]['data']),
+                    fieldnames=fieldnames,
                     delimiter=self.delimiter
                 )
 
                 # Schreibe Header wenn nötig
                 if write_header:
-                    writer.writeheader()
+                    # Spezielle Header für device_status
+                    if log_type == 'device_status':
+                        self._write_device_status_header(f, entries[0]['data'])
+                    else:
+                        writer.writeheader()
+
                     self._files_with_headers.add(filepath)
 
-                    # Session-Info wenn konfiguriert
-                    if self.config.csv.include_info_row:
+                    # Session-Info wenn konfiguriert (außer für device_status)
+                    if self.config.csv.include_info_row and log_type != 'device_status':
                         self._write_session_info(f, log_type)
 
                 # Schreibe Daten
@@ -174,6 +176,60 @@ class CSVWriter(BaseWriter):
         }
 
         return field_orders.get(log_type, sorted(sample_data.keys()))
+
+    def _write_device_status_header(self, file_handle: Any, sample_data: Dict[str, Any]) -> None:
+        """
+        Schreibt spezielle Header für Device Status.
+
+        Args:
+            file_handle: Offene Datei
+            sample_data: Beispiel-Daten für Header-Generierung
+        """
+        # Erstelle lesbare Header basierend auf den Daten-Keys
+        headers = []
+
+        # Timestamp immer zuerst
+        headers.append("Zeitstempel" if self.config.csv.use_german_headers else "Timestamp")
+
+        # Sammle alle Geräte-Keys
+        device_keys = []
+        for key in sorted(sample_data.keys()):
+            if key.endswith('_state'):
+                device_name = key.replace('_state', '').replace('_', ' ').title()
+                device_keys.append((device_name, key.replace('_state', '')))
+
+        # Füge Geräte-Header hinzu
+        for device_name, device_key in device_keys:
+            if self.config.csv.use_german_headers:
+                headers.extend([
+                    f"{device_name} Status",
+                    f"{device_name} Laufzeit (min)"
+                ])
+            else:
+                headers.extend([
+                    f"{device_name} State",
+                    f"{device_name} Runtime (min)"
+                ])
+
+        # Zusammenfassungs-Header
+        if self.config.csv.use_german_headers:
+            headers.extend([
+                "Gesamt Ein",
+                "Gesamtverbrauch (W)",
+                "Überschuss (W)",
+                "Genutzter Überschuss (W)"
+            ])
+        else:
+            headers.extend([
+                "Total On",
+                "Total Consumption (W)",
+                "Surplus (W)",
+                "Used Surplus (W)"
+            ])
+
+        # Schreibe Header
+        writer = csv.writer(file_handle, delimiter=self.delimiter)
+        writer.writerow(headers)
 
     def _write_session_info(self, file_handle: Any, log_type: str) -> None:
         """

@@ -90,10 +90,13 @@ class DeviceLogger:
             device = device_manager.get_device(device_name)
             if device:
                 # Bestimme alten Status
-                old_state = self.last_device_states.get(
-                    device_name,
-                    type(device.state)('OFF')  # Fallback auf OFF
-                )
+                old_state = self.last_device_states.get(device_name)
+
+                # Falls kein Cache-Eintrag vorhanden, verwende DeviceState.OFF
+                if old_state is None:
+                    # Importiere DeviceState direkt
+                    from device_management import DeviceState
+                    old_state = DeviceState.OFF
 
                 # Bestimme Grund basierend auf Aktion
                 reason = self._determine_reason(device, action)
