@@ -225,7 +225,8 @@ class DeviceManager:
             for j in range(i + 1, len(intervals)):
                 for int1 in intervals[i]:
                     for int2 in intervals[j]:
-                        if self._intervals_overlap_check(int1[:2], int2[:2]):
+                        # Verwende die statische Methode aus Device
+                        if Device._check_interval_overlap(int1[:2], int2[:2]):
                             idx1, idx2 = int1[2], int2[2]
                             warnings.append(
                                 f"Zeitbereiche {idx1 + 1} und {idx2 + 1} überlappen sich. "
@@ -236,13 +237,6 @@ class DeviceManager:
                         break
 
         return warnings
-
-    def _intervals_overlap_check(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> bool:
-        """Prüft ob zwei Intervalle überlappen"""
-        start1, end1 = interval1
-        start2, end2 = interval2
-
-        return not (end1 <= start2 or end2 <= start1)
 
     def save_devices(self) -> None:
         """Speichert Geräte in JSON-Datei"""

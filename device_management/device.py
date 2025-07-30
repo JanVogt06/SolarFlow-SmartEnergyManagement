@@ -150,7 +150,7 @@ class Device:
                 # Prüfe jedes Intervall aus i gegen jedes aus j
                 for interval_i in intervals[i]:
                     for interval_j in intervals[j]:
-                        if self._intervals_overlap(interval_i, interval_j):
+                        if self._check_interval_overlap(interval_i, interval_j):
                             overlaps.append((i, j))
                             break
                     if (i, j) in overlaps:
@@ -158,9 +158,12 @@ class Device:
 
         return overlaps
 
-    def _intervals_overlap(self, interval1: Tuple[int, int], interval2: Tuple[int, int]) -> bool:
+    @staticmethod
+    def _check_interval_overlap(interval1: Tuple[int, int], interval2: Tuple[int, int]) -> bool:
         """
         Prüft ob zwei Zeitintervalle überlappen.
+
+        Diese Methode ist statisch und kann von anderen Klassen verwendet werden.
 
         Args:
             interval1: Erstes Intervall (start_minuten, end_minuten)
@@ -172,15 +175,9 @@ class Device:
         start1, end1 = interval1
         start2, end2 = interval2
 
-        # Intervalle überlappen wenn:
-        # - Start von 1 liegt in Intervall 2
-        # - Ende von 1 liegt in Intervall 2
-        # - Intervall 1 umschließt Intervall 2 komplett
-        return (
-            (start2 <= start1 < end2) or
-            (start2 < end1 <= end2) or
-            (start1 <= start2 and end1 >= end2)
-        )
+        # Intervalle überlappen wenn sie sich nicht NICHT überlappen
+        # (kein Overlap wenn: end1 <= start2 oder end2 <= start1)
+        return not (end1 <= start2 or end2 <= start1)
 
     def is_time_allowed(self, current_time: datetime) -> bool:
         """
