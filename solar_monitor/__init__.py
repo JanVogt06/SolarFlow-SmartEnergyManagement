@@ -8,13 +8,26 @@ from .api import FroniusAPI
 from .monitor import SolarMonitor
 from .daily_stats import DailyStats
 
-__version__ = "1.0.0"
+# Core-Module für erweiterte Nutzung
+from .core import (
+    DataProcessor,
+    StatsManager,
+    DeviceController,
+    LoggingCoordinator
+)
 __author__ = "Jan Vogt"
 
 __all__ = [
+    # Haupt-Klassen
     "Config",
     "SolarData",
     "FroniusAPI",
     "SolarMonitor",
     "DailyStats",
+
+    # Core-Module
+    "DataProcessor",
+    "StatsManager",
+    "DeviceController",
+    "LoggingCoordinator"
 ]
