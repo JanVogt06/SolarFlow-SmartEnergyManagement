@@ -64,6 +64,13 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'help': 'Deaktiviert die periodische Anzeige der Tagesstatistiken',
                 'config_path': 'display.show_daily_stats',
                 'config_value': lambda args: not getattr(args, 'no_daily_stats', False)
+            },
+            {
+                'name': '--no-live',
+                'action': 'store_true',
+                'help': 'Deaktiviert das Live-Update Display (verwendet klassische Ausgabe)',
+                'config_path': 'display.use_live_display',
+                'config_value': lambda args: not getattr(args, 'no_live', False)
             }
         ]
     },

@@ -80,6 +80,7 @@ class DisplayConfig:
     enable_colors: bool = field(default_factory=lambda: os.getenv("ENABLE_COLORS", "True").lower() == "true")
     show_daily_stats: bool = field(default_factory=lambda: os.getenv("SHOW_DAILY_STATS", "True").lower() == "true")
     surplus_display_threshold: float = field(default_factory=lambda: float(os.getenv("SURPLUS_DISPLAY_THRESHOLD", "0")))
+    use_live_display: bool = field(default_factory=lambda: os.getenv("USE_LIVE_DISPLAY", "True").lower() == "true")
 
 
 @dataclass

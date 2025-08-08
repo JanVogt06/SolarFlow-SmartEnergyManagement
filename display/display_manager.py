@@ -3,7 +3,7 @@ Display Manager für zentrale Verwaltung aller Display-Module.
 """
 
 from typing import Any, Optional
-from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay
+from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay, LiveDisplay
 
 
 class DisplayManager:
@@ -23,6 +23,10 @@ class DisplayManager:
         self.stats = StatsDisplay(config)
         self.simple = SimpleDisplay(config)
 
+        # NEU: Live Display
+        self.live = LiveDisplay(config)
+        self._live_mode_active = False
+
         # Device Display nur wenn Gerätesteuerung aktiv
         self.device: Optional[DeviceDisplay] = None
         if config.devices.enable_control:
@@ -40,6 +44,23 @@ class DisplayManager:
 
         if self.device and device_manager:
             self.device.display(data, device_manager=device_manager)
+
+    def show_live_data(self, data: Any, device_manager: Optional[Any] = None) -> None:
+        """
+        Zeigt Daten im Live-Update Modus.
+
+        Args:
+            data: SolarData-Objekt
+            device_manager: Optionaler DeviceManager
+        """
+        self._live_mode_active = True
+        self.live.display(data, device_manager)
+
+    def cleanup_live_display(self) -> None:
+        """Räumt das Live-Display auf"""
+        if self._live_mode_active:
+            self.live.cleanup()
+            self._live_mode_active = False
 
     def show_daily_stats(self, stats: Any) -> None:
         """

@@ -88,6 +88,9 @@ class SolarMonitor:
         """Stoppt den Monitor"""
         self.running = False
 
+        # Live-Display aufräumen
+        self.display.cleanup_live_display()
+
         # Statistiken ausgeben
         if self.start_time:
             runtime = time.time() - self.start_time
@@ -182,8 +185,12 @@ class SolarMonitor:
         # Gerätesteuerung aktualisieren
         self.device_controller.update(data)
 
-        # Daten anzeigen
-        self.display.show_solar_data(data, self.device_controller.device_manager)
+        # Verwende Live-Display wenn aktiviert
+        if self.config.display.use_live_display:
+            self.display.show_live_data(data, self.device_controller.device_manager)
+        else:
+            # Alte Anzeige-Methode
+            self.display.show_solar_data(data, self.device_controller.device_manager)
 
         # Daten loggen
         self.logging_coordinator.log_solar_data(data)
