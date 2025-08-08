@@ -146,9 +146,27 @@ class CSVWriter(BaseWriter):
         Returns:
             Liste von Feldnamen
         """
-        # Für Device Status: Dynamisch aus Daten
+        # Für Device Status: Spezielle Reihenfolge passend zu den Headers
         if log_type == 'device_status':
-            return sorted(sample_data.keys())
+            # Erstelle die gleiche Reihenfolge wie in _write_device_status_header
+            fieldnames = ['timestamp']
+
+            # Sammle alle Geräte-Keys in sortierter Reihenfolge
+            device_keys = []
+            for key in sorted(sample_data.keys()):
+                if key.endswith('_state'):
+                    device_base = key.replace('_state', '')
+                    device_keys.append(device_base)
+
+            # Füge Geräte-Felder in der richtigen Reihenfolge hinzu
+            for device_key in device_keys:
+                fieldnames.append(f'{device_key}_state')
+                fieldnames.append(f'{device_key}_runtime')
+
+            # Füge Zusammenfassungs-Felder hinzu
+            fieldnames.extend(['total_on', 'total_consumption', 'surplus_power', 'used_surplus'])
+
+            return fieldnames
 
         # Sonst: Feste Reihenfolge
         field_orders = {

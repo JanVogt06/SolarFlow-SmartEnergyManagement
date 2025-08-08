@@ -40,7 +40,7 @@ class FileHandler(FileManager):
             'device_event': {
                 'sub_dir': config.directories.device_log_dir,
                 'base_name': config.directories.device_events_base_name,
-                'session_based': True
+                'session_based': False
             },
             'device_status': {
                 'sub_dir': config.directories.device_log_dir,
