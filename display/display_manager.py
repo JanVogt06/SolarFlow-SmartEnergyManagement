@@ -3,7 +3,7 @@ Display Manager für zentrale Verwaltung aller Display-Module.
 """
 
 from typing import Any, Optional
-from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay, LiveDisplay
+from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay, RichLiveDisplay
 
 
 class DisplayManager:
@@ -23,8 +23,12 @@ class DisplayManager:
         self.stats = StatsDisplay(config)
         self.simple = SimpleDisplay(config)
 
-        # NEU: Live Display
-        self.live = LiveDisplay(config)
+        # Rich Live Display - nur initialisieren wenn aktiviert
+        if config.display.use_live_display:
+            self.live = RichLiveDisplay(config)
+        else:
+            self.live = None
+
         self._live_mode_active = False
 
         # Device Display nur wenn Gerätesteuerung aktiv
@@ -53,12 +57,16 @@ class DisplayManager:
             data: SolarData-Objekt
             device_manager: Optionaler DeviceManager
         """
-        self._live_mode_active = True
-        self.live.display(data, device_manager)
+        if self.live:
+            self._live_mode_active = True
+            self.live.display(data, device_manager)
+        else:
+            # Fallback auf normale Anzeige
+            self.show_solar_data(data, device_manager)
 
     def cleanup_live_display(self) -> None:
         """Räumt das Live-Display auf"""
-        if self._live_mode_active:
+        if self._live_mode_active and self.live:
             self.live.cleanup()
             self._live_mode_active = False
 
@@ -69,7 +77,14 @@ class DisplayManager:
         Args:
             stats: DailyStats-Objekt
         """
-        self.stats.display(stats)
+        # Bei aktivem Live-Display temporär stoppen
+        if self._live_mode_active and self.live and self.live.live:
+            self.live.live.stop()
+            self.stats.display(stats)
+            # Live Display wieder starten
+            self.live.live.start()
+        else:
+            self.stats.display(stats)
 
     def show_simple(self, data: Any) -> None:
         """

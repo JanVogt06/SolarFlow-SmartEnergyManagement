@@ -10,18 +10,23 @@ from pathlib import Path
 # Füge das Projekt-Verzeichnis zum Python-Path hinzu
 sys.path.insert(0, str(Path(__file__).parent))
 
-from cli import parse_arguments, check_dependencies, apply_args_to_config
+# WICHTIG: Dependency Check VOR allen anderen Imports!
+from cli import parse_arguments, check_dependencies
+
+# Parse Argumente zuerst (für --skip-check)
+args = parse_arguments()
+
+# Dependencies prüfen bevor wir weitere Module importieren
+if not check_dependencies(args.skip_check):
+    sys.exit(1)
+
+# Erst jetzt die anderen Imports (nachdem Dependencies geprüft wurden)
+from cli import apply_args_to_config
 from solar_monitor import SolarMonitor, Config
+
 
 def main():
     """Hauptfunktion"""
-    # Argumente parsen
-    args = parse_arguments()
-
-    # Dependencies prüfen
-    if not check_dependencies(args.skip_check):
-        sys.exit(1)
-
     # Konfiguration erstellen
     config = Config()
 

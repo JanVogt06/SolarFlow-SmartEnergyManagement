@@ -4,6 +4,7 @@ Hauptmonitor-Klasse für den Fronius Solar Monitor.
 
 import logging
 import time
+import sys
 from typing import Optional
 from .api import FroniusAPI
 from .config import Config
@@ -88,8 +89,11 @@ class SolarMonitor:
         """Stoppt den Monitor"""
         self.running = False
 
-        # Live-Display aufräumen
-        self.display.cleanup_live_display()
+        # Live-Display aufräumen BEVOR andere Ausgaben kommen
+        if self.config.display.use_live_display:
+            self.display.cleanup_live_display()
+            # Kurze Pause damit Terminal sich erholt
+            time.sleep(0.1)
 
         # Statistiken ausgeben
         if self.start_time:
@@ -115,6 +119,14 @@ class SolarMonitor:
 
     def run(self) -> None:
         """Hauptschleife des Monitors"""
+        # Logging auf stderr umleiten wenn Live-Display aktiv
+        if self.config.display.use_live_display:
+            self._configure_stderr_logging()
+            # Live Display EINMAL initialisieren
+            self.display.live.initialize()
+            # Clear screen für sauberen Start
+            print("\033[2J\033[H", end='')
+
         self.logging_coordinator.log_startup_info(self.device_controller.is_active())
 
         consecutive_errors = 0
@@ -128,15 +140,41 @@ class SolarMonitor:
                 )
 
                 if consecutive_errors >= max_consecutive_errors:
-                    self.logger.error("Zu viele aufeinanderfolgende Fehler, beende Monitor")
+                    # Bei Live-Display: Fehlermeldung ins Display integrieren
+                    if self.config.display.use_live_display:
+                        # Pausiere das Live Display für die Meldung
+                        if self.display.live.live:
+                            self.display.live.live.stop()
+                        print("Zu viele aufeinanderfolgende Fehler, beende Monitor", file=sys.stderr)
+                        time.sleep(2)
+                    else:
+                        self.logger.error("Zu viele aufeinanderfolgende Fehler, beende Monitor")
                     break
 
                 # Warte bis zum nächsten Update
                 time.sleep(self.config.timing.update_interval)
 
         except KeyboardInterrupt:
-            print("\n\nBeende Programm...")
+            # Kein print hier - wird in stop() behandelt
+            pass
+        finally:
             self.stop()
+
+    def _configure_stderr_logging(self):
+        """Konfiguriert Logging auf stderr für Live-Display"""
+        # Alle StreamHandler auf stderr umleiten
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:  # Kopie der Liste
+            if isinstance(handler, logging.StreamHandler):
+                # Entferne alte Handler
+                root_logger.removeHandler(handler)
+
+        # Neuer Handler nur für stderr
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        stderr_handler.setFormatter(formatter)
+        stderr_handler.setLevel(self.config.logging.log_level)
+        root_logger.addHandler(stderr_handler)
 
     def _process_update_cycle(self, consecutive_errors: int, max_errors: int) -> int:
         """

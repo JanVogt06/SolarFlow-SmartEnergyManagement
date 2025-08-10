@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple, Optional
 # Erforderliche Dependencies
 REQUIRED_DEPENDENCIES: Dict[str, str] = {
     'requests': 'requests>=2.31.0',
+    'rich': 'rich>=13.7.0',
 }
 
 
