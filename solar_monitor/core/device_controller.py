@@ -50,7 +50,7 @@ class DeviceController:
                 self.logger.info("Initialisiere Hue-Integration...")
                 try:
                     # Importiere Hue Interface
-                    from hue_interface import HueInterface
+                    from device_management.hue_interface import HueInterface
 
                     hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
                     if hue_interface.connect():
