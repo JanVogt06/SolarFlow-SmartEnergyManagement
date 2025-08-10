@@ -5,63 +5,95 @@
 </p>
 
 <p align="center">
-  <strong>Intelligentes Energie-Management-System für Fronius Solaranlagen</strong>
+  <strong>🌞 Intelligentes Energie-Management-System für Fronius Solaranlagen</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#verwendung">Verwendung</a> •
+  <a href="#gerätesteuerung">Gerätesteuerung</a> •
+  <a href="#architektur">Architektur</a>
 </p>
 
 ---
 
 ## 📋 Überblick
 
-Der **Smart Energy Manager** ist ein Python-basiertes Energie-Management-System, das speziell für Fronius Wechselrichter entwickelt wurde. Es überwacht Ihre Solaranlage in Echtzeit und steuert elektrische Verbraucher intelligent basierend auf der verfügbaren Überschussenergie. Dies maximiert Ihren Eigenverbrauch und reduziert Ihre Stromkosten erheblich.
+Der **Smart Energy Manager** ist ein fortschrittliches Python-basiertes Energie-Management-System für Fronius Wechselrichter. Es maximiert Ihren Solarstrom-Eigenverbrauch durch intelligente Gerätesteuerung und bietet dabei umfassende Analyse- und Visualisierungsmöglichkeiten.
 
 ### 🎯 Hauptziele
-- **Maximierung des Eigenverbrauchs** durch intelligente Lastverteilung
-- **Kostenoptimierung** durch zeitbasierte Tarife und Einspeisevergütung
-- **Automatisierung** von Verbrauchern basierend auf Solarenergie
-- **Detaillierte Analyse** durch umfangreiches Logging und Statistiken
+- **Maximaler Eigenverbrauch** durch intelligente Lastverteilung
+- **Automatische Gerätesteuerung** basierend auf Überschussenergie
+- **Echte Hardware-Integration** (z.B. Philips Hue)
+- **Echtzeit-Visualisierung** mit modernem Live-Display
+- **Umfassende Datenanalyse** für optimale Kosteneinsparungen
 
 ## ✨ Features
 
+### 🖥️ Modernes Live-Display
+- **Rich Live Display** mit automatischen Updates
+- Farbcodierte Echtzeitanzeige aller relevanten Werte
+- Übersichtliche Panels für Leistungsdaten, Kennzahlen und Gerätesteuerung
+- Fallback auf klassische Anzeige bei Bedarf
+
+![Live Display Image](assets/live-display-demo.png)
+
 ### 🌞 Solar-Monitoring
-- **Echtzeit-Überwachung** aller relevanten Leistungsdaten
-- Unterstützung für **Batteriespeicher** (automatische Erkennung)
-- Berechnung von Eigenverbrauch, Autarkiegrad und Überschuss
-- Farbcodierte Anzeige basierend auf konfigurierbaren Schwellwerten
+- **Echtzeit-Überwachung** aller Leistungsflüsse
+- Automatische Erkennung von **Batteriespeichern**
+- Berechnung von:
+  - Eigenverbrauch und Autarkiegrad
+  - Verfügbarem Überschuss
+  - Netzeinspeisung und -bezug
+  - Batterie-Lade-/Entladeleistung
 
 ### 🔌 Intelligente Gerätesteuerung
-- **Prioritätsbasierte Steuerung** (10 Prioritätsstufen)
-- Berücksichtigung von Mindest- und Maximallaufzeiten
-- **Zeitbasierte Einschränkungen** (z.B. Waschmaschine nur tagsüber)
-- **Hysterese-Funktionalität** verhindert häufiges Ein-/Ausschalten
-- Unterstützung für beliebig viele Geräte
+- **10-stufiges Prioritätssystem** für optimale Lastverteilung
+- **Philips Hue Integration** für echte Hardware-Steuerung
+- Zeitbasierte Einschränkungen (z.B. "nur tagsüber")
+- Hysterese-Funktionalität gegen häufiges Schalten
+- Berücksichtigung von:
+  - Mindest- und Maximallaufzeiten
+  - Einschalt- und Ausschalt-Schwellwerten
+  - Mehreren Zeitfenstern pro Gerät
+
+### 💡 Hardware-Integration
+- **Philips Hue Bridge** Unterstützung
+- Automatische Geräteerkennung
+- Synchronisation zwischen virtuellem und realem Status
+- Sauberer Startzustand (alle Geräte aus)
 
 ### 📊 Datenerfassung & Analyse
-- **CSV-Logging** mit konfigurierbarem Format
-- **SQLite-Datenbank** für langfristige Speicherung
-- Tages-, Wochen- und Monatsstatistiken
-- **Kostenberechnung** mit Tag-/Nachttarifen
-- Export-Funktionen für weitere Analysen
+- **Multi-Format Logging**:
+  - CSV-Dateien (konfigurierbar)
+  - SQLite-Datenbank
+  - Separate Logs für Solar-, Geräte- und Statistikdaten
+- **Automatische Statistiken**:
+  - Tagesstatistiken mit Kostenberechnung
+  - Min/Max-Werte für alle Parameter
+  - Energie-Akkumulation
+- **Kostenoptimierung**:
+  - Tag-/Nachttarif-Unterstützung
+  - Einspeisevergütung
+  - ROI-Berechnung
 
-### 💰 Kostenoptimierung
-- Berechnung der eingesparten Stromkosten
-- Berücksichtigung von Einspeisevergütung
-- **ROI-Berechnung** (Return on Investment)
-- Unterstützung für zeitbasierte Stromtarife
-
-### 🖥️ Flexible Anzeige
-- Detaillierte Konsolen-Ausgabe mit Farbunterstützung
-- **Simple Mode** für kleine Displays (einzeilig)
-- Periodische Tagesstatistiken
-- Konfigurierbare Anzeigeschwellwerte
+### 🎨 Flexible Anzeigemodi
+- **Rich Live Display** (Standard) - Modernes Terminal-UI
+- **Klassische Anzeige** - Traditionelle Ausgabe
+- **Simple Mode** - Einzeilig für kleine Displays
+- **Multiline Compact** - Kompakte Übersicht
+- Konfigurierbare Farben und Schwellwerte
 
 ## 🚀 Installation
 
-### Voraussetzungen
+### Systemvoraussetzungen
 - Python 3.8 oder höher
 - Fronius Wechselrichter mit aktivierter Solar API
-- Netzwerkverbindung zum Wechselrichter
+- Optional: Philips Hue Bridge für Hardware-Steuerung
+- Terminal mit Farbunterstützung (für optimale Darstellung)
 
-### Schnellstart
+### Schnellinstallation
 
 1. **Repository klonen**
    ```bash
@@ -69,132 +101,94 @@ Der **Smart Energy Manager** ist ein Python-basiertes Energie-Management-System,
    cd smart-energy-manager
    ```
 
-2. **Abhängigkeiten installieren**
+2. **Automatische Installation**
    
-   Das Programm prüft automatisch beim Start, ob alle benötigten Pakete installiert sind und bietet eine automatische Installation an:
+   Das Programm prüft beim Start automatisch alle Abhängigkeiten:
    ```bash
    python main.py
    ```
    
-   Oder manuell:
+   Bei fehlenden Paketen wird eine automatische Installation angeboten.
+
+3. **Manuelle Installation** (optional)
    ```bash
+   pip install requests rich phue
+   # oder
    pip install -r requirements.txt
    ```
 
-3. **Konfiguration anpassen**
+### Erste Konfiguration
+
+1. **Fronius IP-Adresse ermitteln**
    ```bash
-   # IP-Adresse des Fronius Wechselrichters setzen
-   python main.py --ip 192.168.178.100
+   # Im Router nachsehen oder:
+   ping fronius.local
+   ```
+
+2. **Testlauf starten**
+   ```bash
+   python main.py --ip <FRONIUS_IP>
+   ```
+
+3. **Geräte konfigurieren** (optional)
+   ```bash
+   # devices.json anpassen (siehe Beispiele unten)
    ```
 
 ## 📖 Verwendung
 
-### Basis-Verwendung (Beispiele)
+### Basis-Befehle
 
 ```bash
-# Standard-Ausführung mit automatischer Gerätesteuerung
+# Standard-Start mit Live-Display und Gerätesteuerung
 python main.py
 
-# Mit spezifischer IP-Adresse
-python main.py --ip 192.168.178.100
+# Mit spezifischer Fronius IP
+python main.py --ip 192.168.1.100
 
-# Mit angepasstem Update-Intervall (10 Sekunden)
-python main.py --interval 10
-
-# Simple Mode für kleine Displays
+# Simple Mode für SSH/kleine Displays
 python main.py --simple
 
-# Ohne Farben (für Terminals ohne ANSI-Support)
-python main.py --no-colors
+# Klassische Anzeige ohne Live-Updates
+python main.py --no-live
 ```
 
-### Erweiterte Optionen (Beispiele)
+### Erweiterte Optionen
 
 ```bash
-# Kostenparameter setzen
+# Hue-Integration aktivieren
+python main.py --enable-hue --hue-ip 192.168.1.50
+
+# Angepasste Update-Intervalle
+python main.py --interval 10 --daily-stats-interval 900
+
+# Kostenparameter
 python main.py --electricity-price 0.35 --feed-in-tariff 0.08
 
-# Logging deaktivieren
-python main.py --no-log_system
-
-# Gerätesteuerung deaktivieren
-python main.py --disable-devices
-
-# Alle Optionen anzeigen
-python main.py --help
+# Debug-Modus
+python main.py --log-level DEBUG
 ```
-
-## ⚙️ Konfiguration
 
 ### Umgebungsvariablen
 
-Die Konfiguration kann über Umgebungsvariablen erfolgen:
+Alternativ zur Kommandozeile können Umgebungsvariablen verwendet werden:
 
 ```bash
-export FRONIUS_IP="192.168.178.100"
+export FRONIUS_IP="192.168.1.100"
+export ENABLE_HUE="True"
+export HUE_BRIDGE_IP="192.168.1.50"
 export UPDATE_INTERVAL="5"
-export ELECTRICITY_PRICE="0.40"
-export ENABLE_DEVICE_CONTROL="True"
 ```
 
-### Kommandozeilen-Argumente
+## ⚙️ Gerätesteuerung
 
-Alle Konfigurationsoptionen können über Kommandozeilen-Argumente überschrieben werden:
-
-| Kategorie | Option | Beschreibung | Standard |
-|-----------|--------|--------------|----------|
-| **Verbindung** | `--ip` | IP-Adresse des Wechselrichters | 192.168.178.90 |
-| | `--timeout` | API-Timeout in Sekunden | 5 |
-| **Timing** | `--interval` | Update-Intervall in Sekunden | 5 |
-| | `--daily-stats-interval` | Statistik-Anzeigeintervall in Sekunden | 1800 (30 Min) |
-| | `--device-log-interval` | Intervall für Geräte-Status-Logging in Sekunden | 60 |
-| **Anzeige** | `--no-colors` | Deaktiviert farbige Ausgabe | False |
-| | `--simple` | Verwendet vereinfachte Anzeige (eine Zeile) | False |
-| | `--no-daily-stats` | Deaktiviert die periodische Anzeige der Tagesstatistiken | False |
-| | `--surplus-display` | Überschuss Anzeige-Schwellwert in Watt | 0 |
-| **Kosten** | `--electricity-price` | Strompreis in EUR/kWh | 0.40 |
-| | `--electricity-price-night` | Nachtstrompreis in EUR/kWh | 0.30 |
-| | `--feed-in-tariff` | Einspeisevergütung in EUR/kWh | 0.082 |
-| | `--night-tariff-start` | Beginn Nachttarif | 22:00 |
-| | `--night-tariff-end` | Ende Nachttarif | 06:00 |
-| **Logging** | `--no-logging` | Deaktiviert CSV-Datenlogging | False |
-| | `--log-file` | Pfad zur Log-Datei | solar_monitor.log |
-| | `--log-level` | Log-Level (DEBUG/INFO/WARNING/ERROR) | INFO |
-| | `--no-daily-stats-logging` | Deaktiviert das CSV-Logging der Tagesstatistiken | False |
-| | `--no-database-logging` | Deaktiviert das Datenbank-Logging | False |
-| | `--no-device-logging` | Deaktiviert das Geräte-Logging komplett | False |
-| **CSV-Format** | `--csv-delimiter` | CSV Trennzeichen (,/;/\t/\|) | ; |
-| | `--csv-encoding` | CSV Encoding (utf-8/latin-1/cp1252/iso-8859-1) | utf-8 |
-| | `--csv-decimal` | Dezimaltrennzeichen (./,) | , |
-| | `--csv-english` | Verwendet englische CSV-Header statt deutsche | False |
-| | `--csv-no-info` | Keine Info-Zeile unter CSV-Header | False |
-| **Verzeichnisse** | `--data-log-dir` | Hauptverzeichnis für Log-Dateien | Datalogs |
-| | `--solar-data-dir` | Unterverzeichnis für Solardaten | Solardata |
-| | `--daily-stats-dir` | Unterverzeichnis für Tagesstatistiken | Dailystats |
-| | `--device-log-dir` | Unterverzeichnis für Geräte-Logs | Devicelogs |
-| | `--database-log-dir` | Verzeichnis für Datenbank-Logs | Datalogs/solar_energy.db |
-| **Schwellwerte** | `--battery-idle` | Batterie Idle-Schwellwert in Watt | 10 |
-| | `--battery-soc-high` | Batterie SOC Schwellwert für grün in % | 80 |
-| | `--battery-soc-medium` | Batterie SOC Schwellwert für gelb in % | 30 |
-| | `--autarky-high` | Autarkie Schwellwert für grün in % | 75 |
-| | `--autarky-medium` | Autarkie Schwellwert für gelb in % | 50 |
-| **Gerätesteuerung** | `--disable-devices` | Deaktiviert die intelligente Gerätesteuerung | False |
-| | `--device-config` | Pfad zur Gerätekonfigurationsdatei | devices.json |
-| | `--device-hysteresis` | Hysterese-Zeit in Minuten für Geräteschaltungen | 5 |
-| **System** | `--skip-check` | Überspringe automatische Dependency-Prüfung | False |
-| | `--version` | Zeigt Versionsinformationen | - |
-
-## 🔧 Gerätesteuerung
-
-### Gerätekonfiguration
-
-Geräte werden in der Datei `devices.json` konfiguriert:
+### Konfigurationsdatei (devices.json)
 
 ```json
 [
   {
-    "name": "Waschmaschine",
-    "description": "Waschmaschine im Keller",
+    "name": "Hue Steckdose Waschmaschine",
+    "description": "Smarte Steckdose für Waschmaschine",
     "power_consumption": 2000,
     "priority": 3,
     "min_runtime": 30,
@@ -206,37 +200,63 @@ Geräte werden in der Datei `devices.json` konfiguriert:
     ]
   },
   {
+    "name": "Hue Lampe Büro",
+    "description": "Bürobeleuchtung bei Überschuss",
+    "power_consumption": 20,
+    "priority": 8,
+    "min_runtime": 5,
+    "max_runtime_per_day": 0,
+    "switch_on_threshold": 100,
+    "switch_off_threshold": 50,
+    "allowed_time_ranges": [
+      ["07:00", "22:00"]
+    ]
+  },
+  {
     "name": "Poolpumpe",
     "description": "Filterpumpe für Pool",
     "power_consumption": 750,
-    "priority": 7,
-    "min_runtime": 60,
+    "priority": 6,
+    "min_runtime": 120,
     "max_runtime_per_day": 480,
     "switch_on_threshold": 1000,
     "switch_off_threshold": 500,
     "allowed_time_ranges": [
-      ["09:00", "18:00"]
+      ["10:00", "18:00"]
     ]
   }
 ]
 ```
 
-### Prioritätsstufen
+### Prioritätssystem
 
-| Priorität | Bezeichnung | Verwendung |
-|-----------|-------------|------------|
-| 1 | Kritisch | Wichtige Geräte (z.B. Kühlschrank) |
-| 2-3 | Hoch | Häufig benötigte Geräte |
-| 4-6 | Mittel | Standard-Verbraucher |
-| 7-8 | Niedrig | Optionale Verbraucher |
-| 9-10 | Optional | Nur bei viel Überschuss |
+| Priorität | Kategorie | Verwendung | Beispiele |
+|-----------|-----------|------------|-----------|
+| 1 | Kritisch | Unverzichtbare Geräte | Kühlschrank, Server |
+| 2-3 | Sehr hoch | Wichtige Alltagsgeräte | Waschmaschine, Geschirrspüler |
+| 4-5 | Hoch | Regelmäßig genutzt | Warmwasserbereiter |
+| 6-7 | Mittel | Flexible Nutzung | Poolpumpe, Klimaanlage |
+| 8-9 | Niedrig | Optionale Verbraucher | Zusatzbeleuchtung |
+| 10 | Optional | Nur bei viel Überschuss | Elektroheizung |
 
-### Steuerungslogik
+### Steuerungslogik im Detail
 
-1. **Einschalten**: Geräte werden nach Priorität eingeschaltet, wenn genügend Überschuss vorhanden ist
-2. **Hysterese**: 5 Minuten Wartezeit zwischen Schaltvorgängen (konfigurierbar)
-3. **Zeitfenster**: Geräte laufen nur in erlaubten Zeiträumen
-4. **Laufzeiten**: Mindest- und Maximallaufzeiten werden beachtet
+1. **Einschaltbedingungen**:
+   - Überschuss ≥ Einschalt-Schwellwert
+   - Gerät ist in erlaubtem Zeitfenster
+   - Maximale Tageslaufzeit nicht erreicht
+   - Hysterese-Zeit abgelaufen
+
+2. **Ausschaltbedingungen**:
+   - Überschuss < Ausschalt-Schwellwert
+   - Außerhalb des Zeitfensters
+   - Maximale Laufzeit erreicht
+   - Mindestlaufzeit wurde eingehalten
+
+3. **Hysterese**:
+   - Verhindert "Flackern" bei schwankender Erzeugung
+   - Standard: 5 Minuten zwischen Schaltvorgängen
+   - Pro Gerät konfigurierbar
 
 ## 📊 Ausgabe-Beispiel
 
@@ -294,19 +314,37 @@ Kosten ohne Solar:           7.37 €
 Einsparungsquote:           95.1 %
 ```
 
-## 🔒 Sicherheit
 
-- Keine Authentifizierung erforderlich (lokales Netzwerk)
-- Nur lesender Zugriff auf Fronius API
-- Keine Steuerung des Wechselrichters
-- Gerätesteuerung nur über externe Schnittstellen
+## 🔧 Troubleshooting
+
+### Häufige Probleme
+
+**Keine Verbindung zum Wechselrichter**
+- Prüfen Sie die IP-Adresse: `ping <FRONIUS_IP>`
+- Stellen Sie sicher, dass die Solar API aktiviert ist
+- Firewall-Einstellungen prüfen
+
+**Hue Bridge findet keine Geräte**
+- Beim ersten Start den Knopf auf der Bridge drücken
+- Gerätenamen in devices.json müssen exakt mit Hue-Namen übereinstimmen
+- Bridge und Geräte müssen im gleichen Netzwerk sein
+
+**Live Display funktioniert nicht**
+- Terminal unterstützt möglicherweise keine ANSI-Codes
+- Mit `--no-live` auf klassische Anzeige wechseln
+- Windows: Windows Terminal verwenden
+
+**Geräte schalten zu häufig**
+- Hysterese-Zeit erhöhen: `--device-hysteresis 10`
+- Schwellwerte anpassen (größerer Abstand zwischen Ein/Aus)
 
 ## 📝 Lizenz
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert. Siehe [LICENSE](LICENSE) für Details.
+Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) für Details.
 
 ---
 
 <p align="center">
-  Made with ❤️ for sustainable energy management
+  Made with ❤️ for sustainable energy management<br>
+  <sub>Optimiere deinen Eigenverbrauch und schone die Umwelt! 🌍</sub>
 </p>
