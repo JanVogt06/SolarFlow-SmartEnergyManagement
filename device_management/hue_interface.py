@@ -61,7 +61,7 @@ class HueInterface:
                         self.bridge.connect()
                         self._refresh_device_map()
                         self.connected = True
-                        self.logger.info("✅ Erfolgreich mit Hue Bridge verbunden!")
+                        self.logger.info("Erfolgreich mit Hue Bridge verbunden!")
                         return True
                     except Exception:
                         self.logger.info(f"Versuch {i+1}/3 fehlgeschlagen, warte weitere 10 Sekunden...")
