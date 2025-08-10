@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple, Optional
 REQUIRED_DEPENDENCIES: Dict[str, str] = {
     'requests': 'requests>=2.31.0',
     'rich': 'rich>=13.7.0',
+    'phue': 'phue>=1.1',
 }
 
 

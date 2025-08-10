@@ -4,7 +4,7 @@ Energie-Steuerung für den Smart Energy Manager.
 
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 from .device import Device, DeviceState
 from .device_manager import DeviceManager
@@ -22,6 +22,9 @@ class EnergyController:
         """
         self.device_manager = device_manager
         self.logger = logging.getLogger(__name__)
+
+        # HUE INTERFACE
+        self.hue_interface = None  # Wird vom DeviceController gesetzt
 
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)
@@ -124,24 +127,55 @@ class EnergyController:
 
         return None
 
-    def _switch_on(self, device: Device, current_time: datetime) -> str:
-        """
-        Schaltet ein Gerät ein.
+    class EnergyController:
+        """Steuert Geräte basierend auf verfügbarer Energie"""
 
-        Args:
-            device: Einzuschaltendes Gerät
-            current_time: Aktuelle Zeit
+        def __init__(self, device_manager: DeviceManager) -> None:
+            """
+            Initialisiert den EnergyController.
 
-        Returns:
-            Aktionsbeschreibung
-        """
-        device.state = DeviceState.ON
-        device.last_state_change = current_time
+            Args:
+                device_manager: Verwaltung der Geräte
+            """
+            self.device_manager = device_manager
+            self.logger = logging.getLogger(__name__)
 
-        self.logger.info(f"Gerät '{device.name}' eingeschaltet "
-                         f"(Leistung: {device.power_consumption}W)")
+            # HUE INTERFACE - NEU!
+            self.hue_interface = None  # Wird vom DeviceController gesetzt
 
-        return "eingeschaltet"
+            # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
+            self.hysteresis_time: timedelta = timedelta(minutes=5)
+
+        # Erweitere die _switch_on Methode:
+        def _switch_on(self, device: Device, current_time: datetime) -> str:
+            """
+            Schaltet ein Gerät ein.
+
+            Args:
+                device: Einzuschaltendes Gerät
+                current_time: Aktuelle Zeit
+
+            Returns:
+                Aktionsbeschreibung
+            """
+            # HUE HARDWARE SCHALTEN
+            if self.hue_interface:
+                try:
+                    success = self.hue_interface.switch_on(device.name)
+                    if success:
+                        self.logger.debug(f"Hue Hardware '{device.name}' eingeschaltet")
+                    else:
+                        self.logger.warning(f"Hue Hardware '{device.name}' konnte nicht eingeschaltet werden")
+                except Exception as e:
+                    self.logger.error(f"Hue Fehler beim Einschalten: {e}")
+
+            device.state = DeviceState.ON
+            device.last_state_change = current_time
+
+            self.logger.info(f"Gerät '{device.name}' eingeschaltet "
+                             f"(Leistung: {device.power_consumption}W)")
+
+            return "eingeschaltet"
 
     def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> Optional[str]:
         """
@@ -155,12 +189,23 @@ class EnergyController:
         Returns:
             Aktionsbeschreibung
         """
+        # HUE HARDWARE SCHALTEN
+        if self.hue_interface:
+            try:
+                success = self.hue_interface.switch_off(device.name)
+                if success:
+                    self.logger.debug(f"✅ Hue Hardware '{device.name}' ausgeschaltet")
+                else:
+                    self.logger.warning(f"⚠️  Hue Hardware '{device.name}' konnte nicht ausgeschaltet werden")
+            except Exception as e:
+                self.logger.error(f"Hue Fehler beim Ausschalten: {e}")
+
         # Berechne und addiere Laufzeit zur Tagesstatistik
         if device.last_state_change:
             runtime = int((current_time - device.last_state_change).total_seconds() / 60)
             device.runtime_today += runtime
             self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten, "
-                            f"Gesamt heute: {device.runtime_today} Minuten")
+                              f"Gesamt heute: {device.runtime_today} Minuten")
 
         device.state = DeviceState.OFF
         device.last_state_change = current_time

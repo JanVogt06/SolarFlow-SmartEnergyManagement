@@ -1,2 +1,9 @@
-requests>=2.31.0
-rich>=13.7.0
+# Fronius Solar Monitor - Requirements
+# Smart Energy Manager mit Gerätesteuerung
+
+# Core Dependencies
+requests>=2.31.0          # HTTP-Requests für Fronius API
+rich>=13.7.0             # Rich Terminal UI für Live-Display
+
+# Hue Integration
+phue>=1.1                # Philips Hue Bridge Steuerung

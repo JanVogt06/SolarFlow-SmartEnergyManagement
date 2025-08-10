@@ -43,7 +43,44 @@ class DeviceController:
         try:
             config_file = Path(self.config.devices.config_file)
             self.device_manager = DeviceManager(config_file)
+
+            # HUE INTEGRATION
+            hue_interface = None
+            if self.config.devices.enable_hue and self.config.devices.hue_bridge_ip:
+                self.logger.info("Initialisiere Hue-Integration...")
+                try:
+                    # Importiere Hue Interface
+                    from hue_interface import HueInterface
+
+                    hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
+                    if hue_interface.connect():
+                        self.logger.info("✅ Hue Bridge verbunden!")
+
+                        # Zeige gefundene Hue-Geräte
+                        hue_devices = hue_interface.list_devices()
+                        if hue_devices:
+                            self.logger.info(f"Gefundene Hue-Geräte ({len(hue_devices)}):")
+                            for hd in hue_devices:
+                                self.logger.info(f"  - {hd}")
+                    else:
+                        self.logger.warning("❌ Hue Bridge Verbindung fehlgeschlagen!")
+                        self.logger.info("Tipp: Beim ersten Start muss der Knopf auf der Bridge gedrückt werden!")
+                        hue_interface = None
+
+                except ImportError:
+                    self.logger.error("phue Library nicht installiert! Führe aus: pip install phue")
+                    hue_interface = None
+                except Exception as e:
+                    self.logger.error(f"Fehler bei Hue-Initialisierung: {e}")
+                    hue_interface = None
+
+            # Energy Controller mit oder ohne Hue
             self.energy_controller = EnergyController(self.device_manager)
+            if hue_interface:
+                self.energy_controller.hue_interface = hue_interface
+                self.logger.info("Gerätesteuerung mit Hue-Hardware aktiviert")
+            else:
+                self.logger.info("Gerätesteuerung nur virtuell (ohne Hardware)")
 
             # Setze Hysterese-Zeit
             self.energy_controller.hysteresis_time = timedelta(
@@ -55,11 +92,18 @@ class DeviceController:
 
             # Liste Geräte auf
             for device in self.device_manager.get_devices_by_priority():
+                # Prüfe ob Gerät in Hue existiert
+                hue_status = ""
+                if hue_interface and device.name in hue_interface.device_map:
+                    hue_status = " [✓ Hue]"
+                elif hue_interface:
+                    hue_status = " [✗ Nicht in Hue!]"
+
                 self.logger.info(
                     f"  - {device.name}: {device.power_consumption}W, "
                     f"Priorität {device.priority}, "
                     f"Schwellwerte: Ein={device.switch_on_threshold}W, "
-                    f"Aus={device.switch_off_threshold}W"
+                    f"Aus={device.switch_off_threshold}W{hue_status}"
                 )
 
         except Exception as e:
@@ -139,9 +183,25 @@ class DeviceController:
 
         self.logger.info("Schalte alle Geräte aus...")
 
+        # Hole Hue Interface falls vorhanden
+        hue_interface = None
+        if self.energy_controller and hasattr(self.energy_controller, 'hue_interface'):
+            hue_interface = self.energy_controller.hue_interface
+
         # Alle aktiven Geräte ausschalten
         for device in self.device_manager.get_active_devices():
             old_state = device.state
+
+            # Versuche Hue Hardware auszuschalten
+            if hue_interface:
+                try:
+                    success = hue_interface.switch_off(device.name)
+                    if success:
+                        self.logger.debug(f"Hue Hardware '{device.name}' beim Shutdown ausgeschaltet")
+                    else:
+                        self.logger.warning(f"Konnte Hue Hardware '{device.name}' beim Shutdown nicht ausschalten")
+                except Exception as e:
+                    self.logger.error(f"Hue Fehler beim Shutdown: {e}")
 
             # Laufzeit berechnen bevor Status geändert wird
             if device.last_state_change:

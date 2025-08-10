@@ -71,7 +71,13 @@ class DeviceControlConfig:
     enable_control: bool = field(default_factory=lambda: os.getenv("ENABLE_DEVICE_CONTROL", "True").lower() == "true")
     config_file: str = field(default_factory=lambda: os.getenv("DEVICE_CONFIG_FILE", "devices.json"))
     hysteresis_minutes: int = field(default_factory=lambda: int(os.getenv("DEVICE_HYSTERESIS_MINUTES", "5")))
-    update_only_on_change: bool = field(default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
+    update_only_on_change: bool = field(
+        default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
+
+    # HUE INTEGRATION
+    enable_hue: bool = field(default_factory=lambda: os.getenv("ENABLE_HUE", "False").lower() == "False")
+    hue_bridge_ip: str = field(default_factory=lambda: os.getenv("HUE_BRIDGE_IP", "192.168.178.26"))
+    hue_connection_timeout: int = field(default_factory=lambda: int(os.getenv("HUE_CONNECTION_TIMEOUT", "10")))
 
 
 @dataclass

@@ -300,6 +300,19 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'config_path': 'logging.enable_device_logging',
                 'config_value': lambda args: not getattr(args, 'no_device_logging', False)
             },
+            {
+                'name': '--enable-hue',
+                'action': 'store_true',
+                'help': 'Aktiviert die Philips Hue Integration für echte Hardware-Steuerung',
+                'config_path': 'devices.enable_hue',
+                'config_value': lambda args: getattr(args, 'enable_hue', False)
+            },
+            {
+                'name': '--hue-ip',
+                'type': str,
+                'help': 'IP-Adresse der Philips Hue Bridge',
+                'config_path': 'devices.hue_bridge_ip'
+            },
         ]
     },
 

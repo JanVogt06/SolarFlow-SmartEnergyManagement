@@ -1,29 +1,13 @@
 [
   {
-    "name": "Waschmaschine",
-    "description": "Waschmaschine im Keller",
-    "power_consumption": 200,
-    "priority": 3,
-    "min_runtime": 120,
-    "max_runtime_per_day": 240,
-    "switch_on_threshold": 300,
-    "switch_off_threshold": 100,
-    "allowed_time_ranges": [
-      [
-        "08:00:00",
-        "20:00:00"
-      ]
-    ]
-  },
-  {
-    "name": "Warmwasserboiler",
-    "description": "Elektrischer Durchlauferhitzer",
-    "power_consumption": 2500,
-    "priority": 1,
-    "min_runtime": 60,
+    "name": "Wohnlicht Backlight",
+    "description": "Test-Licht \u00c3\u00bcber Hue Bridge",
+    "power_consumption": 10,
+    "priority": 5,
+    "min_runtime": 2,
     "max_runtime_per_day": 0,
-    "switch_on_threshold": 2700,
-    "switch_off_threshold": 2000,
+    "switch_on_threshold": 100,
+    "switch_off_threshold": 50,
     "allowed_time_ranges": []
   }
 ]
