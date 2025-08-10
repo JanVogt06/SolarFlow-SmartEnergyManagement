@@ -106,6 +106,8 @@ class DeviceController:
                     f"Aus={device.switch_off_threshold}W{hue_status}"
                 )
 
+            self._ensure_clean_start_state()
+
         except Exception as e:
             self.logger.error(f"Fehler bei der Initialisierung der Gerätesteuerung: {e}")
             self.config.devices.enable_control = False
@@ -136,6 +138,29 @@ class DeviceController:
         # Merke Werte für nächsten Vergleich
         self.last_surplus_power = data.surplus_power
         self.last_device_update = time.time()
+
+    def _ensure_clean_start_state(self) -> None:
+        """Stellt sicher, dass alle verwalteten Geräte beim Start aus sind"""
+        if not self.energy_controller or not hasattr(self.energy_controller, 'hue_interface'):
+            return
+
+        hue_interface = self.energy_controller.hue_interface
+        if not hue_interface or not hue_interface.connected:
+            return
+
+        self.logger.info("Stelle sauberen Startzustand her - schalte alle verwalteten Geräte aus...")
+
+        for device in self.device_manager.devices:
+            # Prüfe ob Gerät in Hue existiert
+            if device.name in hue_interface.device_map:
+                # Schalte aus, egal welcher Status
+                if hue_interface.switch_off(device.name):
+                    self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
+
+                # Setze virtuellen Status
+                device.state = DeviceState.OFF
+                device.last_state_change = datetime.now()
+                device.runtime_today = 0  # Reset Tagesstatistik beim Start
 
     def _should_update_devices(self, data: SolarData) -> bool:
         """Prüft ob Geräte-Update notwendig ist"""
