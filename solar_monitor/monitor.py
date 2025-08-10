@@ -89,8 +89,8 @@ class SolarMonitor:
         """Stoppt den Monitor"""
         self.running = False
 
-        # Live-Display aufräumen BEVOR andere Ausgaben kommen
-        if self.config.display.use_live_display:
+        # Live-Display aufräumen wenn aktiv
+        if self.config.display.use_live_display and self.display._live_mode_active:
             self.display.cleanup_live_display()
             # Kurze Pause damit Terminal sich erholt
             time.sleep(0.1)
@@ -119,15 +119,33 @@ class SolarMonitor:
 
     def run(self) -> None:
         """Hauptschleife des Monitors"""
-        # Logging auf stderr umleiten wenn Live-Display aktiv
+        # Vorbereitung für Live-Display
         if self.config.display.use_live_display:
+            # Konfiguriere Logging auf stderr
             self._configure_stderr_logging()
-            # Live Display EINMAL initialisieren
-            self.display.live.initialize()
-            # Clear screen für sauberen Start
-            print("\033[2J\033[H", end='')
 
-        self.logging_coordinator.log_startup_info(self.device_controller.is_active())
+            # Gebe Zeit für initiale Log-Ausgaben
+            self.logging_coordinator.log_startup_info(self.device_controller.is_active())
+            time.sleep(0.5)  # Kurze Pause für Log-Ausgaben
+
+            # Versuche Live Display zu initialisieren
+            if self.display.live:
+                try:
+                    self.display.live.initialize()
+                except Exception as e:
+                    self.logger.error(f"Live Display konnte nicht initialisiert werden: {e}")
+                    self.logger.info("Wechsle zu Standard-Anzeige")
+                    self.config.display.use_live_display = False
+                    # Logging zurück auf stdout
+                    self._restore_stdout_logging()
+            else:
+                # Live Display nicht verfügbar
+                self.logger.info("Live Display nicht verfügbar, verwende Standard-Anzeige")
+                self.config.display.use_live_display = False
+                self._restore_stdout_logging()
+        else:
+            # Standard Log-Ausgabe
+            self.logging_coordinator.log_startup_info(self.device_controller.is_active())
 
         consecutive_errors = 0
         max_consecutive_errors = 5
@@ -140,23 +158,15 @@ class SolarMonitor:
                 )
 
                 if consecutive_errors >= max_consecutive_errors:
-                    # Bei Live-Display: Fehlermeldung ins Display integrieren
-                    if self.config.display.use_live_display:
-                        # Pausiere das Live Display für die Meldung
-                        if self.display.live.live:
-                            self.display.live.live.stop()
-                        print("Zu viele aufeinanderfolgende Fehler, beende Monitor", file=sys.stderr)
-                        time.sleep(2)
-                    else:
-                        self.logger.error("Zu viele aufeinanderfolgende Fehler, beende Monitor")
+                    self.logger.error("Zu viele aufeinanderfolgende Fehler, beende Monitor")
                     break
 
                 # Warte bis zum nächsten Update
                 time.sleep(self.config.timing.update_interval)
 
         except KeyboardInterrupt:
-            # Kein print hier - wird in stop() behandelt
-            pass
+            # Sauberes Beenden bei Ctrl+C
+            self.logger.debug("KeyboardInterrupt empfangen")
         finally:
             self.stop()
 
@@ -175,6 +185,31 @@ class SolarMonitor:
         stderr_handler.setFormatter(formatter)
         stderr_handler.setLevel(self.config.logging.log_level)
         root_logger.addHandler(stderr_handler)
+
+    def _restore_stdout_logging(self):
+        """Stellt Standard-Logging auf stdout wieder her"""
+        root_logger = logging.getLogger()
+
+        # Entferne alle Handler
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
+        # Standard-Handler für stdout
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        stdout_handler.setFormatter(formatter)
+        stdout_handler.setLevel(self.config.logging.log_level)
+        root_logger.addHandler(stdout_handler)
+
+        # File Handler wieder hinzufügen wenn konfiguriert
+        if self.config.logging.log_file:
+            try:
+                file_handler = logging.FileHandler(self.config.logging.log_file)
+                file_handler.setFormatter(formatter)
+                file_handler.setLevel(self.config.logging.log_level)
+                root_logger.addHandler(file_handler)
+            except IOError:
+                pass
 
     def _process_update_cycle(self, consecutive_errors: int, max_errors: int) -> int:
         """
@@ -223,11 +258,12 @@ class SolarMonitor:
         # Gerätesteuerung aktualisieren
         self.device_controller.update(data)
 
-        # Verwende Live-Display wenn aktiviert
+        # Anzeige-Logik
         if self.config.display.use_live_display:
+            # Versuche Live Display
             self.display.show_live_data(data, self.device_controller.device_manager)
         else:
-            # Alte Anzeige-Methode
+            # Standard-Anzeige ohne Live-Updates
             self.display.show_solar_data(data, self.device_controller.device_manager)
 
         # Daten loggen

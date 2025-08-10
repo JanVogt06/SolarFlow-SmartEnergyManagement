@@ -3,7 +3,7 @@ Display Manager für zentrale Verwaltung aller Display-Module.
 """
 
 from typing import Any, Optional
-from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay, RichLiveDisplay
+import logging
 
 
 class DisplayManager:
@@ -17,21 +17,33 @@ class DisplayManager:
             config: Konfigurationsobjekt
         """
         self.config = config
+        self.logger = logging.getLogger(__name__)
 
-        # Initialisiere Display-Module
+        # Standard-Module (immer verfügbar)
+        from .displays import SolarDisplay, StatsDisplay, SimpleDisplay
         self.solar = SolarDisplay(config)
         self.stats = StatsDisplay(config)
         self.simple = SimpleDisplay(config)
 
-        # Rich Live Display - nur initialisieren wenn aktiviert
-        if config.display.use_live_display:
-            self.live = RichLiveDisplay(config)
-        else:
-            self.live = None
-
+        # Rich Live Display - nur wenn aktiviert
+        self.live = None
         self._live_mode_active = False
 
+        if config.display.use_live_display:
+            try:
+                # Versuche Rich Live Display zu laden
+                from .displays import RichLiveDisplay
+                self.live = RichLiveDisplay(config)
+                self.logger.debug("Rich Live Display erfolgreich geladen")
+            except Exception as e:
+                # Bei Fehler: Deaktiviere Live Display und verwende normale Anzeige
+                self.logger.warning(f"Rich Live Display konnte nicht geladen werden: {e}")
+                self.logger.info("Wechsle zu Standard-Anzeige (ohne Live-Updates)")
+                config.display.use_live_display = False
+                self.live = None
+
         # Device Display nur wenn Gerätesteuerung aktiv
+        from .displays import DeviceDisplay
         self.device: Optional[DeviceDisplay] = None
         if config.devices.enable_control:
             self.device = DeviceDisplay(config)
@@ -51,24 +63,38 @@ class DisplayManager:
 
     def show_live_data(self, data: Any, device_manager: Optional[Any] = None) -> None:
         """
-        Zeigt Daten im Live-Update Modus.
+        Zeigt Daten im Live-Update Modus (wenn verfügbar).
 
         Args:
             data: SolarData-Objekt
             device_manager: Optionaler DeviceManager
         """
-        if self.live:
+        if self.config.display.use_live_display and self.live:
             self._live_mode_active = True
-            self.live.display(data, device_manager)
+            try:
+                self.live.display(data, device_manager)
+            except Exception as e:
+                self.logger.error(f"Fehler im Live Display: {e}")
+                self.logger.info("Deaktiviere Live Display für diese Session")
+                # Deaktiviere Live Display für den Rest der Session
+                self.config.display.use_live_display = False
+                self._live_mode_active = False
+                # Zeige normale Anzeige
+                self.show_solar_data(data, device_manager)
         else:
-            # Fallback auf normale Anzeige
+            # Normale Anzeige ohne Live-Updates
             self.show_solar_data(data, device_manager)
 
     def cleanup_live_display(self) -> None:
         """Räumt das Live-Display auf"""
         if self._live_mode_active and self.live:
-            self.live.cleanup()
-            self._live_mode_active = False
+            try:
+                if hasattr(self.live, 'cleanup'):
+                    self.live.cleanup()
+            except Exception as e:
+                self.logger.error(f"Fehler beim Live Display Cleanup: {e}")
+            finally:
+                self._live_mode_active = False
 
     def show_daily_stats(self, stats: Any) -> None:
         """
@@ -77,13 +103,23 @@ class DisplayManager:
         Args:
             stats: DailyStats-Objekt
         """
-        # Bei aktivem Live-Display temporär stoppen
-        if self._live_mode_active and self.live and self.live.live:
-            self.live.live.stop()
-            self.stats.display(stats)
-            # Live Display wieder starten
-            self.live.live.start()
+        # Bei aktivem Live-Display müssen wir es temporär pausieren
+        if self._live_mode_active and self.live and hasattr(self.live, 'live'):
+            try:
+                # Rich Live Display pausieren
+                if self.live.live:
+                    self.live.live.stop()
+                # Stats anzeigen
+                self.stats.display(stats)
+                # Live Display wieder starten
+                if self.live.live:
+                    self.live.live.start()
+            except Exception as e:
+                self.logger.debug(f"Konnte Live Display nicht pausieren: {e}")
+                # Zeige Stats trotzdem
+                self.stats.display(stats)
         else:
+            # Normale Ausgabe
             self.stats.display(stats)
 
     def show_simple(self, data: Any) -> None:

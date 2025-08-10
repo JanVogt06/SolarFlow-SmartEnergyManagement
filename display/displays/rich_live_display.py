@@ -6,14 +6,13 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 from rich.panel import Panel
-from rich.layout import Layout
 from rich.text import Text
-from rich.align import Align
 from rich.console import Group
 from typing import Any, Optional
 from datetime import datetime
 import logging
 import sys
+import os
 
 
 class RichLiveDisplay:
@@ -27,34 +26,54 @@ class RichLiveDisplay:
             config: Konfigurationsobjekt
         """
         self.config = config
-        # Console explizit auf stdout setzen
-        self.console = Console(file=sys.stdout, force_terminal=True)
+        # Console für stdout
+        self.console = Console()
         self.live = None
         self.logger = logging.getLogger(__name__)
-        self._display_active = False
+
+        # Start-Nachricht
+        self._initial_display = Panel(
+            "[cyan]Solar Monitor wird gestartet...[/cyan]",
+            title="[bold blue]SOLAR MONITOR[/bold blue]",
+            border_style="bright_blue"
+        )
 
     def initialize(self):
         """Initialisiert das Live Display"""
-        if not self.live:
+        if self.live is not None:
+            return
+
+        try:
+            # Clear screen einmal am Anfang
+            os.system('clear' if os.name == 'posix' else 'cls')
+
+            # Erstelle Live-Objekt mit dem Initial-Display
             self.live = Live(
+                self._initial_display,
                 console=self.console,
                 refresh_per_second=1,
-                transient=False,
-                screen=True  # Vollbild-Modus
+                vertical_overflow="ellipsis"
             )
+
+            # Starte das Live Display
             self.live.start()
-            self._display_active = True
             self.logger.debug("Rich Live Display initialisiert")
+
+        except Exception as e:
+            self.logger.error(f"Fehler bei Live-Display Initialisierung: {e}")
+            self.live = None
+            raise  # Werfe Exception weiter, damit Fallback greift
 
     def cleanup(self):
         """Räumt das Display auf"""
-        if self.live and self._display_active:
-            self.live.stop()
-            self.live = None
-            self._display_active = False
-            # Clear screen nach Beenden
-            self.console.clear()
-            self.logger.debug("Rich Live Display aufgeräumt")
+        if self.live:
+            try:
+                self.live.stop()
+                self.console.clear()
+            except Exception as e:
+                self.logger.error(f"Fehler beim Cleanup: {e}")
+            finally:
+                self.live = None
 
     def display(self, data: Any, device_manager: Optional[Any] = None):
         """
@@ -64,163 +83,152 @@ class RichLiveDisplay:
             data: SolarData-Objekt
             device_manager: Optionaler DeviceManager
         """
-        if not self.live or not self._display_active:
-            self.logger.warning("Live Display nicht initialisiert!")
+        if not self.live:
             return
 
         try:
-            # Erstelle das komplette Display
-            display = self._create_display(data, device_manager)
+            # Erstelle das Display-Panel
+            display_panel = self._create_display(data, device_manager)
 
-            # Update anzeigen
-            self.live.update(display)
+            # Update das Live Display mit dem neuen Panel
+            self.live.update(display_panel)
+
         except Exception as e:
             self.logger.error(f"Fehler beim Display-Update: {e}")
 
     def _create_display(self, data: Any, device_manager: Optional[Any]) -> Panel:
-        """Erstellt das komplette Display"""
-        # Hauptkomponenten
-        header = self._create_header(data)
-        solar_section = self._create_solar_section(data)
-        stats_section = self._create_stats_section(data)
+        """Erstellt das komplette Display als einzelnes Panel"""
+        # Zeitstempel
+        timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S') if data.timestamp else "N/A"
 
-        # Kombiniere Hauptbereich
-        main_content = Group(
-            solar_section,
-            Text(""),  # Leerzeile
-            stats_section
-        )
+        # Erstelle die einzelnen Sektionen
+        sections = []
 
-        # Füge Geräte hinzu wenn vorhanden
+        # Solar-Daten
+        solar_table = self._create_solar_table(data)
+        sections.append(Panel(solar_table, title="⚡ Leistungsdaten", border_style="blue"))
+
+        # Statistiken
+        stats_table = self._create_stats_table(data)
+        sections.append(Panel(stats_table, title="📊 Kennzahlen", border_style="green"))
+
+        # Geräte wenn vorhanden
         if device_manager and device_manager.devices:
-            device_section = self._create_devices_section(data, device_manager)
-            content = Group(main_content, Text(""), device_section)
-        else:
-            content = main_content
+            device_content = self._create_device_content(data, device_manager)
+            active_count = len(device_manager.get_active_devices())
+            sections.append(Panel(
+                device_content,
+                title=f"🔌 Gerätesteuerung ({active_count} aktiv)",
+                border_style="yellow"
+            ))
+
+        # Kombiniere alle Sektionen
+        content = Group(*sections)
 
         # Erstelle Haupt-Panel
         return Panel(
             content,
-            title=header,
+            title=f"[bold blue]SOLAR MONITOR[/bold blue] - [dim]{timestamp}[/dim]",
             border_style="bright_blue",
             padding=(1, 2)
         )
 
-    def _create_header(self, data: Any) -> str:
-        """Erstellt den Header"""
-        timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S') if data.timestamp else "N/A"
-        return f"[bold blue]SOLAR MONITOR[/bold blue] - [dim]{timestamp}[/dim]"
-
-    def _create_solar_section(self, data: Any) -> Panel:
-        """Erstellt die Solar-Daten Sektion"""
-        table = Table(show_header=False, box=None, padding=0)
-        table.add_column("Label", style="cyan", no_wrap=True, width=25)
-        table.add_column("Value", justify="right", style="white", width=12)
-        table.add_column("Unit", style="dim", width=5)
+    def _create_solar_table(self, data: Any) -> Table:
+        """Erstellt die Solar-Daten Tabelle"""
+        table = Table(show_header=False, box=None)
+        table.add_column("Label", style="cyan", no_wrap=True)
+        table.add_column("Value", justify="right", style="white")
+        table.add_column("Unit", style="dim")
 
         # PV-Erzeugung
-        pv_style = self._get_pv_style(data.pv_power)
-        table.add_row(
-            "PV-Erzeugung:",
-            f"[{pv_style}]{data.pv_power:.0f}[/{pv_style}]",
-            "W"
-        )
+        pv_color = self._get_value_color(data.pv_power, 'pv_power')
+        table.add_row("PV-Erzeugung:", f"[{pv_color}]{data.pv_power:.0f}[/{pv_color}]", "W")
 
         # Hausverbrauch
         table.add_row("Hausverbrauch:", f"{data.load_power:.1f}", "W")
 
-        # Gesamtproduktion
+        # Gesamtproduktion bei Batterie
         if data.has_battery:
             table.add_row("Gesamtproduktion:", f"{data.total_production:.0f}", "W")
 
-        table.add_section()  # Trennlinie
+        # Separator
+        table.add_row("", "", "")
 
         # Netz
         if data.is_feeding_in:
-            table.add_row(
-                "Einspeisung:",
-                f"[green]{data.feed_in_power:.0f}[/green]",
-                "W"
-            )
+            table.add_row("Einspeisung:", f"[green]{data.feed_in_power:.0f}[/green]", "W")
         else:
-            table.add_row(
-                "Netzbezug:",
-                f"[red]{data.grid_consumption:.0f}[/red]",
-                "W"
-            )
+            table.add_row("Netzbezug:", f"[red]{data.grid_consumption:.0f}[/red]", "W")
 
         # Batterie
         if data.has_battery:
-            table.add_section()
+            table.add_row("", "", "")
 
-            # Batterie Status
-            battery_text, battery_style = self._get_battery_status(data)
+            # Status
+            if abs(data.battery_power) < self.config.battery.idle_threshold:
+                battery_label = "Batterie (Standby):"
+                battery_color = "dim"
+            elif data.battery_charging:
+                battery_label = "Batterie ↓ (Lädt):"
+                battery_color = "yellow"
+            else:
+                battery_label = "Batterie ↑ (Entlädt):"
+                battery_color = "green"
+
             battery_power = abs(data.battery_power)
-            table.add_row(
-                battery_text,
-                f"[{battery_style}]{battery_power:.1f}[/{battery_style}]",
-                "W"
-            )
+            table.add_row(battery_label, f"[{battery_color}]{battery_power:.1f}[/{battery_color}]", "W")
 
-            # SOC mit grafischer Anzeige
+            # SOC
             if data.battery_soc is not None:
-                soc_bar = self._create_battery_bar(data.battery_soc)
-                table.add_row("Ladestand:", soc_bar, f"{data.battery_soc:.1f}%")
+                soc_color = self._get_value_color(data.battery_soc, 'battery_soc')
+                soc_bar = self._create_simple_bar(data.battery_soc, 20)
+                table.add_row("Ladestand:", f"{soc_bar}[{soc_color}]{data.battery_soc:.1f}%[/{soc_color}]", "")
 
-        return Panel(table, title="⚡ Leistungsdaten", border_style="blue")
+        return table
 
-    def _create_stats_section(self, data: Any) -> Panel:
-        """Erstellt die Statistik-Sektion"""
-        table = Table(show_header=False, box=None, padding=0)
-        table.add_column("Label", style="cyan", no_wrap=True, width=25)
-        table.add_column("Value", justify="right", style="white", width=12)
-        table.add_column("Unit", style="dim", width=5)
+    def _create_stats_table(self, data: Any) -> Table:
+        """Erstellt die Statistik-Tabelle"""
+        table = Table(show_header=False, box=None)
+        table.add_column("Label", style="cyan", no_wrap=True)
+        table.add_column("Value", justify="right", style="white")
+        table.add_column("Unit", style="dim")
 
         # Eigenverbrauch
         table.add_row("Eigenverbrauch:", f"{data.self_consumption:.1f}", "W")
 
         # Autarkie
-        autarky_style = self._get_autarky_style(data.autarky_rate)
-        table.add_row(
-            "Autarkiegrad:",
-            f"[{autarky_style}]{data.autarky_rate:.1f}[/{autarky_style}]",
-            "%"
-        )
+        autarky_color = self._get_value_color(data.autarky_rate, 'autarky')
+        table.add_row("Autarkiegrad:", f"[{autarky_color}]{data.autarky_rate:.1f}[/{autarky_color}]", "%")
 
         # Überschuss
         if data.surplus_power >= self.config.display.surplus_display_threshold:
-            surplus_style = self._get_surplus_style(data.surplus_power)
-            table.add_row(
-                "Verfügbarer Überschuss:",
-                f"[{surplus_style}]{data.surplus_power:.0f}[/{surplus_style}]",
-                "W"
-            )
+            surplus_color = self._get_value_color(data.surplus_power, 'surplus')
+            table.add_row("Verfügbarer Überschuss:", f"[{surplus_color}]{data.surplus_power:.0f}[/{surplus_color}]", "W")
 
-        return Panel(table, title="📊 Kennzahlen", border_style="green")
+        return table
 
-    def _create_devices_section(self, data: Any, device_manager: Any) -> Panel:
-        """Erstellt die Geräte-Sektion"""
+    def _create_device_content(self, data: Any, device_manager: Any) -> Group:
+        """Erstellt den Geräte-Inhalt"""
         # Zusammenfassung
         controlled = device_manager.get_total_consumption()
-        active_count = len(device_manager.get_active_devices())
 
-        # Info-Text
-        info_lines = []
-        info_lines.append(f"Gesteuerter Verbrauch: [yellow]{controlled:.0f} W[/yellow]")
-        info_lines.append(f"Aktueller Überschuss: [cyan]{data.surplus_power:.0f} W[/cyan]")
+        summary_lines = [
+            f"Gesteuerter Verbrauch: [yellow]{controlled:.0f} W[/yellow]",
+            f"Aktueller Überschuss: [cyan]{data.surplus_power:.0f} W[/cyan]"
+        ]
 
         if controlled > 0:
             theoretical = data.surplus_power + controlled
-            info_lines.append(f"Theoretischer Überschuss: [dim]{theoretical:.0f} W[/dim]")
+            summary_lines.append(f"Theoretischer Überschuss: [dim]{theoretical:.0f} W[/dim]")
 
-        info_text = "\n".join(info_lines)
+        summary_text = "\n".join(summary_lines)
 
         # Geräte-Tabelle
-        table = Table(box=None, padding=0, show_header=True)
-        table.add_column("Gerät", style="white", no_wrap=True)
-        table.add_column("Prio", justify="center", style="dim", width=4)
+        table = Table(show_header=True, box=None)
+        table.add_column("Gerät", style="white")
+        table.add_column("Prio", justify="center", style="dim")
         table.add_column("Leistung", justify="right", style="yellow")
-        table.add_column("Status", justify="center", width=10)
+        table.add_column("Status", justify="center")
         table.add_column("Laufzeit", justify="right", style="dim")
 
         for device in device_manager.get_devices_by_priority():
@@ -238,93 +246,45 @@ class RichLiveDisplay:
             mins = runtime % 60
             runtime_str = f"{hours}h {mins:02d}m"
 
-            # Priorität mit Farbe
-            prio_color = self._get_priority_color(device.priority.value)
-
             table.add_row(
-                device.name[:20],  # Begrenzen auf 20 Zeichen
-                f"[{prio_color}]{device.priority.value}[/{prio_color}]",
+                device.name[:20],
+                str(device.priority.value),
                 f"{device.power_consumption:.0f}W",
                 status,
                 runtime_str
             )
 
-        # Kombiniere Info und Tabelle
-        content = Group(
-            Text(info_text),
-            Text(""),  # Leerzeile
-            table
-        )
+        return Group(Text(summary_text), Text(""), table)
 
-        title = f"🔌 Gerätesteuerung ({active_count} aktiv)"
-        return Panel(content, title=title, border_style="yellow")
+    def _create_simple_bar(self, value: float, width: int = 20) -> str:
+        """Erstellt eine einfache Progress-Bar"""
+        filled = int(value / 100 * width)
+        empty = width - filled
+        return f"[{'█' * filled}{'░' * empty}]"
 
-    def _create_battery_bar(self, soc: float) -> str:
-        """Erstellt eine grafische Batterie-Anzeige"""
-        # 20 Zeichen breite Bar
-        filled = int(soc / 100 * 20)
-        empty = 20 - filled
+    def _get_value_color(self, value: float, metric: str) -> str:
+        """Bestimmt die Farbe basierend auf Schwellwerten"""
+        thresholds = self.config.thresholds.__dict__.get(metric, {})
 
-        # Farbe basierend auf SOC
-        color = self._get_battery_color(soc)
+        if not isinstance(thresholds, dict):
+            return "white"
 
-        # Erstelle Bar mit Farbcodierung
-        bar = f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
+        high = thresholds.get('high', float('inf'))
+        medium = thresholds.get('medium', 0)
 
-        return f"[{bar}]"
-
-    def _get_pv_style(self, power: float) -> str:
-        """Bestimmt Style für PV-Leistung"""
-        if power >= self.config.thresholds.pv_power['high']:
-            return "bold green"
-        elif power >= self.config.thresholds.pv_power['medium']:
-            return "yellow"
+        if metric == 'battery_soc' or metric == 'autarky':
+            # Höher ist besser
+            if value >= high:
+                return "green"
+            elif value >= medium:
+                return "yellow"
+            else:
+                return "red"
         else:
-            return "blue"
-
-    def _get_battery_status(self, data: Any) -> tuple[str, str]:
-        """Bestimmt Batterie-Status und Style"""
-        if abs(data.battery_power) < self.config.battery.idle_threshold:
-            return "Batterie (Standby):", "dim blue"
-        elif data.battery_charging:
-            return "Batterie ↓ (Lädt):", "yellow"
-        else:
-            return "Batterie ↑ (Entlädt):", "green"
-
-    def _get_battery_color(self, soc: float) -> str:
-        """Bestimmt Farbe für Batterie-SOC"""
-        if soc >= self.config.thresholds.battery_soc['high']:
-            return "green"
-        elif soc >= self.config.thresholds.battery_soc['medium']:
-            return "yellow"
-        else:
-            return "red"
-
-    def _get_autarky_style(self, rate: float) -> str:
-        """Bestimmt Style für Autarkiegrad"""
-        if rate >= self.config.thresholds.autarky['high']:
-            return "bold green"
-        elif rate >= self.config.thresholds.autarky['medium']:
-            return "yellow"
-        else:
-            return "red"
-
-    def _get_surplus_style(self, surplus: float) -> str:
-        """Bestimmt Style für Überschuss"""
-        if surplus >= self.config.thresholds.surplus['high']:
-            return "bold green"
-        elif surplus >= self.config.thresholds.surplus['medium']:
-            return "yellow"
-        else:
-            return "blue"
-
-    def _get_priority_color(self, priority: int) -> str:
-        """Bestimmt Farbe für Priorität"""
-        if priority <= 2:
-            return "red"
-        elif priority <= 4:
-            return "yellow"
-        elif priority <= 7:
-            return "green"
-        else:
-            return "blue"
+            # Standard farbcodierung
+            if value >= high:
+                return "bold green"
+            elif value >= medium:
+                return "yellow"
+            else:
+                return "blue"
