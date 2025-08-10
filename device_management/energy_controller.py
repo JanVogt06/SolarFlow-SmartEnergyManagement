@@ -163,7 +163,7 @@ class EnergyController:
                 try:
                     success = self.hue_interface.switch_on(device.name)
                     if success:
-                        self.logger.debug(f"Hue Hardware '{device.name}' eingeschaltet")
+                        self.logger.debug(f"Hue Hardware '{device.name}' erfolgreich eingeschaltet")
                     else:
                         self.logger.warning(f"Hue Hardware '{device.name}' konnte nicht eingeschaltet werden")
                 except Exception as e:
@@ -194,9 +194,9 @@ class EnergyController:
             try:
                 success = self.hue_interface.switch_off(device.name)
                 if success:
-                    self.logger.debug(f"✅ Hue Hardware '{device.name}' ausgeschaltet")
+                    self.logger.debug(f"Hue Hardware '{device.name}' erfolgreich ausgeschaltet")
                 else:
-                    self.logger.warning(f"⚠️  Hue Hardware '{device.name}' konnte nicht ausgeschaltet werden")
+                    self.logger.warning(f"Hue Hardware '{device.name}' konnte nicht ausgeschaltet werden")
             except Exception as e:
                 self.logger.error(f"Hue Fehler beim Ausschalten: {e}")
 

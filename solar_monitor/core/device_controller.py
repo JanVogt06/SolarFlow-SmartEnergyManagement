@@ -54,7 +54,7 @@ class DeviceController:
 
                     hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
                     if hue_interface.connect():
-                        self.logger.info("✅ Hue Bridge verbunden!")
+                        self.logger.info("Hue Bridge erfolgreich verbunden!")
 
                         # Zeige gefundene Hue-Geräte
                         hue_devices = hue_interface.list_devices()
@@ -63,7 +63,7 @@ class DeviceController:
                             for hd in hue_devices:
                                 self.logger.info(f"  - {hd}")
                     else:
-                        self.logger.warning("❌ Hue Bridge Verbindung fehlgeschlagen!")
+                        self.logger.warning("Hue Bridge Verbindung fehlgeschlagen!")
                         self.logger.info("Tipp: Beim ersten Start muss der Knopf auf der Bridge gedrückt werden!")
                         hue_interface = None
 
@@ -95,9 +95,9 @@ class DeviceController:
                 # Prüfe ob Gerät in Hue existiert
                 hue_status = ""
                 if hue_interface and device.name in hue_interface.device_map:
-                    hue_status = " [✓ Hue]"
+                    hue_status = " [Hue OK]"
                 elif hue_interface:
-                    hue_status = " [✗ Nicht in Hue!]"
+                    hue_status = " [Nicht in Hue!]"
 
                 self.logger.info(
                     f"  - {device.name}: {device.power_consumption}W, "
