@@ -254,7 +254,7 @@ class RichLiveDisplay:
                 runtime_str
             )
 
-        return Group(Text(summary_text), Text(""), table)
+        return Group(Text.from_markup(summary_text), Text(""), table)
 
     def _create_simple_bar(self, value: float, width: int = 20) -> str:
         """Erstellt eine einfache Progress-Bar"""
