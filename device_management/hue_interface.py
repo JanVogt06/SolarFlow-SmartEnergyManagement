@@ -1,15 +1,16 @@
 """
-Einfache Philips Hue Integration für den Smart Energy Manager
+Philips Hue Integration für den Smart Energy Manager
 """
 
 import logging
 import time
-from typing import Optional, Dict, Any, List  # <-- List hinzugefügt!
+from typing import Optional, Dict, Any, List
 from phue import Bridge
+from .interfaces import ISmartDeviceInterface
 
 
-class HueInterface:
-    """Einfache Schnittstelle zur Philips Hue Bridge"""
+class HueInterface(ISmartDeviceInterface):
+    """Implementierung des Smart Device Interface für Philips Hue"""
 
     def __init__(self, bridge_ip: str):
         """
@@ -18,10 +19,10 @@ class HueInterface:
         Args:
             bridge_ip: IP-Adresse der Hue Bridge
         """
-        self.logger = logging.getLogger(__name__)
+        config = {'bridge_ip': bridge_ip}
+        super().__init__(config)
         self.bridge_ip = bridge_ip
         self.bridge: Optional[Bridge] = None
-        self.connected = False
 
         # Cache für Geräte-IDs
         self.device_map: Dict[str, Any] = {}
@@ -43,13 +44,13 @@ class HueInterface:
             # Lade alle Lichter
             self._refresh_device_map()
 
-            self.connected = True
+            self._connected = True
             self.logger.info("Erfolgreich mit Hue Bridge verbunden")
             return True
 
         except Exception as e:
             if "link button has not been pressed" in str(e):
-                self.logger.warning("=== HUE BRIDGE REGISTRIERUNG ===")
+                self.logger.warning("HUE BRIDGE REGISTRIERUNG")
                 self.logger.warning("Bitte drücke JETZT den Knopf auf der Hue Bridge!")
                 self.logger.warning("Du hast 30 Sekunden Zeit...")
 
@@ -60,15 +61,22 @@ class HueInterface:
                         self.bridge = Bridge(self.bridge_ip)
                         self.bridge.connect()
                         self._refresh_device_map()
-                        self.connected = True
+                        self._connected = True
                         self.logger.info("Erfolgreich mit Hue Bridge verbunden!")
                         return True
                     except Exception:
                         self.logger.info(f"Versuch {i+1}/3 fehlgeschlagen, warte weitere 10 Sekunden...")
 
             self.logger.error(f"Fehler bei Hue-Verbindung: {e}")
-            self.connected = False
+            self._connected = False
             return False
+
+    def disconnect(self) -> None:
+        """Trennt die Verbindung zur Hue Bridge."""
+        self._connected = False
+        self.bridge = None
+        self.device_map.clear()
+        self.logger.info("Hue Bridge Verbindung getrennt")
 
     def _refresh_device_map(self) -> None:
         """Aktualisiert die Geräteliste"""
@@ -98,7 +106,7 @@ class HueInterface:
         Returns:
             True bei Erfolg
         """
-        if not self.connected:
+        if not self._connected or not self.bridge:
             self.logger.warning("Keine Verbindung zur Hue Bridge")
             return False
 
@@ -121,7 +129,7 @@ class HueInterface:
         Returns:
             True bei Erfolg
         """
-        if not self.connected:
+        if not self._connected or not self.bridge:
             self.logger.warning("Keine Verbindung zur Hue Bridge")
             return False
 
@@ -144,7 +152,7 @@ class HueInterface:
         Returns:
             True wenn an, False wenn aus, None bei Fehler
         """
-        if not self.connected:
+        if not self._connected or not self.bridge:
             return None
 
         try:
@@ -162,8 +170,25 @@ class HueInterface:
         Returns:
             Liste der Gerätenamen
         """
-        if not self.connected:
+        if not self._connected:
             return []
 
         self._refresh_device_map()
         return list(self.device_map.keys())
+
+    def is_device_available(self, device_name: str) -> bool:
+        """
+        Prüft ob ein Gerät in Hue verfügbar ist.
+
+        Args:
+            device_name: Name des Geräts
+
+        Returns:
+            True wenn Gerät in Hue existiert
+        """
+        return device_name in self.device_map
+
+    @property
+    def interface_type(self) -> str:
+        """Gibt den Interface-Typ zurück."""
+        return "hue"

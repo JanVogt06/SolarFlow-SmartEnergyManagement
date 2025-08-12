@@ -8,23 +8,24 @@ from typing import List, Dict, Optional, Any
 
 from .device import Device, DeviceState
 from .device_manager import DeviceManager
+from .interfaces import ISmartDeviceInterface
 
 
 class EnergyController:
     """Steuert Geräte basierend auf verfügbarer Energie"""
 
-    def __init__(self, device_manager: DeviceManager) -> None:
+    def __init__(self, device_manager: DeviceManager,
+                 device_interface: Optional[ISmartDeviceInterface] = None) -> None:
         """
         Initialisiert den EnergyController.
 
         Args:
             device_manager: Verwaltung der Geräte
+            device_interface: Interface für Hardware-Steuerung (optional)
         """
         self.device_manager = device_manager
+        self.device_interface = device_interface
         self.logger = logging.getLogger(__name__)
-
-        # HUE INTERFACE
-        self.hue_interface = None  # Wird vom DeviceController gesetzt
 
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)
@@ -121,61 +122,41 @@ class EnergyController:
         if device.state == DeviceState.OFF or device.state == DeviceState.BLOCKED:
             # Gerät ist aus - prüfe ob einschalten
             if available_power >= device.switch_on_threshold:
-                # FIX 3: Prüfe Hysterese für EINSCHALTEN (basierend auf letztem Ausschalten)
+                # Prüfe Hysterese für EINSCHALTEN (basierend auf letztem Ausschalten)
                 if self._check_switch_on_hysteresis(device, current_time):
                     return self._switch_on(device, current_time)
 
         return None
 
-    class EnergyController:
-        """Steuert Geräte basierend auf verfügbarer Energie"""
+    def _switch_on(self, device: Device, current_time: datetime) -> str:
+        """
+        Schaltet ein Gerät ein.
 
-        def __init__(self, device_manager: DeviceManager) -> None:
-            """
-            Initialisiert den EnergyController.
+        Args:
+            device: Einzuschaltendes Gerät
+            current_time: Aktuelle Zeit
 
-            Args:
-                device_manager: Verwaltung der Geräte
-            """
-            self.device_manager = device_manager
-            self.logger = logging.getLogger(__name__)
+        Returns:
+            Aktionsbeschreibung
+        """
+        # Hardware schalten wenn Interface vorhanden
+        if self.device_interface and self.device_interface.connected:
+            try:
+                success = self.device_interface.switch_on(device.name)
+                if success:
+                    self.logger.debug(f"Hardware '{device.name}' erfolgreich eingeschaltet")
+                else:
+                    self.logger.warning(f"Hardware '{device.name}' konnte nicht eingeschaltet werden")
+            except Exception as e:
+                self.logger.error(f"Fehler beim Hardware-Einschalten: {e}")
 
-            # HUE INTERFACE - NEU!
-            self.hue_interface = None  # Wird vom DeviceController gesetzt
+        device.state = DeviceState.ON
+        device.last_state_change = current_time
 
-            # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
-            self.hysteresis_time: timedelta = timedelta(minutes=5)
+        self.logger.info(f"Gerät '{device.name}' eingeschaltet "
+                         f"(Leistung: {device.power_consumption}W)")
 
-        # Erweitere die _switch_on Methode:
-        def _switch_on(self, device: Device, current_time: datetime) -> str:
-            """
-            Schaltet ein Gerät ein.
-
-            Args:
-                device: Einzuschaltendes Gerät
-                current_time: Aktuelle Zeit
-
-            Returns:
-                Aktionsbeschreibung
-            """
-            # HUE HARDWARE SCHALTEN
-            if self.hue_interface:
-                try:
-                    success = self.hue_interface.switch_on(device.name)
-                    if success:
-                        self.logger.debug(f"Hue Hardware '{device.name}' erfolgreich eingeschaltet")
-                    else:
-                        self.logger.warning(f"Hue Hardware '{device.name}' konnte nicht eingeschaltet werden")
-                except Exception as e:
-                    self.logger.error(f"Hue Fehler beim Einschalten: {e}")
-
-            device.state = DeviceState.ON
-            device.last_state_change = current_time
-
-            self.logger.info(f"Gerät '{device.name}' eingeschaltet "
-                             f"(Leistung: {device.power_consumption}W)")
-
-            return "eingeschaltet"
+        return "eingeschaltet"
 
     def _switch_off(self, device: Device, current_time: datetime, reason: str = "") -> Optional[str]:
         """
@@ -189,16 +170,16 @@ class EnergyController:
         Returns:
             Aktionsbeschreibung
         """
-        # HUE HARDWARE SCHALTEN
-        if self.hue_interface:
+        # Hardware schalten wenn Interface vorhanden
+        if self.device_interface and self.device_interface.connected:
             try:
-                success = self.hue_interface.switch_off(device.name)
+                success = self.device_interface.switch_off(device.name)
                 if success:
-                    self.logger.debug(f"Hue Hardware '{device.name}' erfolgreich ausgeschaltet")
+                    self.logger.debug(f"Hardware '{device.name}' erfolgreich ausgeschaltet")
                 else:
-                    self.logger.warning(f"Hue Hardware '{device.name}' konnte nicht ausgeschaltet werden")
+                    self.logger.warning(f"Hardware '{device.name}' konnte nicht ausgeschaltet werden")
             except Exception as e:
-                self.logger.error(f"Hue Fehler beim Ausschalten: {e}")
+                self.logger.error(f"Fehler beim Hardware-Ausschalten: {e}")
 
         # Berechne und addiere Laufzeit zur Tagesstatistik
         if device.last_state_change:
@@ -209,7 +190,6 @@ class EnergyController:
 
         device.state = DeviceState.OFF
         device.last_state_change = current_time
-        # FIX 3: Speichere Ausschaltzeit für Hysterese
         device.last_switch_off = current_time
 
         self.logger.info(f"Gerät '{device.name}' ausgeschaltet"

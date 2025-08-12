@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from device_management import DeviceManager, EnergyController, DeviceState
+from device_management.interfaces import ISmartDeviceInterface, NullDeviceInterface
 from ..models import SolarData
 
 
@@ -30,6 +31,7 @@ class DeviceController:
 
         self.device_manager: Optional[DeviceManager] = None
         self.energy_controller: Optional[EnergyController] = None
+        self.device_interface: Optional[ISmartDeviceInterface] = None
 
         # Tracking
         self.last_device_update: Optional[float] = None
@@ -44,43 +46,14 @@ class DeviceController:
             config_file = Path(self.config.devices.config_file)
             self.device_manager = DeviceManager(config_file)
 
-            # HUE INTEGRATION
-            hue_interface = None
-            if self.config.devices.enable_hue and self.config.devices.hue_bridge_ip:
-                self.logger.info("Initialisiere Hue-Integration...")
-                try:
-                    # Importiere Hue Interface
-                    from device_management.hue_interface import HueInterface
+            # Device Interface initialisieren
+            self.device_interface = self._create_device_interface()
 
-                    hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
-                    if hue_interface.connect():
-                        self.logger.info("Hue Bridge erfolgreich verbunden!")
-
-                        # Zeige gefundene Hue-Geräte
-                        hue_devices = hue_interface.list_devices()
-                        if hue_devices:
-                            self.logger.info(f"Gefundene Hue-Geräte ({len(hue_devices)}):")
-                            for hd in hue_devices:
-                                self.logger.info(f"  - {hd}")
-                    else:
-                        self.logger.warning("Hue Bridge Verbindung fehlgeschlagen!")
-                        self.logger.info("Tipp: Beim ersten Start muss der Knopf auf der Bridge gedrückt werden!")
-                        hue_interface = None
-
-                except ImportError:
-                    self.logger.error("phue Library nicht installiert! Führe aus: pip install phue")
-                    hue_interface = None
-                except Exception as e:
-                    self.logger.error(f"Fehler bei Hue-Initialisierung: {e}")
-                    hue_interface = None
-
-            # Energy Controller mit oder ohne Hue
-            self.energy_controller = EnergyController(self.device_manager)
-            if hue_interface:
-                self.energy_controller.hue_interface = hue_interface
-                self.logger.info("Gerätesteuerung mit Hue-Hardware aktiviert")
-            else:
-                self.logger.info("Gerätesteuerung nur virtuell (ohne Hardware)")
+            # Energy Controller mit Interface erstellen
+            self.energy_controller = EnergyController(
+                self.device_manager,
+                self.device_interface
+            )
 
             # Setze Hysterese-Zeit
             self.energy_controller.hysteresis_time = timedelta(
@@ -89,23 +62,12 @@ class DeviceController:
 
             self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
             self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
+            self.logger.info(f"Hardware-Interface: {self.device_interface.interface_type}")
 
             # Liste Geräte auf
-            for device in self.device_manager.get_devices_by_priority():
-                # Prüfe ob Gerät in Hue existiert
-                hue_status = ""
-                if hue_interface and device.name in hue_interface.device_map:
-                    hue_status = " [Hue OK]"
-                elif hue_interface:
-                    hue_status = " [Nicht in Hue!]"
+            self._list_devices()
 
-                self.logger.info(
-                    f"  - {device.name}: {device.power_consumption}W, "
-                    f"Priorität {device.priority}, "
-                    f"Schwellwerte: Ein={device.switch_on_threshold}W, "
-                    f"Aus={device.switch_off_threshold}W{hue_status}"
-                )
-
+            # Stelle sauberen Startzustand her
             self._ensure_clean_start_state()
 
         except Exception as e:
@@ -113,6 +75,77 @@ class DeviceController:
             self.config.devices.enable_control = False
             self.device_manager = None
             self.energy_controller = None
+            self.device_interface = None
+
+    def _create_device_interface(self) -> ISmartDeviceInterface:
+        """Erstellt das passende Device Interface basierend auf Konfiguration"""
+        # HUE Interface
+        if self.config.devices.enable_hue and self.config.devices.hue_bridge_ip:
+            self.logger.info("Initialisiere Hue-Integration...")
+            try:
+                from device_management.hue_interface import HueInterface
+
+                hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
+                if hue_interface.connect():
+                    self.logger.info("Hue Bridge erfolgreich verbunden!")
+
+                    # Zeige gefundene Hue-Geräte
+                    hue_devices = hue_interface.list_devices()
+                    if hue_devices:
+                        self.logger.info(f"Gefundene Hue-Geräte ({len(hue_devices)}):")
+                        for hd in hue_devices:
+                            self.logger.info(f"  - {hd}")
+
+                    return hue_interface
+                else:
+                    self.logger.warning("Hue Bridge Verbindung fehlgeschlagen!")
+                    self.logger.info("Tipp: Beim ersten Start muss der Knopf auf der Bridge gedrückt werden!")
+
+            except ImportError:
+                self.logger.error("phue Library nicht installiert! Führe aus: pip install phue")
+            except Exception as e:
+                self.logger.error(f"Fehler bei Hue-Initialisierung: {e}")
+
+        # Fallback: Null Interface (nur virtuelle Steuerung)
+        self.logger.info("Verwende virtuelle Gerätesteuerung (ohne Hardware)")
+        return NullDeviceInterface()
+
+    def _list_devices(self) -> None:
+        """Listet alle konfigurierten Geräte auf"""
+        for device in self.device_manager.get_devices_by_priority():
+            # Prüfe ob Gerät im Hardware-Interface verfügbar ist
+            hw_status = ""
+            if self.device_interface.interface_type != "null":
+                if self.device_interface.is_device_available(device.name):
+                    hw_status = f" [{self.device_interface.interface_type.upper()} OK]"
+                else:
+                    hw_status = f" [Nicht in {self.device_interface.interface_type.upper()}!]"
+
+            self.logger.info(
+                f"  - {device.name}: {device.power_consumption}W, "
+                f"Priorität {device.priority}, "
+                f"Schwellwerte: Ein={device.switch_on_threshold}W, "
+                f"Aus={device.switch_off_threshold}W{hw_status}"
+            )
+
+    def _ensure_clean_start_state(self) -> None:
+        """Stellt sicher, dass alle verwalteten Geräte beim Start aus sind"""
+        if not self.device_interface or self.device_interface.interface_type == "null":
+            return
+
+        self.logger.info("Stelle sauberen Startzustand her - schalte alle verwalteten Geräte aus...")
+
+        for device in self.device_manager.devices:
+            # Prüfe ob Gerät im Interface verfügbar ist
+            if self.device_interface.is_device_available(device.name):
+                # Schalte aus, egal welcher Status
+                if self.device_interface.switch_off(device.name):
+                    self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
+
+            # Setze virtuellen Status
+            device.state = DeviceState.OFF
+            device.last_state_change = datetime.now()
+            device.runtime_today = 0  # Reset Tagesstatistik beim Start
 
     def update(self, data: SolarData) -> None:
         """
@@ -138,29 +171,6 @@ class DeviceController:
         # Merke Werte für nächsten Vergleich
         self.last_surplus_power = data.surplus_power
         self.last_device_update = time.time()
-
-    def _ensure_clean_start_state(self) -> None:
-        """Stellt sicher, dass alle verwalteten Geräte beim Start aus sind"""
-        if not self.energy_controller or not hasattr(self.energy_controller, 'hue_interface'):
-            return
-
-        hue_interface = self.energy_controller.hue_interface
-        if not hue_interface or not hue_interface.connected:
-            return
-
-        self.logger.info("Stelle sauberen Startzustand her - schalte alle verwalteten Geräte aus...")
-
-        for device in self.device_manager.devices:
-            # Prüfe ob Gerät in Hue existiert
-            if device.name in hue_interface.device_map:
-                # Schalte aus, egal welcher Status
-                if hue_interface.switch_off(device.name):
-                    self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
-
-                # Setze virtuellen Status
-                device.state = DeviceState.OFF
-                device.last_state_change = datetime.now()
-                device.runtime_today = 0  # Reset Tagesstatistik beim Start
 
     def _should_update_devices(self, data: SolarData) -> bool:
         """Prüft ob Geräte-Update notwendig ist"""
@@ -208,25 +218,20 @@ class DeviceController:
 
         self.logger.info("Schalte alle Geräte aus...")
 
-        # Hole Hue Interface falls vorhanden
-        hue_interface = None
-        if self.energy_controller and hasattr(self.energy_controller, 'hue_interface'):
-            hue_interface = self.energy_controller.hue_interface
-
         # Alle aktiven Geräte ausschalten
         for device in self.device_manager.get_active_devices():
             old_state = device.state
 
-            # Versuche Hue Hardware auszuschalten
-            if hue_interface:
+            # Versuche Hardware auszuschalten
+            if self.device_interface and self.device_interface.connected:
                 try:
-                    success = hue_interface.switch_off(device.name)
+                    success = self.device_interface.switch_off(device.name)
                     if success:
-                        self.logger.debug(f"Hue Hardware '{device.name}' beim Shutdown ausgeschaltet")
+                        self.logger.debug(f"Hardware '{device.name}' beim Shutdown ausgeschaltet")
                     else:
-                        self.logger.warning(f"Konnte Hue Hardware '{device.name}' beim Shutdown nicht ausschalten")
+                        self.logger.warning(f"Konnte Hardware '{device.name}' beim Shutdown nicht ausschalten")
                 except Exception as e:
-                    self.logger.error(f"Hue Fehler beim Shutdown: {e}")
+                    self.logger.error(f"Hardware-Fehler beim Shutdown: {e}")
 
             # Laufzeit berechnen bevor Status geändert wird
             if device.last_state_change:
@@ -245,6 +250,10 @@ class DeviceController:
                     device, "ausgeschaltet", "Programmende",
                     self.last_surplus_power or 0, old_state
                 )
+
+        # Device Interface trennen
+        if self.device_interface and self.device_interface.connected:
+            self.device_interface.disconnect()
 
         # Tageszusammenfassung erstellen
         if self.config.logging.device_log_daily_summary:
