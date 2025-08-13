@@ -436,7 +436,7 @@ body {
 
 .section-title {
     text-align: center;
-    font-size: 2.5rem;
+    font-size: 2.5rem !important;
     margin-bottom: 15px;
     font-weight: 700;
 }
