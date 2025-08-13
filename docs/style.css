@@ -134,9 +134,10 @@ body {
     color: var(--bg-dark);
 }
 
-/* Terminal Demo */
+/* ========== TERMINAL DEMO SECTION ========== */
+
+/* Terminal Container */
 .terminal-demo {
-    max-width: 800px;
     margin: 60px auto 0;
     background: var(--bg-darker);
     border-radius: 12px;
@@ -144,6 +145,7 @@ body {
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
+/* Terminal Header (Mac Style) */
 .terminal-header {
     background: #1e293b;
     padding: 12px;
@@ -169,83 +171,105 @@ body {
     font-size: 0.9rem;
 }
 
-/* Terminal Body - Erweitert */
+/* Terminal Body */
 .terminal-body {
-    padding: 20px;
+    padding: 15px;
     font-family: 'Courier New', monospace;
-    min-height: 400px;
-    max-height: 400px;
+    min-height: 450px;
+    max-height: 650px;
     overflow-y: auto;
     overflow-x: hidden;
+    background: var(--bg-darker);
+    color: #e2e8f0;
 }
 
-/* Terminal Line Types */
-.terminal-line {
-    margin: 2px 0;
-    line-height: 1.4;
-    transition: opacity 0.3s;
+/* ========== LIVE DISPLAY STYLES ========== */
+
+.live-display {
+    font-size: 13px !important;
+    line-height: 1.6;
 }
 
-.terminal-command {
-    color: var(--text-primary);
+.display-section {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 4px;
+    font-size: 13px !important;
 }
 
-.terminal-separator {
-    color: var(--text-secondary);
-    opacity: 0.5;
-}
-
-.terminal-header {
-    color: var(--accent-yellow);
+.section-title {
     font-weight: bold;
-    margin-top: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #334155;
+    font-size: 13px !important; /* NICHT GRÖSSER */
 }
 
-.terminal-info {
-    color: #60a5fa; /* Blue */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    font-size: 13px !important;
 }
 
-.terminal-success {
-    color: var(--accent-green);
+.label {
+    color: #94a3b8;
 }
 
-.terminal-data {
-    color: var(--text-primary);
-    padding-left: 10px;
+.value {
+    font-weight: bold;
+    color: #f1f5f9;
 }
 
-.terminal-highlight {
-    color: var(--accent-yellow);
-    padding-left: 10px;
+.value.green { color: #10b981; }
+.value.yellow { color: #fbbf24; }
+.value.red { color: #ef4444; }
+
+.battery-bar {
+    color: #10b981;
+    font-family: monospace;
+}
+
+/* Device Table */
+.device-table {
+    margin-top: 10px;
+}
+
+.device-row {
+    display: grid;
+    grid-template-columns: 3fr 1fr 2fr 2fr 2fr;
+    gap: 10px;
+    padding: 3px 0;
+    font-size: 13px !important;
+}
+
+
+.device-name { color: #e2e8f0; }
+.device-prio { color: #64748b; }
+.device-power { color: #fbbf24; text-align: right; }
+.device-runtime { color: #64748b; text-align: right; }
+
+.status-on {
+    color: #10b981;
     font-weight: bold;
 }
 
-.terminal-action {
-    color: var(--accent-green);
+.status-off {
+    color: #64748b;
+}
+
+.display-footer {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #334155;
+    text-align: center;
     font-weight: bold;
+    font-size: 13px !important;
 }
 
-.terminal-update {
-    color: #f59e0b; /* Amber */
-}
+/* ========== SCROLLBAR STYLING ========== */
 
-.terminal-money {
-    color: var(--accent-green);
-    padding-left: 10px;
-    font-weight: bold;
-}
-
-/* Terminal Prompt & Cursor (falls noch verwendet) */
-.terminal-prompt {
-    color: var(--text-secondary);
-    margin-right: 10px;
-}
-
-.terminal-cursor {
-    display: none; /* Nicht mehr benötigt bei Multi-Line */
-}
-
-/* Custom Scrollbar für Terminal */
 .terminal-body::-webkit-scrollbar {
     width: 6px;
 }
@@ -265,7 +289,8 @@ body {
     opacity: 0.7;
 }
 
-/* Animations für Terminal */
+/* ========== ANIMATIONS ========== */
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.02); }
@@ -276,7 +301,8 @@ body {
     51%, 100% { opacity: 0; }
 }
 
-/* Mobile Responsive für Terminal */
+/* ========== MOBILE RESPONSIVE ========== */
+
 @media (max-width: 768px) {
     .terminal-demo {
         margin: 40px 20px 0;
@@ -284,9 +310,24 @@ body {
     }
 
     .terminal-body {
-        min-height: 300px;
-        max-height: 300px;
-        font-size: 0.85rem;
+        min-height: 350px;
+        max-height: 350px;
+        font-size: 11px;
+        padding: 10px;
+    }
+
+    .live-display {
+        font-size: 11px;
+    }
+
+    .device-row {
+        font-size: 10px;
+        grid-template-columns: 2fr 1fr 1.5fr 1.5fr 1.5fr;
+    }
+
+    .display-section {
+        padding: 8px;
+        margin: 10px 0;
     }
 }
 

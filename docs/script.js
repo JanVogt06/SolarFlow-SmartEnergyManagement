@@ -1,110 +1,227 @@
 // Initialize Lucide Icons
 lucide.createIcons();
 
-// Terminal Animation
+// Live Display Simulation - Wie das echte Python Rich Display
 class TerminalAnimation {
     constructor() {
         this.container = document.querySelector('.terminal-body');
-        this.outputs = [
-            { text: '$ python main.py --ip 192.168.178.90', class: 'terminal-command', delay: 0 },
-            { text: '═══════════════════════════════════════════════════════════════════════════════', class: 'terminal-separator', delay: 500 },
-            { text: 'SOLAR MONITOR - v1.0.0', class: 'terminal-header', delay: 100 },
-            { text: '═══════════════════════════════════════════════════════════════════════════════', class: 'terminal-separator', delay: 100 },
-            { text: '', class: '', delay: 200 },
-            { text: '[INFO] Verbinde zu Fronius Wechselrichter...', class: 'terminal-info', delay: 300 },
-            { text: '[OK] Verbindung erfolgreich!', class: 'terminal-success', delay: 800 },
-            { text: '', class: '', delay: 200 },
-            { text: 'LIVE DATEN:', class: 'terminal-header', delay: 300 },
-            { text: '├─ PV-Erzeugung:     4,235 W', class: 'terminal-data', delay: 100, dynamic: true },
-            { text: '├─ Hausverbrauch:    1,847 W', class: 'terminal-data', delay: 100 },
-            { text: '├─ Überschuss:       2,388 W', class: 'terminal-highlight', delay: 100, dynamic: true },
-            { text: '└─ Autarkiegrad:     85.3 %', class: 'terminal-success', delay: 100 },
-            { text: '', class: '', delay: 400 },
-            { text: '[GERÄT] Prüfe Waschmaschine...', class: 'terminal-info', delay: 500 },
-            { text: '[AUTO] ✓ Waschmaschine eingeschaltet (2000W)', class: 'terminal-action', delay: 600 },
-            { text: '[UPDATE] Überschuss: 388 W', class: 'terminal-update', delay: 300 },
-            { text: '', class: '', delay: 400 },
-            { text: 'TAGESSTATISTIK:', class: 'terminal-header', delay: 300 },
-            { text: '├─ Produktion:       18.4 kWh', class: 'terminal-data', delay: 100 },
-            { text: '├─ Eigenverbrauch:   15.6 kWh', class: 'terminal-data', delay: 100 },
-            { text: '├─ Einspeisung:      2.8 kWh', class: 'terminal-data', delay: 100 },
-            { text: '└─ Ersparnis heute:  4.82 €', class: 'terminal-money', delay: 100 },
+        this.values = {
+            pvPower: 0,
+            loadPower: 0,
+            gridPower: 0,
+            batteryPower: 0,
+            batterySoc: 75,
+            selfConsumption: 0,
+            autarky: 0,
+            surplus: 0,
+            savings: 0
+        };
+        this.devices = [
+            { name: 'Wärmepumpe', priority: 1, power: 500, status: 'off', runtime: 0 },
+            { name: 'Waschmaschine', priority: 3, power: 2000, status: 'off', runtime: 0 },
+            { name: 'Pool-Pumpe', priority: 7, power: 800, status: 'off', runtime: 0 }
         ];
-        this.currentIndex = 0;
-        this.lines = [];
         this.init();
     }
 
     init() {
-        // Clear container
         this.container.innerHTML = '';
-        this.container.style.fontFamily = 'Courier New, monospace';
-        this.showNextLine();
+        this.container.style.cssText = 'padding: 15px; font-family: monospace; color: #e2e8f0;';
+        this.render();
+        this.startSimulation();
     }
 
-    showNextLine() {
-        if (this.currentIndex >= this.outputs.length) {
-            // Restart after pause
-            setTimeout(() => {
-                this.currentIndex = 0;
-                this.lines = [];
-                this.container.innerHTML = '';
-                this.showNextLine();
-            }, 3000);
-            return;
-        }
+    render() {
+        // Zeit-Variable entfernt, da nicht verwendet
+        // Alternative: Wenn du die Zeit anzeigen möchtest, füge sie im Display hinzu
 
-        const output = this.outputs[this.currentIndex];
+        // Display direkt in innerHTML setzen ohne Zwischenvariable
+        this.container.innerHTML = `
+<div class="live-display">
+    <div class="display-section">
+        <div class="section-title" style="color: #fbbf24">⚡ Leistungsdaten</div>
+        <div class="data-row">
+            <span class="label">PV-Erzeugung:</span>
+            <span class="value ${this.getColorClass(this.values.pvPower, 'pv')}">${this.values.pvPower.toFixed(0)} W</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Hausverbrauch:</span>
+            <span class="value">${this.values.loadPower.toFixed(0)} W</span>
+        </div>
+        <div class="data-row">
+            <span class="label">${this.values.gridPower >= 0 ? 'Netzbezug:' : 'Einspeisung:'}</span>
+            <span class="value ${this.values.gridPower >= 0 ? 'red' : 'green'}">${Math.abs(this.values.gridPower).toFixed(0)} W</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Batterie ${this.values.batteryPower >= 0 ? '→' : '←'}:</span>
+            <span class="value ${this.values.batteryPower >= 0 ? 'green' : 'yellow'}">${Math.abs(this.values.batteryPower).toFixed(0)} W</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Ladestand:</span>
+            <span class="battery-bar">${this.createBatteryBar(this.values.batterySoc)}</span>
+            <span class="value ${this.getColorClass(this.values.batterySoc, 'battery')}">${this.values.batterySoc.toFixed(1)}%</span>
+        </div>
+    </div>
 
-        setTimeout(() => {
-            this.addLine(output.text, output.class, output.dynamic);
-            this.currentIndex++;
-            this.showNextLine();
-        }, output.delay);
+    <div class="display-section">
+        <div class="section-title" style="color: #10b981">📊 Kennzahlen</div>
+        <div class="data-row">
+            <span class="label">Eigenverbrauch:</span>
+            <span class="value">${this.values.selfConsumption.toFixed(0)} W</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Autarkiegrad:</span>
+            <span class="value ${this.getColorClass(this.values.autarky, 'autarky')}">${this.values.autarky.toFixed(1)}%</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Überschuss:</span>
+            <span class="value ${this.values.surplus > 100 ? 'yellow' : ''}">${this.values.surplus.toFixed(0)} W</span>
+        </div>
+    </div>
+
+    <div class="display-section">
+        <div class="section-title" style="color: #f59e0b">🔌 Gerätesteuerung (${this.devices.filter(d => d.status === 'on').length} aktiv)</div>
+        <div class="device-table">
+            ${this.devices.map(device => `
+                <div class="device-row">
+                    <span class="device-name">${device.name}</span>
+                    <span class="device-prio">[P${device.priority}]</span>
+                    <span class="device-power">${device.power}W</span>
+                    <span class="device-status ${device.status === 'on' ? 'status-on' : 'status-off'}">${device.status === 'on' ? '● EIN' : '○ AUS'}</span>
+                    <span class="device-runtime">${this.formatRuntime(device.runtime)}</span>
+                </div>
+            `).join('')}
+        </div>
+        <div class="data-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #334155">
+            <span class="label">Gesteuerter Verbrauch:</span>
+            <span class="value yellow">${this.devices.filter(d => d.status === 'on').reduce((sum, d) => sum + d.power, 0)} W</span>
+        </div>
+    </div>
+
+    <div class="display-footer">
+        <span style="color: #10b981">💰 Ersparnis heute: ${this.values.savings.toFixed(2)}€</span>
+    </div>
+</div>`;
     }
 
-    addLine(text, className, isDynamic) {
-        const line = document.createElement('div');
-        line.className = `terminal-line ${className}`;
-
-        if (isDynamic && text.includes(':')) {
-            // Animate number changes for dynamic values
-            this.animateValue(line, text);
-        } else {
-            // Type out the text
-            this.typeText(line, text);
-        }
-
-        this.container.appendChild(line);
-        this.lines.push(line);
-
-        // Keep only last 15 lines visible
-        if (this.lines.length > 15) {
-            const oldLine = this.lines.shift();
-            oldLine.style.opacity = '0';
-            setTimeout(() => oldLine.remove(), 300);
-        }
-
-        // Scroll to bottom
-        this.container.scrollTop = this.container.scrollHeight;
+    createBatteryBar(soc) {
+        const width = 20;
+        const filled = Math.round(soc / 100 * width);
+        const bar = '█'.repeat(filled) + '░'.repeat(width - filled);
+        return `[${bar}]`;
     }
 
-    typeText(element, text, speed = 20) {
-        let index = 0;
-        const type = () => {
-            if (index < text.length) {
-                element.textContent = text.substring(0, index + 1);
-                index++;
-                setTimeout(type, speed);
+    getColorClass(value, type) {
+        if (type === 'pv') return value > 3000 ? 'green' : value > 1000 ? 'yellow' : '';
+        if (type === 'battery') return value > 80 ? 'green' : value > 30 ? 'yellow' : 'red';
+        if (type === 'autarky') return value > 75 ? 'green' : value > 50 ? 'yellow' : 'red';
+        return '';
+    }
+
+    formatRuntime(minutes) {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return `${h}h ${m.toString().padStart(2, '0')}m`;
+    }
+
+    startSimulation() {
+        // Update values every 2 seconds
+        setInterval(() => {
+            // Simulate PV curve (more realistic)
+            const hour = new Date().getHours();
+            const dayFactor = Math.sin(Math.max(0, (hour - 6) / 12 * Math.PI));
+
+            // PV Power: 0-6000W depending on time of day with more variation
+            this.values.pvPower = Math.max(0,
+                (5000 * dayFactor + (Math.random() - 0.5) * 2000) *
+                (0.7 + Math.random() * 0.6) // Cloud factor
+            );
+
+            // Base load varies more realistically
+            const baseLoad = 800 + Math.random() * 1200; // 800-2000W base
+
+            // Device control simulation
+            let deviceConsumption = 0;
+            this.devices.forEach(device => {
+                // Only switch on if we have enough surplus
+                if (device.status === 'off' && this.values.surplus > device.power + 200) {
+                    device.status = 'on';
+                } else if (device.status === 'on' && this.values.surplus < 100) {
+                    device.status = 'off';
+                }
+
+                if (device.status === 'on') {
+                    device.runtime += 2/60;
+                    deviceConsumption += device.power;
+                }
+            });
+
+            // Total load = base + devices
+            this.values.loadPower = baseLoad + deviceConsumption;
+
+            // Battery logic (simplified but realistic)
+            let batteryContribution = 0;
+
+            if (this.values.pvPower > this.values.loadPower && this.values.batterySoc < 95) {
+                // Charge battery with surplus
+                const surplus = this.values.pvPower - this.values.loadPower;
+                this.values.batteryPower = -Math.min(surplus * 0.9, 2500);
+                this.values.batterySoc = Math.min(100, this.values.batterySoc + 0.3);
+                batteryContribution = 0; // Charging, not contributing
+            } else if (this.values.pvPower < this.values.loadPower && this.values.batterySoc > 20) {
+                // Discharge battery to help
+                const deficit = this.values.loadPower - this.values.pvPower;
+                this.values.batteryPower = Math.min(deficit * 0.9, 2500);
+                this.values.batterySoc = Math.max(0, this.values.batterySoc - 0.2);
+                batteryContribution = this.values.batteryPower;
+            } else {
+                this.values.batteryPower = 0;
+                batteryContribution = 0;
             }
-        };
-        type();
-    }
 
-    animateValue(element, text) {
-        element.textContent = text;
-        // Add pulse effect for dynamic values
-        element.style.animation = 'pulse 0.5s ease-in-out';
+            // CORRECT CALCULATIONS
+            // Total available power from our sources
+            const ownProduction = this.values.pvPower + batteryContribution;
+
+            // How much of our consumption is covered by our own production
+            this.values.selfConsumption = Math.min(this.values.loadPower, ownProduction);
+
+            // Grid power (positive = buying, negative = selling)
+            this.values.gridPower = this.values.loadPower - ownProduction;
+
+            // Surplus (only when we produce more than we consume)
+            this.values.surplus = Math.max(0, ownProduction - this.values.loadPower);
+
+            // AUTARKIE: Percentage of consumption covered by own sources
+            if (this.values.loadPower > 0) {
+                this.values.autarky = Math.min(100,
+                    (this.values.selfConsumption / this.values.loadPower) * 100
+                );
+            } else {
+                this.values.autarky = 100;
+            }
+
+            // Add some variation to make it more realistic
+            this.values.autarky = Math.max(0, Math.min(100,
+                this.values.autarky + (Math.random() - 0.5) * 5
+            ));
+
+            // Calculate savings
+            this.values.savings += (this.values.selfConsumption / 1000 * 0.40 / 1800);
+
+            /*
+            // Debug log
+            console.log({
+                pv: this.values.pvPower.toFixed(0),
+                load: this.values.loadPower.toFixed(0),
+                battery: batteryContribution.toFixed(0),
+                selfCons: this.values.selfConsumption.toFixed(0),
+                autarky: this.values.autarky.toFixed(1)
+            });
+            */
+
+            this.render();
+        }, 2000);
     }
 }
 
