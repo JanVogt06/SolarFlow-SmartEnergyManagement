@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Energy Manager - Maximiere deinen Solar-Eigenverbrauch automatisch">
+
+    <title>SolarFlow - Smart Energy Manager</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container">
+        <div class="nav-brand">
+            <img src="assets/icon.png" alt="SolarFlow Logo" class="nav-logo">
+            <span>Smart Energy Manager</span>
+        </div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#quickstart">Quick Start</a>
+            <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement">GitHub</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <h1 class="hero-title">
+            <span class="text-gradient">Smart Energy Manager</span>
+        </h1>
+        <p class="hero-subtitle">Maximiere deinen Solar-Eigenverbrauch automatisch</p>
+
+        <!-- Hero Buttons -->
+        <div class="hero-buttons">
+            <a href="#quickstart" class="btn btn-primary">
+                <i data-lucide="zap"></i> Quick Start
+            </a>
+            <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement" class="btn btn-secondary">
+                <i data-lucide="github"></i> GitHub
+            </a>
+        </div>
+
+        <!-- Live Demo Terminal -->
+        <div class="terminal-demo">
+            <div class="terminal-header">
+                <span class="terminal-dot red"></span>
+                <span class="terminal-dot yellow"></span>
+                <span class="terminal-dot green"></span>
+                <span class="terminal-title">solar_monitor.py</span>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-line">
+                    <span class="terminal-prompt">$</span>
+                    <span class="terminal-text" id="demo-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Problem/Solution Section -->
+<section class="problem-solution">
+    <div class="container">
+        <div class="ps-grid">
+            <!-- Problem -->
+            <div class="ps-card problem">
+                <div class="ps-icon">
+                    <i data-lucide="frown" class="icon-large"></i>
+                </div>
+                <h3>Das Problem</h3>
+                <p class="ps-quote">"Ich verschenke 60% meines Solarstroms ans Netz"</p>
+                <ul class="ps-list">
+                    <li>Niedrige Einspeisevergütung (8 Cent/kWh)</li>
+                    <li>Hohe Strompreise (40 Cent/kWh)</li>
+                    <li>Manuelle Gerätesteuerung ineffizient</li>
+                </ul>
+            </div>
+
+            <!-- Arrow -->
+            <div class="ps-arrow">→</div>
+
+            <!-- Solution -->
+            <div class="ps-card solution">
+                <div class="ps-icon">
+                    <i data-lucide="target" class="icon-large"></i>
+                </div>
+                <h3>Die Lösung</h3>
+                <p class="ps-quote">"Ich nutze 85% selbst dank intelligenter Steuerung"</p>
+                <ul class="ps-list">
+                    <li>Automatische Gerätesteuerung</li>
+                    <li>Prioritätsbasierte Einschaltung</li>
+                    <li>Maximaler Eigenverbrauch</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features" id="features">
+    <div class="container">
+        <h2 class="section-title">Features</h2>
+        <p class="section-subtitle">Alles was du für optimalen Eigenverbrauch brauchst</p>
+
+        <div class="features-grid">
+            <!-- Feature 1: Monitoring -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i data-lucide="bar-chart-3" class="icon-large"></i>
+                </div>
+                <h3>Live Monitoring</h3>
+                <ul class="feature-list">
+                    <li>Echtzeit-Daten vom Wechselrichter</li>
+                    <li>Autarkiegrad-Berechnung</li>
+                    <li>Tagesstatistiken</li>
+                    <li>CSV-Export für Analysen</li>
+                </ul>
+            </div>
+
+            <!-- Feature 2: Automation -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i data-lucide="cpu" class="icon-large"></i>
+                </div>
+                <h3>Intelligente Automation</h3>
+                <ul class="feature-list">
+                    <li>Prioritätsbasierte Steuerung</li>
+                    <li>Hysterese-Logik</li>
+                    <li>Zeitfenster-Verwaltung</li>
+                    <li>Min/Max Laufzeiten</li>
+                </ul>
+            </div>
+
+            <!-- Feature 3: Savings -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i data-lucide="piggy-bank" class="icon-large"></i>
+                </div>
+                <h3>Kostenoptimierung</h3>
+                <ul class="feature-list">
+                    <li>Tag/Nacht-Tarife</li>
+                    <li>Einsparungsberechnung</li>
+                    <li>ROI-Tracking</li>
+                    <li>Monatliche Reports</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Start Section -->
+<section class="quickstart" id="quickstart">
+    <div class="container">
+        <h2 class="section-title">Quick Start</h2>
+        <p class="section-subtitle">In 3 Schritten zum optimierten Eigenverbrauch</p>
+
+        <div class="steps-grid">
+            <!-- Step 1 -->
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Installation</h3>
+                <p class="step-description">Repository klonen und Dependencies installieren</p>
+                <div class="code-block">
+                    <code>git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git</code>
+                    <code>cd SolarFlow-SmartEnergyManagement</code>
+                    <code>pip install -r requirements.txt</code>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Konfiguration</h3>
+                <p class="step-description">Geräte in devices.json definieren</p>
+                <div class="code-block">
+                    <pre>{
+    "name": "Waschmaschine",
+    "description": "Waschmaschine Keller",
+    "power_consumption": 2000,
+    "priority": 3,
+    "min_runtime": 90,
+    "max_runtime_per_day": 0,
+    "switch_on_threshold": 2100,
+    "switch_off_threshold": 100,
+    "allowed_time_ranges": [
+        ["08:00", "20:00"]
+    ]
+}</pre>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Starten</h3>
+                <p class="step-description">Monitor mit IP deines Wechselrichters starten</p>
+                <div class="code-block">
+                    <code>python main.py --ip 192.168.178.90</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="quickstart-info">
+            <p><i data-lucide="book-open"></i> Ausführliche Dokumentation findest du im <a
+                    href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement#readme" target="_blank">GitHub
+                README</a></p>
+        </div>
+    </div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
