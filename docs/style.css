@@ -198,12 +198,13 @@ body {
     font-size: 13px !important;
 }
 
-.section-title {
+.section-terminal-title {
     font-weight: bold;
     margin-bottom: 10px;
     padding-bottom: 5px;
     border-bottom: 1px solid #334155;
-    font-size: 13px !important; /* NICHT GRÖSSER */
+    font-size: 13px !important;
+    text-align: center;
 }
 
 .data-row {

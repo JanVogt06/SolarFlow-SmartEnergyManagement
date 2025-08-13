@@ -39,7 +39,7 @@ class TerminalAnimation {
         this.container.innerHTML = `
 <div class="live-display">
     <div class="display-section">
-        <div class="section-title" style="color: #fbbf24">⚡ Leistungsdaten</div>
+        <div class="section-terminal-title" style="color: #fbbf24">⚡ Leistungsdaten</div>
         <div class="data-row">
             <span class="label">PV-Erzeugung:</span>
             <span class="value ${this.getColorClass(this.values.pvPower, 'pv')}">${this.values.pvPower.toFixed(0)} W</span>
@@ -64,7 +64,7 @@ class TerminalAnimation {
     </div>
 
     <div class="display-section">
-        <div class="section-title" style="color: #10b981">📊 Kennzahlen</div>
+        <div class="section-terminal-title" style="color: #10b981">📊 Kennzahlen</div>
         <div class="data-row">
             <span class="label">Eigenverbrauch:</span>
             <span class="value">${this.values.selfConsumption.toFixed(0)} W</span>
@@ -80,7 +80,7 @@ class TerminalAnimation {
     </div>
 
     <div class="display-section">
-        <div class="section-title" style="color: #f59e0b">🔌 Gerätesteuerung (${this.devices.filter(d => d.status === 'on').length} aktiv)</div>
+        <div class="section-terminal-title" style="color: #f59e0b">🔌 Gerätesteuerung (${this.devices.filter(d => d.status === 'on').length} aktiv)</div>
         <div class="device-table">
             ${this.devices.map(device => `
                 <div class="device-row">
