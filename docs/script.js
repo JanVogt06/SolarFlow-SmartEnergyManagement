@@ -17,10 +17,41 @@ class TerminalAnimation {
             savings: 0
         };
         this.devices = [
-            { name: 'Wärmepumpe', priority: 1, power: 500, status: 'off', runtime: 0 },
-            { name: 'Waschmaschine', priority: 3, power: 2000, status: 'off', runtime: 0 },
-            { name: 'Pool-Pumpe', priority: 7, power: 800, status: 'off', runtime: 0 }
+            {
+                name: 'Wärmepumpe',
+                priority: 1,
+                power: 500,
+                status: 'off',
+                runtime: 0,
+                lastSwitch: null,  // Für Hysterese
+                switchOnThreshold: 700,  // Einschalt-Schwellwert
+                switchOffThreshold: 100  // Ausschalt-Schwellwert
+            },
+            {
+                name: 'Waschmaschine',
+                priority: 3,
+                power: 2000,
+                status: 'off',
+                runtime: 0,
+                lastSwitch: null,
+                switchOnThreshold: 2200,
+                switchOffThreshold: 200
+            },
+            {
+                name: 'Pool-Pumpe',
+                priority: 7,
+                power: 800,
+                status: 'off',
+                runtime: 0,
+                lastSwitch: null,
+                switchOnThreshold: 1000,
+                switchOffThreshold: 150
+            }
         ];
+
+        // Hysterese-Zeit in Millisekunden (5 Minuten)
+        this.hysteresisTime = 5 * 60 * 1000; // 5 Minuten in Millisekunden
+
         this.init();
     }
 
@@ -32,10 +63,6 @@ class TerminalAnimation {
     }
 
     render() {
-        // Zeit-Variable entfernt, da nicht verwendet
-        // Alternative: Wenn du die Zeit anzeigen möchtest, füge sie im Display hinzu
-
-        // Display direkt in innerHTML setzen ohne Zwischenvariable
         this.container.innerHTML = `
 <div class="live-display">
     <div class="display-section">
@@ -119,9 +146,20 @@ class TerminalAnimation {
     }
 
     formatRuntime(minutes) {
-        const h = Math.floor(minutes / 60);
-        const m = minutes % 60;
+        // Runde auf 2 Nachkommastellen
+        const roundedMinutes = Math.round(minutes * 100) / 100;
+        const h = Math.floor(roundedMinutes / 60);
+        const m = Math.floor(roundedMinutes % 60);
+        // Zeige ganze Minuten ohne Nachkommastellen
         return `${h}h ${m.toString().padStart(2, '0')}m`;
+    }
+
+    canSwitchDevice(device) {
+        // Prüfe ob Hysterese-Zeit abgelaufen ist
+        if (!device.lastSwitch) return true;
+
+        const timeSinceLastSwitch = Date.now() - device.lastSwitch;
+        return timeSinceLastSwitch >= this.hysteresisTime;
     }
 
     startSimulation() {
@@ -140,18 +178,34 @@ class TerminalAnimation {
             // Base load varies more realistically
             const baseLoad = 800 + Math.random() * 1200; // 800-2000W base
 
-            // Device control simulation
+            // Device control simulation with hysteresis
             let deviceConsumption = 0;
-            this.devices.forEach(device => {
-                // Only switch on if we have enough surplus
-                if (device.status === 'off' && this.values.surplus > device.power + 200) {
+
+            // Sort devices by priority for switching decisions
+            const sortedDevices = [...this.devices].sort((a, b) => a.priority - b.priority);
+
+            sortedDevices.forEach(device => {
+                const canSwitch = this.canSwitchDevice(device);
+
+                // Einschalten: Prüfe ob genug Überschuss UND Hysterese abgelaufen
+                if (device.status === 'off' &&
+                    this.values.surplus > device.switchOnThreshold &&
+                    canSwitch) {
                     device.status = 'on';
-                } else if (device.status === 'on' && this.values.surplus < 100) {
+                    device.lastSwitch = Date.now();
+                    console.log(`${device.name} eingeschaltet (Überschuss: ${this.values.surplus.toFixed(0)}W)`);
+                }
+                // Ausschalten: Prüfe ob zu wenig Überschuss UND Hysterese abgelaufen
+                else if (device.status === 'on' &&
+                    this.values.surplus < device.switchOffThreshold &&
+                    canSwitch) {
                     device.status = 'off';
+                    device.lastSwitch = Date.now();
+                    console.log(`${device.name} ausgeschaltet (Überschuss: ${this.values.surplus.toFixed(0)}W)`);
                 }
 
                 if (device.status === 'on') {
-                    device.runtime += 2/60;
+                    device.runtime += 2/60; // 2 seconds in minutes
                     deviceConsumption += device.power;
                 }
             });
@@ -208,17 +262,6 @@ class TerminalAnimation {
 
             // Calculate savings
             this.values.savings += (this.values.selfConsumption / 1000 * 0.40 / 1800);
-
-            /*
-            // Debug log
-            console.log({
-                pv: this.values.pvPower.toFixed(0),
-                load: this.values.loadPower.toFixed(0),
-                battery: batteryContribution.toFixed(0),
-                selfCons: this.values.selfConsumption.toFixed(0),
-                autarky: this.values.autarky.toFixed(1)
-            });
-            */
 
             this.render();
         }, 2000);
