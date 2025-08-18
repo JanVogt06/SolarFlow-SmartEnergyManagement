@@ -1,0 +1,17 @@
+.feature-list {
+    list-style: none;
+}
+
+.feature-list li {
+    padding: 10px 0;
+    color: var(--color-text-secondary);
+    position: relative;
+    padding-left: 25px;
+}
+
+.feature-list li:before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--color-accent-green);
+}

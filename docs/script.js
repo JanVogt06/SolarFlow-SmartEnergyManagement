@@ -132,10 +132,29 @@ class TerminalAnimation {
     }
 
     createBatteryBar(soc) {
-        const width = 20;
-        const filled = Math.round(soc / 100 * width);
-        const bar = '█'.repeat(filled) + '░'.repeat(width - filled);
-        return `[${bar}]`;
+        const color = soc > 80 ? '#10b981' : soc > 30 ? '#fbbf24' : '#ef4444';
+
+        return `
+        <span style="
+            display: inline-block;
+            width: 100px;
+            height: 8px;
+            border: 1px solid #64748b;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+            vertical-align: middle;
+        ">
+            <span style="
+                display: block;
+                height: 100%;
+                width: ${soc}%;
+                background: ${color};
+                transition: width 0.3s ease;
+            "></span>
+        </span>
+    `;
     }
 
     getColorClass(value, type) {

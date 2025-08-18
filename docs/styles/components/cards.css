@@ -1,0 +1,65 @@
+/* Feature Cards */
+.feature-card {
+    background: var(--color-bg-secondary);
+    padding: 40px 30px;
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all var(--transition-base);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+.feature-card h3 {
+    font-size: var(--font-size-xl);
+    margin-bottom: 20px;
+    text-align: center;
+    color: var(--color-accent-green);
+}
+
+/* Problem/Solution Cards */
+.ps-card {
+    background: var(--color-bg-primary);
+    padding: 40px;
+    border-radius: var(--radius-xl);
+    text-align: center;
+    border: 1px solid var(--color-border);
+    transition: transform var(--transition-base);
+}
+
+.ps-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+.ps-card h3 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: 15px;
+}
+
+/* Step Cards */
+.step-card {
+    background: var(--color-bg-primary);
+    padding: 40px;
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    transition: all var(--transition-base);
+}
+
+.step-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+.step-card h3 {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    font-size: var(--font-size-xl);
+    color: var(--color-accent-green);
+}

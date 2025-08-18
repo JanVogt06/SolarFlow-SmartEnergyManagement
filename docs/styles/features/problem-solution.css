@@ -1,0 +1,71 @@
+/* Desktop Styles */
+.ps-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 40px;
+    align-items: center;
+}
+
+.ps-card {
+    background: var(--color-bg-primary);
+    padding: 40px;
+    border-radius: var(--radius-xl);
+    text-align: center;
+    border: 1px solid var(--color-border);
+    transition: transform var(--transition-base);
+}
+
+.ps-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+.ps-card h3 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: 15px;
+}
+
+.ps-quote {
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-bottom: 25px;
+    font-size: var(--font-size-lg);
+}
+
+.ps-list {
+    list-style: none;
+    text-align: left;
+}
+
+.ps-list li {
+    padding: 8px 0;
+    color: var(--color-text-secondary);
+}
+
+.ps-list li:before {
+    content: "✗ ";
+    color: var(--color-accent-red);
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.solution .ps-list li:before {
+    content: "✓ ";
+    color: var(--color-accent-green);
+}
+
+.ps-arrow {
+    font-size: 3rem;
+    color: var(--color-accent-green);
+    font-weight: bold;
+    transition: transform var(--transition-base);
+    /* Wichtig für Mobile */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ps-arrow:hover {
+    transform: translateY(-5px);
+}

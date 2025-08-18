@@ -1,0 +1,66 @@
+.btn {
+    padding: 12px 30px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--color-accent-green);
+    color: var(--color-bg-primary);
+}
+
+.btn-primary:hover {
+    background: #0ea571;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    border: 2px solid var(--color-accent-green);
+    color: var(--color-accent-green);
+    background: transparent;
+}
+
+.btn-secondary:hover {
+    background: var(--color-accent-green);
+    transform: translateY(-2px);
+    color: var(--color-bg-primary);
+}
+
+/* Copy Button */
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--color-text-secondary);
+}
+
+.copy-btn:hover {
+    background: var(--color-accent-green);
+    border-color: var(--color-accent-green);
+}
+
+.copy-btn:hover svg {
+    stroke: var(--color-bg-primary);
+}

@@ -1,0 +1,23 @@
+.hero {
+    padding: 100px 0;
+}
+
+.hero-title {
+    font-size: var(--font-size-5xl);
+    font-weight: 800;
+    text-align: center;
+}
+
+.hero-subtitle {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    color: var(--color-text-secondary);
+    margin-top: 20px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 40px 0;
+}

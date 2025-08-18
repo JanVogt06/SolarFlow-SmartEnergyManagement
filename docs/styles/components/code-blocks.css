@@ -1,0 +1,23 @@
+.code-block {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    font-family: var(--font-family-mono), monospace;
+    overflow-x: auto;
+    position: relative;
+}
+
+.code-block code {
+    display: block;
+    color: var(--color-accent-green);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    padding: 2px 0;
+}
+
+.code-block pre {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}

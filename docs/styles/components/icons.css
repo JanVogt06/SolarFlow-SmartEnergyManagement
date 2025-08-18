@@ -1,0 +1,35 @@
+.icon-large svg {
+    width: 48px;
+    height: 48px;
+}
+
+.ps-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.ps-icon svg {
+    width: 56px;
+    height: 56px;
+    stroke: var(--color-accent-green);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+    text-align: center;
+}
+
+.feature-icon svg {
+    width: 56px;
+    height: 56px;
+    stroke: var(--color-accent-yellow);
+    margin: 0 auto;
+}
+
+.btn i svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+}

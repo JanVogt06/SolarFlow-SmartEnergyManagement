@@ -1,0 +1,73 @@
+/* =================================
+   TERMINAL COMPONENT
+   ================================= */
+
+.terminal-demo {
+    margin: var(--spacing-3xl) auto 0;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+}
+
+/* Terminal Header (Mac Style) */
+.terminal-header {
+    background: var(--color-bg-elevated);
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.terminal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.terminal-dot.red {
+    background: #ff5f57;
+}
+
+.terminal-dot.yellow {
+    background: #ffbd2e;
+}
+
+.terminal-dot.green {
+    background: #28ca42;
+}
+
+.terminal-title {
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Terminal Body */
+.terminal-body {
+    padding: var(--spacing-md);
+    font-family: var(--font-family-mono), monospace;
+    min-height: 450px;
+    max-height: 650px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+/* Scrollbar Styling */
+.terminal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+    background: var(--color-accent-green);
+    border-radius: 3px;
+    opacity: 0.5;
+}

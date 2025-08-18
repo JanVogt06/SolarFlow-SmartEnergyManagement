@@ -1,0 +1,410 @@
+/* Large Tablet (992px) */
+@media (max-width: 992px) {
+    :root {
+        /* Reduziere Schriftgrößen leicht */
+        --font-size-5xl: 2.25rem;  /* von 3.5rem */
+        --font-size-4xl: 1.875rem; /* von 2.5rem */
+        --font-size-3xl: 1.5rem;   /* von 2rem */
+        --font-size-2xl: 1.25rem;  /* von 1.5rem */
+
+        /* Reduziere Abstände */
+        --spacing-3xl: 3rem;        /* von 4rem */
+    }
+
+    /* Sections weniger Padding */
+    .hero,
+    .features,
+    .problem-solution,
+    .quickstart {
+        padding: 60px 0;  /* von 100px */
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;  /* von 30px */
+    }
+
+    .ps-grid {
+        gap: var(--spacing-xl);
+    }
+}
+
+/* Tablet (768px) */
+@media (max-width: 768px) {
+    :root {
+        /* Weitere Reduzierung für Tablets */
+        --font-size-5xl: 1.875rem;  /* Hero Title */
+        --font-size-4xl: 1.5rem;     /* Section Title */
+        --font-size-3xl: 1.25rem;
+        --font-size-2xl: 1.125rem;
+        --font-size-xl: 1rem;
+        --font-size-lg: 0.9375rem;
+        --font-size-base: 0.875rem;  /* Body text */
+
+        /* Kompaktere Abstände */
+        --spacing-3xl: 2rem;
+        --spacing-2xl: 1.75rem;
+        --spacing-xl: 1.25rem;
+        --spacing-lg: 1rem;
+    }
+
+    /* Container mit mehr Padding auf Mobile */
+    .container {
+        padding: 0 15px;
+    }
+
+    /* Sections noch weniger Padding */
+    .hero,
+    .features,
+    .problem-solution,
+    .quickstart {
+        padding: 40px 0;
+    }
+
+    /* Hero anpassen */
+    .hero {
+        padding: 30px 0 40px 0;
+    }
+
+    .hero-title {
+        font-size: var(--font-size-5xl);
+        line-height: 1.2;
+        margin-bottom: 10px;
+    }
+
+    .hero-subtitle {
+        font-size: var(--font-size-base);
+        margin-bottom: 20px;
+    }
+
+    /* Navigation kompakter */
+    .navbar {
+        padding: 15px 0;
+    }
+
+    .nav-brand {
+        font-size: var(--font-size-lg);
+    }
+
+    .nav-logo {
+        height: 24px;
+    }
+
+    .nav-links {
+        gap: var(--spacing-md);
+        font-size: var(--font-size-sm);
+    }
+
+    /* Hero Buttons */
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin: 25px 0;
+    }
+
+    .btn {
+        width: 180px;
+        padding: 10px 20px;
+        font-size: var(--font-size-sm);
+        justify-content: center;
+    }
+
+    /* Cards kompakter */
+    .feature-card,
+    .ps-card,
+    .step-card {
+        padding: 25px 20px;
+    }
+
+    .feature-card h3,
+    .ps-card h3,
+    .step-card h3 {
+        font-size: var(--font-size-lg);
+        margin-bottom: 12px;
+    }
+
+    /* Section Titles */
+    .section-title {
+        font-size: var(--font-size-4xl) !important;
+        margin-bottom: 10px;
+    }
+
+    .section-subtitle {
+        font-size: var(--font-size-base);
+        margin-bottom: 30px;
+    }
+
+    /* Grids to single column */
+    .features-grid,
+    .ps-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    /* Steps kompakter */
+    .steps-grid {
+        gap: 30px;
+    }
+
+    .step-number {
+        width: 32px;
+        height: 32px;
+        font-size: var(--font-size-base);
+        top: -16px;
+        left: 20px;
+    }
+
+    /* Problem/Solution */
+    .ps-quote {
+        font-size: var(--font-size-base);
+        margin-bottom: 15px;
+    }
+
+    .ps-list li {
+        padding: 5px 0;
+        font-size: var(--font-size-sm);
+    }
+
+    .ps-arrow {
+        font-size: 2rem;
+        transform: rotate(90deg);
+        margin: 15px 0;
+    }
+
+    /* Icons kleiner */
+    .ps-icon svg,
+    .feature-icon svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .ps-icon,
+    .feature-icon {
+        margin-bottom: 15px;
+    }
+
+    /* Feature list kompakter */
+    .feature-list li {
+        padding: 6px 0;
+        padding-left: 20px;
+        font-size: var(--font-size-sm);
+    }
+
+    /* Code blocks */
+    .code-block {
+        padding: 10px;
+        font-size: var(--font-size-xs);
+    }
+
+    .code-block code,
+    .code-block pre {
+        font-size: 0.75rem;
+    }
+
+    /* Terminal kompakter */
+    .terminal-demo {
+        margin: 25px 10px 0;
+        max-width: calc(100% - 20px);
+    }
+
+    .terminal-header {
+        padding: 8px;
+    }
+
+    .terminal-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .terminal-body {
+        min-height: 300px;
+        max-height: 350px;
+        font-size: 0.7rem;
+        padding: var(--spacing-sm);
+    }
+
+    /* Live Display anpassen */
+    .live-display,
+    .display-section,
+    .data-row,
+    .section-terminal-title {
+        font-size: 11px !important;
+    }
+
+    .display-section {
+        padding: 8px;
+        margin: 8px 0;
+    }
+
+    .device-row {
+        font-size: 10px !important;
+        grid-template-columns: 2.5fr 0.8fr 1.2fr 1.2fr 1.5fr;
+        gap: 5px;
+    }
+
+    /* Quick Start Info */
+    .quickstart-info {
+        font-size: var(--font-size-sm);
+        padding-top: 15px;
+    }
+}
+
+/* Small Mobile (480px) */
+@media (max-width: 480px) {
+    :root {
+        /* Noch kleinere Schriften für sehr kleine Bildschirme */
+        --font-size-5xl: 1.5rem;
+        --font-size-4xl: 1.25rem;
+        --font-size-3xl: 1.125rem;
+        --font-size-2xl: 1rem;
+        --font-size-xl: 0.9375rem;
+        --font-size-lg: 0.875rem;
+        --font-size-base: 0.8125rem;
+        --font-size-sm: 0.75rem;
+
+        /* Minimale Abstände */
+        --spacing-3xl: 1.5rem;
+        --spacing-2xl: 1.25rem;
+        --spacing-xl: 1rem;
+        --spacing-lg: 0.75rem;
+        --spacing-md: 0.625rem;
+    }
+
+    /* Container noch weniger Padding */
+    .container {
+        padding: 0 12px;
+    }
+
+    /* Sections minimales Padding */
+    .hero,
+    .features,
+    .problem-solution,
+    .quickstart {
+        padding: 30px 0;
+    }
+
+    /* Hero super kompakt */
+    .hero {
+        padding: 20px 0 30px 0;
+    }
+
+    .hero-title {
+        font-size: var(--font-size-5xl);
+        line-height: 1.15;
+    }
+
+    /* Navigation noch kompakter */
+    .navbar {
+        padding: 12px 0;
+    }
+
+    .nav-brand span {
+        display: none;  /* Verstecke Text, zeige nur Logo */
+    }
+
+    .nav-links a {
+        padding: 5px;
+    }
+
+    /* Buttons noch kleiner */
+    .btn {
+        width: 160px;
+        padding: 9px 16px;
+        font-size: var(--font-size-xs);
+    }
+
+    .btn i svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Cards minimal padding */
+    .feature-card,
+    .ps-card,
+    .step-card {
+        padding: 20px 15px;
+    }
+
+    /* Terminal noch kompakter */
+    .terminal-demo {
+        margin: 20px 5px 0;
+    }
+
+    .terminal-body {
+        min-height: 250px;
+        max-height: 280px;
+        font-size: 0.65rem;
+    }
+
+    /* Device table super kompakt */
+    .device-row {
+        font-size: 9px !important;
+        grid-template-columns: 2fr 0.5fr 1fr 1fr 1.2fr;
+        gap: 3px;
+        padding: 2px 0;
+    }
+
+    /* Code blocks minimal */
+    .code-block {
+        padding: 8px;
+    }
+
+    .code-block code,
+    .code-block pre {
+        font-size: 0.7rem;
+        line-height: 1.3;
+    }
+
+    /* Copy button kleiner */
+    .copy-btn {
+        padding: 5px;
+        top: 5px;
+        right: 5px;
+    }
+
+    .copy-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+/* Extra Small (360px und kleiner) */
+@media (max-width: 360px) {
+    :root {
+        --font-size-5xl: 1.375rem;
+        --font-size-4xl: 1.125rem;
+        --font-size-base: 0.75rem;
+        --font-size-sm: 0.7rem;
+        --font-size-xs: 0.65rem;
+    }
+
+    /* Hero ultra-kompakt */
+    .hero-title {
+        font-size: 1.25rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.75rem;
+    }
+
+    /* Buttons volle Breite */
+    .btn {
+        width: 100%;
+        max-width: 250px;
+    }
+
+    /* Terminal minimal */
+    .terminal-body {
+        min-height: 200px;
+        max-height: 220px;
+        font-size: 0.6rem;
+    }
+
+    /* Listen noch kompakter */
+    .ps-list li,
+    .feature-list li {
+        font-size: 0.7rem;
+        padding: 4px 0;
+    }
+}

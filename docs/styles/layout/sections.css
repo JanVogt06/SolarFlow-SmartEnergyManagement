@@ -1,0 +1,14 @@
+.features {
+    padding: 100px 0;
+    background: var(--color-bg-primary);
+}
+
+.problem-solution {
+    padding: 100px 0;
+    background: var(--color-bg-secondary);
+}
+
+.quickstart {
+    padding: 100px 0;
+    background: var(--color-bg-secondary);
+}
