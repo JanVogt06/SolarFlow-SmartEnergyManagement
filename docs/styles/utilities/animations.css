@@ -1,3 +1,7 @@
+/* =================================
+   ANIMATIONS
+   ================================= */
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.02); }
@@ -134,4 +138,11 @@
 .scroll-slide-fade.scroll-visible {
     opacity: 1;
     transform: translateX(0) scale(1);
+}
+
+/* Klasse wird von JavaScript nach Animation hinzugefügt */
+.animation-complete {
+    transition: transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease !important;
 }
