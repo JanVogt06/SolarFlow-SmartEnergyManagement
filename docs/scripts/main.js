@@ -2,7 +2,6 @@
 import { TerminalAnimation } from './modules/terminal.js';
 import { ScrollAnimationObserver } from './modules/scroll.js';
 import { initSmoothScroll, initCopyButtons } from './modules/utils.js';
-import { CONFIG } from './config.js';
 
 // Initialisierung wenn DOM bereit
 document.addEventListener('DOMContentLoaded', () => {
