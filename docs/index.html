@@ -8,6 +8,8 @@
     <title>SolarFlow - Smart Energy Manager</title>
 
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="icon" href="/assets/icon.png">
+    <link rel="apple-touch-icon" href="/assets/icon.png">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -16,11 +18,11 @@
 <!-- Navigation -->
 <nav class="navbar">
     <div class="container">
-        <div class="nav-brand">
+        <div class="nav-brand scroll-fade-in-left">
             <img src="assets/icon.png" alt="SolarFlow Logo" class="nav-logo">
             <span>Smart Energy Manager</span>
         </div>
-        <div class="nav-links">
+        <div class="nav-links scroll-fade-in-right">
             <a href="#features">Features</a>
             <a href="#quickstart">Quick Start</a>
             <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement">GitHub</a>
@@ -31,13 +33,13 @@
 <!-- Hero Section -->
 <section class="hero">
     <div class="container">
-        <h1 class="hero-title">
+        <h1 class="hero-title scroll-blur-in">
             <span class="text-gradient">Smart Energy Manager</span>
         </h1>
-        <p class="hero-subtitle">Maximiere deinen Solar-Eigenverbrauch automatisch</p>
+        <p class="hero-subtitle scroll-fade-in-up">Maximiere deinen Solar-Eigenverbrauch automatisch</p>
 
         <!-- Hero Buttons -->
-        <div class="hero-buttons">
+        <div class="hero-buttons scroll-fade-in-up">
             <a href="#quickstart" class="btn btn-primary">
                 <i data-lucide="zap"></i> Quick Start
             </a>
@@ -47,7 +49,7 @@
         </div>
 
         <!-- Live Demo Terminal -->
-        <div class="terminal-demo">
+        <div class="terminal-demo scroll-scale-in">
             <div class="terminal-header">
                 <span class="terminal-dot red"></span>
                 <span class="terminal-dot yellow"></span>
@@ -69,7 +71,7 @@
     <div class="container">
         <div class="ps-grid">
             <!-- Problem -->
-            <div class="ps-card problem">
+            <div class="ps-card problem scroll-fade-in-left scroll-stagger">
                 <div class="ps-icon">
                     <i data-lucide="frown" class="icon-large"></i>
                 </div>
@@ -83,10 +85,10 @@
             </div>
 
             <!-- Arrow -->
-            <div class="ps-arrow">→</div>
+            <div class="ps-arrow scroll-slide-fade">→</div>
 
             <!-- Solution -->
-            <div class="ps-card solution">
+            <div class="ps-card solution scroll-fade-in-right scroll-stagger">
                 <div class="ps-icon">
                     <i data-lucide="target" class="icon-large"></i>
                 </div>
@@ -105,12 +107,12 @@
 <!-- Features Section -->
 <section class="features" id="features">
     <div class="container">
-        <h2 class="section-title">Features</h2>
-        <p class="section-subtitle">Alles was du für optimalen Eigenverbrauch brauchst</p>
+        <h2 class="section-title scroll-fade-in-up">Features</h2>
+        <p class="section-subtitle scroll-fade-in-up">Alles was du für optimalen Eigenverbrauch brauchst</p>
 
         <div class="features-grid">
             <!-- Feature 1: Monitoring -->
-            <div class="feature-card">
+            <div class="feature-card scroll-fade-in-up scroll-stagger">
                 <div class="feature-icon">
                     <i data-lucide="bar-chart-3" class="icon-large"></i>
                 </div>
@@ -124,7 +126,7 @@
             </div>
 
             <!-- Feature 2: Automation -->
-            <div class="feature-card">
+            <div class="feature-card scroll-fade-in-up scroll-stagger">
                 <div class="feature-icon">
                     <i data-lucide="cpu" class="icon-large"></i>
                 </div>
@@ -138,7 +140,7 @@
             </div>
 
             <!-- Feature 3: Savings -->
-            <div class="feature-card">
+            <div class="feature-card scroll-fade-in-up scroll-stagger">
                 <div class="feature-icon">
                     <i data-lucide="piggy-bank" class="icon-large"></i>
                 </div>
@@ -157,27 +159,27 @@
 <!-- Quick Start Section -->
 <section class="quickstart" id="quickstart">
     <div class="container">
-        <h2 class="section-title">Quick Start</h2>
-        <p class="section-subtitle">In 3 Schritten zum optimierten Eigenverbrauch</p>
+        <h2 class="section-title scroll-fade-in-up">Quick Start</h2>
+        <p class="section-subtitle scroll-fade-in-up">In 3 Schritten zu mehr Eigenverbrauch</p>
 
         <div class="steps-grid">
             <!-- Step 1 -->
-            <div class="step-card">
+            <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">1</div>
                 <h3>Installation</h3>
-                <p class="step-description">Repository klonen und Dependencies installieren</p>
+                <p class="step-description">Clone das Repository und installiere die Abhängigkeiten</p>
                 <div class="code-block">
-                    <code>git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git</code>
-                    <code>cd SolarFlow-SmartEnergyManagement</code>
-                    <code>pip install -r requirements.txt</code>
+                    <code>git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git
+                        cd SolarFlow-SmartEnergyManagement
+                        pip install -r requirements.txt</code>
                 </div>
             </div>
 
             <!-- Step 2 -->
-            <div class="step-card">
+            <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">2</div>
                 <h3>Konfiguration</h3>
-                <p class="step-description">Geräte in devices.json definieren</p>
+                <p class="step-description">Passe die config.yaml an deine Anlage an</p>
                 <div class="code-block">
                     <pre>{
     "name": "Waschmaschine",
@@ -196,21 +198,20 @@
             </div>
 
             <!-- Step 3 -->
-            <div class="step-card">
+            <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">3</div>
-                <h3>Starten</h3>
-                <p class="step-description">Monitor mit IP deines Wechselrichters starten</p>
+                <h3>Start</h3>
+                <p class="step-description">Starte den Energy Manager</p>
                 <div class="code-block">
-                    <code>python main.py --ip 192.168.178.90</code>
+                    <code>python solar_monitor.py --optimize</code>
                 </div>
             </div>
         </div>
 
-        <!-- Additional Info -->
-        <div class="quickstart-info">
-            <p><i data-lucide="book-open"></i> Ausführliche Dokumentation findest du im <a
-                    href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement#readme" target="_blank">GitHub
-                README</a></p>
+        <div class="quickstart-info text-center scroll-fade-in-up">
+            <p>Detaillierte Anleitung und Dokumentation findest du im
+                <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/wiki">Wiki</a>
+            </p>
         </div>
     </div>
 </section>

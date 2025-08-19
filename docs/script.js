@@ -287,6 +287,66 @@ class TerminalAnimation {
     }
 }
 
+class ScrollAnimationObserver {
+    constructor() {
+        this.observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        this.init();
+    }
+
+    init() {
+        // Erstelle den Intersection Observer
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Element ist sichtbar - füge visible Klasse hinzu
+                    entry.target.classList.add('scroll-visible');
+                }
+            });
+        }, this.observerOptions);
+
+        // Finde alle Elemente mit Animations-Klassen
+        this.observeElements();
+    }
+
+    observeElements() {
+        // Liste aller Animation-Klassen
+        const animationSelectors = [
+            '.scroll-fade-in-up',
+            '.scroll-fade-in-left',
+            '.scroll-fade-in-right',
+            '.scroll-scale-in',
+            '.scroll-rotate-in',
+            '.scroll-stagger-animation',
+            '.scroll-hero-entrance',
+            '.scroll-blur-in',
+            '.scroll-slide-fade',
+        ];
+
+        // Beobachte alle Elemente mit diesen Klassen
+        animationSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(element => {
+                this.observer.observe(element);
+            });
+        });
+    }
+
+    // Methode zum manuellen Hinzufügen neuer Elemente
+    observe(element) {
+        if (element) {
+            this.observer.observe(element);
+        }
+    }
+
+    // Cleanup
+    disconnect() {
+        this.observer.disconnect();
+    }
+}
+
 // Smooth Scroll für Navigation
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -303,7 +363,13 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 // Start animations when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Terminal Animation starten
     new TerminalAnimation();
+
+    // NEU: Scroll Animations initialisieren
+    const scrollObserver = new ScrollAnimationObserver();
+
+    // Lucide Icons erneut initialisieren (für dynamische Inhalte)
     lucide.createIcons();
 
     // Add copy buttons to code blocks
@@ -323,18 +389,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize icon
         lucide.createIcons();
 
-        // Copy functionality
-        copyBtn.addEventListener('click', () => {
+        // Copy functionality mit besserem Feedback
+        copyBtn.addEventListener('click', async () => {
             const code = block.querySelector('code, pre').textContent;
-            navigator.clipboard.writeText(code).then(() => {
+
+            try {
+                await navigator.clipboard.writeText(code);
+
+                // Success feedback
                 copyBtn.innerHTML = '<i data-lucide="check"></i>';
-                lucide.createIcons(); // Re-initialize for new icon
+                copyBtn.classList.add('success');
+                lucide.createIcons();
 
                 setTimeout(() => {
                     copyBtn.innerHTML = '<i data-lucide="copy"></i>';
-                    lucide.createIcons(); // Re-initialize again
+                    copyBtn.classList.remove('success');
+                    lucide.createIcons();
                 }, 2000);
-            });
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                // Error feedback
+                copyBtn.classList.add('error');
+                setTimeout(() => copyBtn.classList.remove('error'), 2000);
+            }
         });
     });
 });
