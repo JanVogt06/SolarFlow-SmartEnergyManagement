@@ -1,194 +1,292 @@
-/* Basis-Container für Sonnenlicht-Effekte */
+/* Basis-Container */
 .hero {
     position: relative;
     overflow: hidden;
-    /* Subtiler Gradient-Hintergrund */
-    background:
-            radial-gradient(
-                    ellipse at top right,
-                    rgba(251, 191, 36, 0.06) 0%,
-                    rgba(16, 185, 129, 0.03) 40%,
-                    transparent 70%
-            ),
-            var(--color-bg-primary);
+    background: var(--color-bg-primary);
 }
 
 /* Container für alle Licht-Effekte */
 .hero-sunlight {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     pointer-events: none;
     z-index: 1;
 }
 
-/* Sanfter Glow-Effekt von oben rechts */
+/* Hauptsonne mit Lens Flare Effekt */
 .sun-glow {
     position: absolute;
-    top: -30%;
-    right: -20%;
-    width: 60%;
-    height: 80%;
+    inset: 0;
+}
+
+.sun-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: radial-gradient(
             circle at center,
-            rgba(251, 191, 36, 0.3) 0%,
-            rgba(251, 191, 36, 0.15) 20%,
-            rgba(251, 191, 36, 0.05) 40%,
-            transparent 70%
+            rgba(255, 255, 255, 0.8) 0%,
+            rgba(251, 191, 36, 0.4) 5%,
+            rgba(251, 191, 36, 0.2) 15%,
+            rgba(251, 191, 36, 0.1) 30%,
+            transparent 50%
+    );
+    filter: blur(40px);
+    animation: sunPulse 4s ease-in-out infinite;
+}
+
+.sun-glow::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    background: radial-gradient(
+            circle at center,
+            rgba(251, 191, 36, 0.2) 0%,
+            transparent 40%
     );
     filter: blur(80px);
     animation: sunGlow 8s ease-in-out infinite;
 }
 
-/* Animierte Sonnenstrahlen */
+/* Strahlen-Container */
 .sun-rays {
     position: absolute;
-    top: -50%;
-    right: -30%;
-    width: 120%;
-    height: 200%;
-    background: repeating-conic-gradient(
-            from 0deg,
-            transparent 0deg 5deg,
-            rgba(251, 191, 36, 0.02) 5deg 7deg,
-            transparent 7deg 15deg,
-            rgba(251, 191, 36, 0.015) 15deg 17deg,
-            transparent 17deg 25deg
+    top: 50%;
+    left: 50%;
+    width: 300vmax;
+    height: 300vmax;
+}
+
+/* Layer 1: Hauptstrahlen */
+.sun-rays::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(
+            from 0deg at 50% 50%,
+            transparent 0deg,
+            rgba(251, 191, 36, 0.05) 3deg,
+            transparent 8deg,
+            rgba(251, 191, 36, 0.04) 14deg,
+            transparent 18deg,
+            rgba(251, 191, 36, 0.08) 25deg,
+            transparent 30deg,
+            rgba(251, 191, 36, 0.03) 37deg,
+            transparent 40deg,
+            rgba(251, 191, 36, 0.07) 48deg,
+            transparent 53deg,
+            rgba(251, 191, 36, 0.04) 60deg,
+            transparent 65deg,
+            rgba(251, 191, 36, 0.09) 73deg,
+            transparent 78deg,
+            rgba(251, 191, 36, 0.06) 95deg,
+            transparent 100deg,
+            rgba(251, 191, 36, 0.05) 107deg,
+            transparent 112deg,
+            rgba(251, 191, 36, 0.10) 120deg,
+            transparent 125deg,
+            rgba(251, 191, 36, 0.04) 142deg,
+            transparent 147deg,
+            rgba(251, 191, 36, 0.08) 155deg,
+            transparent 160deg,
+            rgba(251, 191, 36, 0.07) 178deg,
+            transparent 183deg,
+            rgba(251, 191, 36, 0.04) 190deg,
+            transparent 195deg,
+            rgba(251, 191, 36, 0.09) 203deg,
+            transparent 208deg,
+            rgba(251, 191, 36, 0.06) 226deg,
+            transparent 231deg,
+            rgba(251, 191, 36, 0.05) 238deg,
+            transparent 243deg,
+            rgba(251, 191, 36, 0.10) 251deg,
+            transparent 256deg,
+            rgba(251, 191, 36, 0.08) 286deg,
+            transparent 291deg,
+            rgba(251, 191, 36, 0.07) 309deg,
+            transparent 314deg,
+            rgba(251, 191, 36, 0.04) 321deg,
+            transparent 326deg,
+            rgba(251, 191, 36, 0.09) 334deg,
+            transparent 339deg,
+            rgba(251, 191, 36, 0.04) 356deg,
+            transparent 360deg
     );
     animation:
-            sunRotate 120s linear infinite,
-            sunPulse 6s ease-in-out infinite;
+            sunRotate 150s linear infinite,
+            sunIntensity 5s ease-in-out infinite;
+    transform-origin: center;
+    filter: blur(1px);
 }
 
-/* Aurora-artiger Schimmer-Effekt */
-.hero::before {
+/* Layer 2: Sekundäre Strahlen */
+.sun-rays::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 100%;
-    background:
-            radial-gradient(
-                    ellipse at 80% -20%,
-                    rgba(251, 191, 36, 0.08) 0%,
-                    transparent 40%
-            ),
-            radial-gradient(
-                    ellipse at 20% -10%,
-                    rgba(16, 185, 129, 0.05) 0%,
-                    transparent 50%
-            );
-    filter: blur(60px);
-    animation: auroraShift 15s ease-in-out infinite;
-    pointer-events: none;
-}
-
-/* Schimmernder Text-Effekt */
-.hero-title {
-    position: relative;
-    z-index: 2;
-}
-
-.hero-title::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.03),
-            rgba(251, 191, 36, 0.02),
-            transparent
+    inset: 0;
+    background: conic-gradient(
+            from 45deg at 50% 50%,
+            transparent 0deg,
+            rgba(255, 220, 100, 0.03) 4deg,
+            transparent 9deg,
+            rgba(255, 220, 100, 0.03) 15deg,
+            transparent 20deg,
+            rgba(255, 220, 100, 0.05) 36deg,
+            transparent 41deg,
+            rgba(255, 220, 100, 0.03) 48deg,
+            transparent 53deg,
+            rgba(255, 220, 100, 0.04) 70deg,
+            transparent 75deg,
+            rgba(255, 220, 100, 0.03) 92deg,
+            transparent 97deg,
+            rgba(255, 220, 100, 0.05) 105deg,
+            transparent 110deg,
+            rgba(255, 220, 100, 0.03) 127deg,
+            transparent 132deg,
+            rgba(255, 220, 100, 0.04) 149deg,
+            transparent 154deg,
+            rgba(255, 220, 100, 0.04) 172deg,
+            transparent 177deg,
+            rgba(255, 220, 100, 0.03) 194deg,
+            transparent 199deg,
+            rgba(255, 220, 100, 0.05) 207deg,
+            transparent 212deg,
+            rgba(255, 220, 100, 0.03) 229deg,
+            transparent 234deg,
+            rgba(255, 220, 100, 0.04) 251deg,
+            transparent 256deg,
+            rgba(255, 220, 100, 0.04) 274deg,
+            transparent 279deg,
+            rgba(255, 220, 100, 0.03) 296deg,
+            transparent 301deg,
+            rgba(255, 220, 100, 0.05) 309deg,
+            transparent 314deg,
+            rgba(255, 220, 100, 0.03) 331deg,
+            transparent 336deg,
+            rgba(255, 220, 100, 0.03) 353deg,
+            transparent 358deg,
+            transparent 360deg
     );
-    animation: shimmer 10s infinite;
+    animation:
+            sunRotate 100s linear infinite reverse,
+            sunIntensity 3s ease-in-out infinite;
+    transform-origin: center;
+    opacity: 0.7;
 }
 
-/* Alle anderen Elemente über den Effekten */
+/* Extra lange schwache Strahlen */
+.hero-sunlight::before {
+    content: '';
+    position: absolute;
+    top: -15%;
+    right: 25%;
+    width: 300vmax;
+    height: 300vmax;
+    background: conic-gradient(
+            from 15deg at 50% 50%,
+            transparent 0deg 30deg,
+            rgba(251, 191, 36, 0.015) 33deg,
+            rgba(251, 191, 36, 0.02) 35deg,
+            rgba(251, 191, 36, 0.01) 37deg,
+            transparent 40deg 80deg,
+            rgba(255, 220, 100, 0.015) 83deg,
+            rgba(255, 220, 100, 0.025) 85deg,
+            rgba(255, 220, 100, 0.015) 87deg,
+            transparent 90deg 130deg,
+            rgba(251, 191, 36, 0.02) 133deg,
+            rgba(251, 191, 36, 0.03) 135deg,
+            rgba(251, 191, 36, 0.02) 137deg,
+            transparent 140deg 180deg,
+            rgba(255, 220, 100, 0.01) 183deg,
+            rgba(255, 220, 100, 0.02) 185deg,
+            rgba(255, 220, 100, 0.01) 187deg,
+            transparent 190deg 230deg,
+            rgba(251, 191, 36, 0.015) 233deg,
+            rgba(251, 191, 36, 0.025) 235deg,
+            rgba(251, 191, 36, 0.015) 237deg,
+            transparent 240deg 280deg,
+            rgba(255, 220, 100, 0.02) 283deg,
+            rgba(255, 220, 100, 0.03) 285deg,
+            rgba(255, 220, 100, 0.02) 287deg,
+            transparent 290deg 330deg,
+            rgba(251, 191, 36, 0.01) 333deg,
+            rgba(251, 191, 36, 0.02) 335deg,
+            rgba(251, 191, 36, 0.01) 337deg,
+            transparent 340deg 360deg
+    );
+    animation:
+            sunRotate 200s linear infinite,
+            sunIntensity 7s ease-in-out infinite;
+    opacity: 0.6;
+    filter: blur(2px);
+}
+
+/* Alle anderen Inhalte über den Effekten */
 .hero .container {
     position: relative;
     z-index: 2;
 }
 
-/* Animations */
-@keyframes sunGlow {
-    0%, 100% {
-        transform: translateX(0) translateY(0) scale(1);
-        opacity: 0.3;
-    }
-    33% {
-        transform: translateX(-30px) translateY(-20px) scale(1.1);
-        opacity: 0.5;
-    }
-    66% {
-        transform: translateX(20px) translateY(-30px) scale(0.95);
-        opacity: 0.4;
-    }
-}
-
+/* === Animationen === */
 @keyframes sunRotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 @keyframes sunPulse {
-    0%, 100% { opacity: 0.6; }
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes sunGlow {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    25% { transform: scale(1.02); opacity: 0.7; }
+    50% { transform: scale(0.98); opacity: 0.8; }
+    75% { transform: scale(1.01); opacity: 0.65; }
+}
+
+@keyframes sunIntensity {
+    0%, 100% { opacity: 0.7; }
     50% { opacity: 1; }
 }
 
-@keyframes auroraShift {
-    0%, 100% {
-        transform: translateY(0) scale(1);
-        opacity: 0.8;
-    }
-    25% {
-        transform: translateY(-20px) scale(1.05);
-        opacity: 1;
-    }
-    50% {
-        transform: translateY(10px) scale(0.98);
-        opacity: 0.9;
-    }
-    75% {
-        transform: translateY(-10px) scale(1.02);
-        opacity: 0.95;
-    }
+/* Performance */
+.sun-rays,
+.sun-rays::before,
+.sun-rays::after,
+.hero-sunlight::before,
+.sun-glow::before,
+.sun-glow::after {
+    will-change: transform, opacity;
 }
 
-@keyframes shimmer {
-    0% { left: -100%; }
-    50%, 100% { left: 200%; }
-}
-
-/* Mobile Optimierungen */
+/* Mobile */
 @media (max-width: 768px) {
+    .sun-rays::after,
+    .hero-sunlight::before {
+        display: none;
+    }
     .sun-rays {
-        opacity: 0.5; /* Reduzierte Intensität auf Mobile */
+        width: 200vmax;
+        height: 200vmax;
     }
-
-    .sun-glow {
-        filter: blur(100px); /* Weicherer Blur auf Mobile */
-    }
-
-    /* Vereinfachte Animation für Performance */
-    .hero::before {
-        animation: none;
+    .sun-rays::before {
         opacity: 0.5;
+        animation-duration: 200s;
+    }
+    .sun-glow::before,
+    .sun-glow::after {
+        filter: blur(60px);
     }
 }
 
-/* Dark Mode ist bereits Standard, aber für Light Mode Support: */
-@media (prefers-color-scheme: light) {
-    .sun-glow {
-        opacity: 0.2;
-    }
-
-    .sun-rays {
-        opacity: 0.3;
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .sun-rays::before,
+    .sun-rays::after,
+    .hero-sunlight::before,
+    .sun-glow::before,
+    .sun-glow::after {
+        animation: none !important;
     }
 }
