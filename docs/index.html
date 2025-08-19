@@ -13,6 +13,7 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script type="module" src="scripts/main.js"></script>
 </head>
 <body>
 <!-- Navigation -->
@@ -32,34 +33,42 @@
 
 <!-- Hero Section -->
 <section class="hero">
-    <div class="container">
-        <h1 class="hero-title scroll-blur-in">
-            <span class="text-gradient">Smart Energy Manager</span>
-        </h1>
-        <p class="hero-subtitle scroll-fade-in-up">Maximiere deinen Solar-Eigenverbrauch automatisch</p>
+    <!-- Sonnenlicht-Effekte -->
+    <div class="hero-sunlight">
+        <div class="sun-glow"></div>
+        <div class="sun-rays"></div>
+    </div>
 
-        <!-- Hero Buttons -->
-        <div class="hero-buttons scroll-fade-in-up">
+    <div class="container">
+        <h1 class="hero-title scroll-hero-entrance scroll-blur-in">
+            <span class="text-gradient">SolarFlow</span><br>
+            <span class="hero-subtitle text-gradient">Smart Energy Management</span>
+        </h1>
+        <p class="hero-sub-subtitle scroll-hero-entrance">
+            Intelligente Steuerung Ihrer Solaranlage mit Python
+        </p>
+        <div class="hero-buttons scroll-hero-entrance">
             <a href="#quickstart" class="btn btn-primary">
-                <i data-lucide="zap"></i> Quick Start
+                <i data-lucide="zap"></i>
+                Jetzt starten
             </a>
-            <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement" class="btn btn-secondary">
-                <i data-lucide="github"></i> GitHub
+            <a href="https://github.com/your-repo" class="btn btn-secondary">
+                <i data-lucide="github"></i>
+                GitHub
             </a>
         </div>
-
-        <!-- Live Demo Terminal -->
-        <div class="terminal-demo scroll-scale-in">
-            <div class="terminal-header">
-                <span class="terminal-dot red"></span>
-                <span class="terminal-dot yellow"></span>
-                <span class="terminal-dot green"></span>
-                <span class="terminal-title">solar_monitor.py</span>
-            </div>
-            <div class="terminal-body">
-                <div class="terminal-line">
-                    <span class="terminal-prompt">$</span>
-                    <span class="terminal-text" id="demo-text"></span>
+        <div class="terminal-wrapper scroll-scale-in">
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                    </div>
+                    <span class="terminal-title">solarflow-live-display.py</span>
+                </div>
+                <div class="terminal-body">
+                    <!-- Wird von JavaScript gefüllt -->
                 </div>
             </div>
         </div>
@@ -216,6 +225,5 @@
     </div>
 </section>
 
-<script src="script.js"></script>
 </body>
 </html>

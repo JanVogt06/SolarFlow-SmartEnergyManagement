@@ -1,8 +1,3 @@
-/* =================================
-   SOLARFLOW - MAIN CSS
-   Import all modules in correct order
-   ================================= */
-
 /* Base styles - Foundation */
 @import './base/reset.css';
 @import './base/variables.css';
@@ -26,6 +21,7 @@
 @import './features/problem-solution.css';
 @import './features/features.css';
 @import './features/quickstart.css';
+@import './features/sunlight.css';
 
 /* Utilities - Helpers */
 @import './utilities/animations.css';
