@@ -1,12 +1,113 @@
 [
   {
     "name": "Wohnlicht Backlight",
-    "description": "Test-Licht \u00c3\u00bcber Hue Bridge",
+    "description": "LED-Backlight hinter TV \u00fcber Hue Bridge",
     "power_consumption": 10,
     "priority": 5,
     "min_runtime": 2,
     "max_runtime_per_day": 0,
     "switch_on_threshold": 100,
+    "switch_off_threshold": 50,
+    "allowed_time_ranges": []
+  },
+  {
+    "name": "Elektrische Heizung",
+    "description": "2000W Heizl\u00fcfter \u00fcber Hue Smart Plug",
+    "power_consumption": 2000,
+    "priority": 8,
+    "min_runtime": 30,
+    "max_runtime_per_day": 480,
+    "switch_on_threshold": 2500,
+    "switch_off_threshold": 500,
+    "allowed_time_ranges": [
+      [
+        "06:00:00",
+        "22:00:00"
+      ]
+    ]
+  },
+  {
+    "name": "Wohnzimmer Deckenleuchte",
+    "description": "Hue White & Color Ambiance Deckenleuchte",
+    "power_consumption": 25,
+    "priority": 9,
+    "min_runtime": 5,
+    "max_runtime_per_day": 0,
+    "switch_on_threshold": 150,
+    "switch_off_threshold": 50,
+    "allowed_time_ranges": []
+  },
+  {
+    "name": "LED-Strip",
+    "description": "Hue Lightstrip Plus Arbeitsbeleuchtung",
+    "power_consumption": 20,
+    "priority": 7,
+    "min_runtime": 10,
+    "max_runtime_per_day": 0,
+    "switch_on_threshold": 120,
+    "switch_off_threshold": 40,
+    "allowed_time_ranges": [
+      [
+        "05:00:00",
+        "23:00:00"
+      ]
+    ]
+  },
+  {
+    "name": "Klimaanlage",
+    "description": "1500W Klimager\u00e4t \u00fcber Hue Smart Plug",
+    "power_consumption": 1500,
+    "priority": 6,
+    "min_runtime": 45,
+    "max_runtime_per_day": 360,
+    "switch_on_threshold": 2000,
+    "switch_off_threshold": 300,
+    "allowed_time_ranges": [
+      [
+        "10:00:00",
+        "22:00:00"
+      ]
+    ]
+  },
+  {
+    "name": "Luftentfeuchter",
+    "description": "300W Entfeuchter \u00fcber Hue Smart Plug",
+    "power_consumption": 300,
+    "priority": 4,
+    "min_runtime": 60,
+    "max_runtime_per_day": 720,
+    "switch_on_threshold": 500,
+    "switch_off_threshold": 100,
+    "allowed_time_ranges": []
+  },
+  {
+    "name": "Gartenbeleuchtung",
+    "description": "Hue Outdoor Lightstrip & Spots",
+    "power_consumption": 45,
+    "priority": 3,
+    "min_runtime": 30,
+    "max_runtime_per_day": 480,
+    "switch_on_threshold": 200,
+    "switch_off_threshold": 50,
+    "allowed_time_ranges": [
+      [
+        "17:00:00",
+        "23:59:00"
+      ],
+      [
+        "00:00:00",
+        "01:00:00"
+      ]
+    ]
+  },
+  {
+    "name": "Luftreiniger Schlafzimmer",
+    "description": "40W HEPA-Luftreiniger \u00fcber Hue Smart Plug",
+    "power_consumption": 40,
+    "priority": 5,
+    "min_runtime": 120,
+    "max_runtime_per_day": 1440,
+    "switch_on_threshold": 200,
     "switch_off_threshold": 50,
     "allowed_time_ranges": []
   }
