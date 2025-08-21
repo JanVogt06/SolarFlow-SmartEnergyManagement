@@ -9,11 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#verwendung">Verwendung</a> •
-  <a href="#gerätesteuerung">Gerätesteuerung</a> •
-  <a href="#architektur">Architektur</a>
+  <a href="https://janvogt06.github.io/SolarFlow-SmartEnergyManagement/">🌐 Website</a>
 </p>
 
 ---
