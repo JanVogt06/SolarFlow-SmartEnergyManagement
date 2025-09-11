@@ -6,3 +6,6 @@
 # Logs und Daten
 Datalogs/
 solar_monitor.log
+
+# Lokale Konfigurationsdatei
+devices.json
