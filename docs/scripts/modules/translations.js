@@ -133,7 +133,7 @@ export const configExamples = {
 }`
 };
 
-// Translation System Class - NACH den Daten definiert
+// Translation System Class
 export class TranslationSystem {
     constructor() {
         this.translations = translations;
@@ -164,8 +164,8 @@ export class TranslationSystem {
         if (saved) return saved;
 
         // Detect browser language
-        const browserLang = navigator.language || navigator.userLanguage;
-        return browserLang.startsWith('de') ? 'de' : 'en';
+        const browserLang = navigator.language;
+        return browserLang && browserLang.startsWith('de') ? 'de' : 'en';
     }
 
     setLanguage(lang) {
@@ -216,16 +216,4 @@ export class TranslationSystem {
         const newLang = this.currentLang === 'en' ? 'de' : 'en';
         this.setLanguage(newLang);
     }
-
-    // Helper method to get current translation
-    translate(key) {
-        return this.translations[this.currentLang][key] || this.translations['en'][key] || key;
-    }
 }
-
-// Default export for convenience
-export default {
-    TranslationSystem,
-    translations,
-    configExamples
-};

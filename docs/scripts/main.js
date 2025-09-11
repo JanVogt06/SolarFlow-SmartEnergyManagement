@@ -5,20 +5,17 @@ import { TranslationSystem } from './modules/translations.js';
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Translation System
-    const translationSystem = new TranslationSystem();
-
-    // Make translation system globally available if needed by other scripts
-    window.translationSystem = translationSystem;
+    // Initialize Translation System and make it globally available
+    window.translationSystem = new TranslationSystem();
 
     // Initialize Lucide Icons
     lucide.createIcons();
 
-    // Start Terminal Animation
-    const terminal = new TerminalAnimation();
+    // Start Terminal Animation (self-initializing)
+    new TerminalAnimation();
 
-    // Initialize Scroll Animations
-    const scrollObserver = new ScrollAnimationObserver();
+    // Initialize Scroll Animations (self-initializing)
+    new ScrollAnimationObserver();
 
     // Initialize Smooth Scroll for Navigation
     initSmoothScroll();

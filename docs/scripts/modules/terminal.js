@@ -295,8 +295,8 @@ export class TerminalAnimation {
 
             this.values.loadPower = baseLoad + deviceConsumption;
 
-            // Battery logic
-            let batteryContribution = 0;
+            // Battery logic - fixed redundant initializer
+            let batteryContribution;
 
             if (this.values.pvPower > this.values.loadPower && this.values.batterySoc < 95) {
                 const surplus = this.values.pvPower - this.values.loadPower;
