@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Smart Energy Manager - Maximiere deinen Solar-Eigenverbrauch automatisch">
+    <meta name="description" content="Smart Energy Manager - Maximize your solar self-consumption automatically">
 
     <title>SolarFlow - Smart Energy Manager</title>
 
@@ -11,7 +11,7 @@
     <link rel="icon" href="assets/icon.png">
     <link rel="apple-touch-icon" href="assets/icon.png">
 
-    <!-- Lucide Icons -->
+    <!-- Scripts -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script type="module" src="scripts/main.js"></script>
 </head>
@@ -21,19 +21,24 @@
     <div class="container">
         <div class="nav-brand scroll-fade-in-left">
             <img src="assets/icon.png" alt="SolarFlow Logo" class="nav-logo">
-            <span>Smart Energy Manager</span>
+            <span data-i18n="nav.brand">Smart Energy Manager</span>
         </div>
         <div class="nav-links scroll-fade-in-right">
-            <a href="#features">Features</a>
-            <a href="#quickstart">Quick Start</a>
+            <a href="#features" data-i18n="nav.features">Features</a>
+            <a href="#quickstart" data-i18n="nav.quickstart">Quick Start</a>
             <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement">GitHub</a>
+            <!-- Language Switcher -->
+            <div class="language-switcher" id="language-switcher">
+                <i data-lucide="globe"></i>
+                <span id="current-lang">EN</span>
+            </div>
         </div>
     </div>
 </nav>
 
 <!-- Hero Section -->
 <section class="hero">
-    <!-- Sonnenlicht-Effekte -->
+    <!-- Sunlight Effects -->
     <div class="hero-sunlight">
         <div class="sun-glow"></div>
         <div class="sun-rays"></div>
@@ -44,13 +49,13 @@
             <span class="text-gradient">SolarFlow</span><br>
             <span class="hero-subtitle text-gradient">Smart Energy Management</span>
         </h1>
-        <p class="hero-sub-subtitle scroll-hero-entrance">
-            Intelligente Steuerung Ihrer Solaranlage mit Python
+        <p class="hero-sub-subtitle scroll-hero-entrance" data-i18n="hero.subtitle">
+            Intelligent control of your solar system with Python
         </p>
         <div class="hero-buttons scroll-hero-entrance">
             <a href="#quickstart" class="btn btn-primary">
                 <i data-lucide="zap"></i>
-                Jetzt starten
+                <span data-i18n="hero.btn.start">Start now</span>
             </a>
             <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement" class="btn btn-secondary">
                 <i data-lucide="github"></i>
@@ -83,12 +88,12 @@
                 <div class="ps-icon">
                     <i data-lucide="frown" class="icon-large"></i>
                 </div>
-                <h3>Das Problem</h3>
-                <p class="ps-quote">"Ich verschenke 60% meines Solarstroms ans Netz"</p>
+                <h3 data-i18n="problem.title">The Problem</h3>
+                <p class="ps-quote" data-i18n="problem.quote">"I'm giving away 60% of my solar power to the grid"</p>
                 <ul class="ps-list">
-                    <li>Niedrige Einspeisevergütung (8 Cent/kWh)</li>
-                    <li>Hohe Strompreise (40 Cent/kWh)</li>
-                    <li>Manuelle Gerätesteuerung ineffizient</li>
+                    <li data-i18n="problem.item1">Low feed-in tariff (8 cents/kWh)</li>
+                    <li data-i18n="problem.item2">High electricity prices (40 cents/kWh)</li>
+                    <li data-i18n="problem.item3">Manual device control inefficient</li>
                 </ul>
             </div>
 
@@ -100,12 +105,12 @@
                 <div class="ps-icon">
                     <i data-lucide="target" class="icon-large"></i>
                 </div>
-                <h3>Die Lösung</h3>
-                <p class="ps-quote">"Ich nutze 85% selbst dank intelligenter Steuerung"</p>
+                <h3 data-i18n="solution.title">The Solution</h3>
+                <p class="ps-quote" data-i18n="solution.quote">"I use 85% myself thanks to intelligent control"</p>
                 <ul class="ps-list">
-                    <li>Automatische Gerätesteuerung</li>
-                    <li>Prioritätsbasierte Einschaltung</li>
-                    <li>Maximaler Eigenverbrauch</li>
+                    <li data-i18n="solution.item1">Automatic device control</li>
+                    <li data-i18n="solution.item2">Priority-based activation</li>
+                    <li data-i18n="solution.item3">Maximum self-consumption</li>
                 </ul>
             </div>
         </div>
@@ -115,8 +120,8 @@
 <!-- Features Section -->
 <section class="features" id="features">
     <div class="container">
-        <h2 class="section-title scroll-fade-in-up">Features</h2>
-        <p class="section-subtitle scroll-fade-in-up">Alles was du für optimalen Eigenverbrauch brauchst</p>
+        <h2 class="section-title scroll-fade-in-up" data-i18n="features.title">Features</h2>
+        <p class="section-subtitle scroll-fade-in-up" data-i18n="features.subtitle">Everything you need for optimal self-consumption</p>
 
         <div class="features-grid">
             <!-- Feature 1: Monitoring -->
@@ -124,12 +129,12 @@
                 <div class="feature-icon">
                     <i data-lucide="bar-chart-3" class="icon-large"></i>
                 </div>
-                <h3>Live Monitoring</h3>
+                <h3 data-i18n="features.monitoring.title">Live Monitoring</h3>
                 <ul class="feature-list">
-                    <li>Echtzeit-Daten vom Wechselrichter</li>
-                    <li>Autarkiegrad-Berechnung</li>
-                    <li>Tagesstatistiken</li>
-                    <li>CSV-Export für Analysen</li>
+                    <li data-i18n="features.monitoring.item1">Real-time data from inverter</li>
+                    <li data-i18n="features.monitoring.item2">Self-sufficiency calculation</li>
+                    <li data-i18n="features.monitoring.item3">Daily statistics</li>
+                    <li data-i18n="features.monitoring.item4">CSV export for analysis</li>
                 </ul>
             </div>
 
@@ -138,12 +143,12 @@
                 <div class="feature-icon">
                     <i data-lucide="cpu" class="icon-large"></i>
                 </div>
-                <h3>Intelligente Automation</h3>
+                <h3 data-i18n="features.automation.title">Intelligent Automation</h3>
                 <ul class="feature-list">
-                    <li>Prioritätsbasierte Steuerung</li>
-                    <li>Hysterese-Logik</li>
-                    <li>Zeitfenster-Verwaltung</li>
-                    <li>Min/Max Laufzeiten</li>
+                    <li data-i18n="features.automation.item1">Priority-based control</li>
+                    <li data-i18n="features.automation.item2">Hysteresis logic</li>
+                    <li data-i18n="features.automation.item3">Time window management</li>
+                    <li data-i18n="features.automation.item4">Min/Max runtimes</li>
                 </ul>
             </div>
 
@@ -152,12 +157,12 @@
                 <div class="feature-icon">
                     <i data-lucide="piggy-bank" class="icon-large"></i>
                 </div>
-                <h3>Kostenoptimierung</h3>
+                <h3 data-i18n="features.savings.title">Cost Optimization</h3>
                 <ul class="feature-list">
-                    <li>Tag/Nacht-Tarife</li>
-                    <li>Einsparungsberechnung</li>
-                    <li>ROI-Tracking</li>
-                    <li>Monatliche Reports</li>
+                    <li data-i18n="features.savings.item1">Day/Night tariffs</li>
+                    <li data-i18n="features.savings.item2">Savings calculation</li>
+                    <li data-i18n="features.savings.item3">ROI tracking</li>
+                    <li data-i18n="features.savings.item4">Monthly reports</li>
                 </ul>
             </div>
         </div>
@@ -167,15 +172,15 @@
 <!-- Quick Start Section -->
 <section class="quickstart" id="quickstart">
     <div class="container">
-        <h2 class="section-title scroll-fade-in-up">Quick Start</h2>
-        <p class="section-subtitle scroll-fade-in-up">In 3 Schritten zu mehr Eigenverbrauch</p>
+        <h2 class="section-title scroll-fade-in-up" data-i18n="quickstart.title">Quick Start</h2>
+        <p class="section-subtitle scroll-fade-in-up" data-i18n="quickstart.subtitle">More self-consumption in 3 steps</p>
 
         <div class="steps-grid">
             <!-- Step 1 -->
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">1</div>
-                <h3>Installation</h3>
-                <p class="step-description">Clone das Repository und installiere die Abhängigkeiten</p>
+                <h3 data-i18n="quickstart.step1.title">Installation</h3>
+                <p class="step-description" data-i18n="quickstart.step1.desc">Clone the repository and install dependencies</p>
                 <div class="code-block">
                     <code>git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git
                         cd SolarFlow-SmartEnergyManagement
@@ -186,12 +191,12 @@
             <!-- Step 2 -->
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">2</div>
-                <h3>Konfiguration</h3>
-                <p class="step-description">Passe die config.yaml an deine Anlage an</p>
+                <h3 data-i18n="quickstart.step2.title">Configuration</h3>
+                <p class="step-description" data-i18n="quickstart.step2.desc">Adjust config.yaml to your system</p>
                 <div class="code-block">
-                    <pre>{
-    "name": "Waschmaschine",
-    "description": "Waschmaschine Keller",
+                    <pre id="config-example">{
+    "name": "Washing Machine",
+    "description": "Washing Machine Basement",
     "power_consumption": 2000,
     "priority": 3,
     "min_runtime": 90,
@@ -208,8 +213,8 @@
             <!-- Step 3 -->
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">3</div>
-                <h3>Start</h3>
-                <p class="step-description">Starte den Energy Manager</p>
+                <h3 data-i18n="quickstart.step3.title">Start</h3>
+                <p class="step-description" data-i18n="quickstart.step3.desc">Start the Energy Manager</p>
                 <div class="code-block">
                     <code>python solar_monitor.py</code>
                 </div>
@@ -217,8 +222,9 @@
         </div>
 
         <div class="quickstart-info text-center scroll-fade-in-up">
-            <p>Detaillierte Anleitung und Dokumentation findest du im
-                <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/wiki">Wiki</a>
+            <p>
+                <span data-i18n="quickstart.info.text">Detailed instructions and documentation can be found in the</span>
+                <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/wiki" data-i18n="quickstart.info.wiki">Wiki</a>
             </p>
         </div>
     </div>

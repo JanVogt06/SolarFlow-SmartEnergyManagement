@@ -1,29 +1,35 @@
-// Import aller Module
 import { TerminalAnimation } from './modules/terminal.js';
 import { ScrollAnimationObserver } from './modules/scroll.js';
 import { initSmoothScroll, initCopyButtons } from './modules/utils.js';
+import { TranslationSystem } from './modules/translations.js';
 
-// Initialisierung wenn DOM bereit
+// Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Lucide Icons initialisieren
+    // Initialize Translation System
+    const translationSystem = new TranslationSystem();
+
+    // Make translation system globally available if needed by other scripts
+    window.translationSystem = translationSystem;
+
+    // Initialize Lucide Icons
     lucide.createIcons();
 
-    // Terminal Animation starten
+    // Start Terminal Animation
     const terminal = new TerminalAnimation();
 
-    // Scroll Animations initialisieren
+    // Initialize Scroll Animations
     const scrollObserver = new ScrollAnimationObserver();
 
-    // Smooth Scroll für Navigation
+    // Initialize Smooth Scroll for Navigation
     initSmoothScroll();
 
-    // Copy Buttons für Code-Blöcke
+    // Initialize Copy Buttons for Code Blocks
     initCopyButtons();
 
-    // Optional: Sunlight Effects (wenn gewünscht)
-    // import('./modules/sunlight.js').then(module => {
-    //     new module.SunlightEffects();
-    // });
+    // Re-create icons after language change
+    window.addEventListener('languageChanged', () => {
+        lucide.createIcons();
+    });
 });
 
 // Global Error Handler

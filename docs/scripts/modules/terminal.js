@@ -1,6 +1,66 @@
 export class TerminalAnimation {
     constructor() {
         this.container = document.querySelector('.terminal-body');
+        this.currentLang = this.getCurrentLanguage();
+
+        // Device names in both languages
+        this.deviceNames = {
+            en: {
+                heatPump: 'Heat Pump',
+                washingMachine: 'Washing Machine',
+                poolPump: 'Pool Pump'
+            },
+            de: {
+                heatPump: 'Wärmepumpe',
+                washingMachine: 'Waschmaschine',
+                poolPump: 'Pool-Pumpe'
+            }
+        };
+
+        // Labels in both languages
+        this.labels = {
+            en: {
+                powerData: '⚡ Power Data',
+                pvGeneration: 'PV Generation:',
+                consumption: 'House Consumption:',
+                gridFeedIn: 'Grid Feed-in:',
+                gridDraw: 'Grid Draw:',
+                batteryCharge: 'Battery ↑:',
+                batteryDischarge: 'Battery ↓:',
+                batteryLevel: 'Battery Level:',
+                metrics: '📊 Metrics',
+                selfConsumption: 'Self-consumption:',
+                autarky: 'Self-sufficiency:',
+                surplus: 'Surplus:',
+                deviceControl: '🔌 Device Control',
+                active: 'active',
+                controlledConsumption: 'Controlled Consumption:',
+                savingsToday: '💰 Savings today:',
+                statusOn: '● ON',
+                statusOff: '○ OFF'
+            },
+            de: {
+                powerData: '⚡ Leistungsdaten',
+                pvGeneration: 'PV-Erzeugung:',
+                consumption: 'Hausverbrauch:',
+                gridFeedIn: 'Einspeisung:',
+                gridDraw: 'Netzbezug:',
+                batteryCharge: 'Batterie ↑:',
+                batteryDischarge: 'Batterie ↓:',
+                batteryLevel: 'Ladestand:',
+                metrics: '📊 Kennzahlen',
+                selfConsumption: 'Eigenverbrauch:',
+                autarky: 'Autarkiegrad:',
+                surplus: 'Überschuss:',
+                deviceControl: '🔌 Gerätesteuerung',
+                active: 'aktiv',
+                controlledConsumption: 'Gesteuerter Verbrauch:',
+                savingsToday: '💰 Ersparnis heute:',
+                statusOn: '● EIN',
+                statusOff: '○ AUS'
+            }
+        };
+
         this.values = {
             pvPower: 0,
             loadPower: 0,
@@ -12,19 +72,20 @@ export class TerminalAnimation {
             surplus: 0,
             savings: 0
         };
+
         this.devices = [
             {
-                name: 'Wärmepumpe',
+                nameKey: 'heatPump',
                 priority: 1,
                 power: 500,
                 status: 'off',
                 runtime: 0,
-                lastSwitch: null,  // Für Hysterese
-                switchOnThreshold: 700,  // Einschalt-Schwellwert
-                switchOffThreshold: 100  // Ausschalt-Schwellwert
+                lastSwitch: null,
+                switchOnThreshold: 700,
+                switchOffThreshold: 100
             },
             {
-                name: 'Waschmaschine',
+                nameKey: 'washingMachine',
                 priority: 3,
                 power: 2000,
                 status: 'off',
@@ -34,7 +95,7 @@ export class TerminalAnimation {
                 switchOffThreshold: 200
             },
             {
-                name: 'Pool-Pumpe',
+                nameKey: 'poolPump',
                 priority: 7,
                 power: 800,
                 status: 'off',
@@ -45,10 +106,27 @@ export class TerminalAnimation {
             }
         ];
 
-        // Hysterese-Zeit in Millisekunden (5 Minuten)
-        this.hysteresisTime = 5 * 60 * 1000; // 5 Minuten in Millisekunden
+        this.hysteresisTime = 5 * 60 * 1000; // 5 minutes
+
+        // Listen for language changes
+        window.addEventListener('languageChanged', (e) => {
+            this.currentLang = e.detail.lang;
+            this.render();
+        });
 
         this.init();
+    }
+
+    getCurrentLanguage() {
+        return localStorage.getItem('language') || 'en';
+    }
+
+    getLabel(key) {
+        return this.labels[this.currentLang][key] || this.labels['en'][key];
+    }
+
+    getDeviceName(device) {
+        return this.deviceNames[this.currentLang][device.nameKey] || this.deviceNames['en'][device.nameKey];
     }
 
     init() {
@@ -59,70 +137,74 @@ export class TerminalAnimation {
     }
 
     render() {
+        const activeDevices = this.devices.filter(d => d.status === 'on');
+        const controlledPower = activeDevices.reduce((sum, d) => sum + d.power, 0);
+        const currencySymbol = this.currentLang === 'de' ? '€' : '$';
+
         this.container.innerHTML = `
 <div class="live-display">
     <div class="display-section">
-        <div class="section-terminal-title" style="color: #fbbf24">⚡ Leistungsdaten</div>
+        <div class="section-terminal-title" style="color: #fbbf24">${this.getLabel('powerData')}</div>
         <div class="data-row">
-            <span class="label">PV-Erzeugung:</span>
+            <span class="label">${this.getLabel('pvGeneration')}</span>
             <span class="value ${this.getColorClass(this.values.pvPower, 'pv')}">${this.values.pvPower.toFixed(0)} W</span>
         </div>
         <div class="data-row">
-            <span class="label">Hausverbrauch:</span>
+            <span class="label">${this.getLabel('consumption')}</span>
             <span class="value">${this.values.loadPower.toFixed(0)} W</span>
         </div>
         <div class="data-row">
-            <span class="label">${this.values.gridPower >= 0 ? 'Netzbezug:' : 'Einspeisung:'}</span>
+            <span class="label">${this.values.gridPower >= 0 ? this.getLabel('gridDraw') : this.getLabel('gridFeedIn')}</span>
             <span class="value ${this.values.gridPower >= 0 ? 'red' : 'green'}">${Math.abs(this.values.gridPower).toFixed(0)} W</span>
         </div>
         <div class="data-row">
-            <span class="label">Batterie ${this.values.batteryPower >= 0 ? '→' : '←'}:</span>
+            <span class="label">${this.values.batteryPower >= 0 ? this.getLabel('batteryCharge') : this.getLabel('batteryDischarge')}</span>
             <span class="value ${this.values.batteryPower >= 0 ? 'green' : 'yellow'}">${Math.abs(this.values.batteryPower).toFixed(0)} W</span>
         </div>
         <div class="data-row">
-            <span class="label">Ladestand:</span>
+            <span class="label">${this.getLabel('batteryLevel')}</span>
             <span class="battery-bar">${this.createBatteryBar(this.values.batterySoc)}</span>
             <span class="value ${this.getColorClass(this.values.batterySoc, 'battery')}">${this.values.batterySoc.toFixed(1)}%</span>
         </div>
     </div>
 
     <div class="display-section">
-        <div class="section-terminal-title" style="color: #10b981">📊 Kennzahlen</div>
+        <div class="section-terminal-title" style="color: #10b981">${this.getLabel('metrics')}</div>
         <div class="data-row">
-            <span class="label">Eigenverbrauch:</span>
+            <span class="label">${this.getLabel('selfConsumption')}</span>
             <span class="value">${this.values.selfConsumption.toFixed(0)} W</span>
         </div>
         <div class="data-row">
-            <span class="label">Autarkiegrad:</span>
+            <span class="label">${this.getLabel('autarky')}</span>
             <span class="value ${this.getColorClass(this.values.autarky, 'autarky')}">${this.values.autarky.toFixed(1)}%</span>
         </div>
         <div class="data-row">
-            <span class="label">Überschuss:</span>
+            <span class="label">${this.getLabel('surplus')}</span>
             <span class="value ${this.values.surplus > 100 ? 'yellow' : ''}">${this.values.surplus.toFixed(0)} W</span>
         </div>
     </div>
 
     <div class="display-section">
-        <div class="section-terminal-title" style="color: #f59e0b">🔌 Gerätesteuerung (${this.devices.filter(d => d.status === 'on').length} aktiv)</div>
+        <div class="section-terminal-title" style="color: #f59e0b">${this.getLabel('deviceControl')} (${activeDevices.length} ${this.getLabel('active')})</div>
         <div class="device-table">
             ${this.devices.map(device => `
                 <div class="device-row">
-                    <span class="device-name">${device.name}</span>
+                    <span class="device-name">${this.getDeviceName(device)}</span>
                     <span class="device-prio">[P${device.priority}]</span>
                     <span class="device-power">${device.power}W</span>
-                    <span class="device-status ${device.status === 'on' ? 'status-on' : 'status-off'}">${device.status === 'on' ? '● EIN' : '○ AUS'}</span>
+                    <span class="device-status ${device.status === 'on' ? 'status-on' : 'status-off'}">${device.status === 'on' ? this.getLabel('statusOn') : this.getLabel('statusOff')}</span>
                     <span class="device-runtime">${this.formatRuntime(device.runtime)}</span>
                 </div>
             `).join('')}
         </div>
         <div class="data-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #334155">
-            <span class="label">Gesteuerter Verbrauch:</span>
-            <span class="value yellow">${this.devices.filter(d => d.status === 'on').reduce((sum, d) => sum + d.power, 0)} W</span>
+            <span class="label">${this.getLabel('controlledConsumption')}</span>
+            <span class="value yellow">${controlledPower} W</span>
         </div>
     </div>
 
     <div class="display-footer">
-        <span style="color: #10b981">💰 Ersparnis heute: ${this.values.savings.toFixed(2)}€</span>
+        <span style="color: #10b981">${this.getLabel('savingsToday')} ${currencySymbol}${this.values.savings.toFixed(2)}</span>
     </div>
 </div>`;
     }
@@ -161,84 +243,67 @@ export class TerminalAnimation {
     }
 
     formatRuntime(minutes) {
-        // Runde auf 2 Nachkommastellen
         const roundedMinutes = Math.round(minutes * 100) / 100;
         const h = Math.floor(roundedMinutes / 60);
         const m = Math.floor(roundedMinutes % 60);
-        // Zeige ganze Minuten ohne Nachkommastellen
         return `${h}h ${m.toString().padStart(2, '0')}m`;
     }
 
     canSwitchDevice(device) {
-        // Prüfe ob Hysterese-Zeit abgelaufen ist
         if (!device.lastSwitch) return true;
-
         const timeSinceLastSwitch = Date.now() - device.lastSwitch;
         return timeSinceLastSwitch >= this.hysteresisTime;
     }
 
     startSimulation() {
-        // Update values every 2 seconds
         setInterval(() => {
-            // Simulate PV curve (more realistic)
+            // Simulate PV curve
             const hour = new Date().getHours();
             const dayFactor = Math.sin(Math.max(0, (hour - 6) / 12 * Math.PI));
 
-            // PV Power: 0-6000W depending on time of day with more variation
             this.values.pvPower = Math.max(0,
                 (5000 * dayFactor + (Math.random() - 0.5) * 2000) *
-                (0.7 + Math.random() * 0.6) // Cloud factor
+                (0.7 + Math.random() * 0.6)
             );
 
-            // Base load varies more realistically
-            const baseLoad = 800 + Math.random() * 1200; // 800-2000W base
-
-            // Device control simulation with hysteresis
+            const baseLoad = 800 + Math.random() * 1200;
             let deviceConsumption = 0;
 
-            // Sort devices by priority for switching decisions
             const sortedDevices = [...this.devices].sort((a, b) => a.priority - b.priority);
 
             sortedDevices.forEach(device => {
                 const canSwitch = this.canSwitchDevice(device);
 
-                // Einschalten: Prüfe ob genug Überschuss UND Hysterese abgelaufen
                 if (device.status === 'off' &&
                     this.values.surplus > device.switchOnThreshold &&
                     canSwitch) {
                     device.status = 'on';
                     device.lastSwitch = Date.now();
-                    console.log(`${device.name} eingeschaltet (Überschuss: ${this.values.surplus.toFixed(0)}W)`);
                 }
-                // Ausschalten: Prüfe ob zu wenig Überschuss UND Hysterese abgelaufen
                 else if (device.status === 'on' &&
                     this.values.surplus < device.switchOffThreshold &&
                     canSwitch) {
                     device.status = 'off';
                     device.lastSwitch = Date.now();
-                    console.log(`${device.name} ausgeschaltet (Überschuss: ${this.values.surplus.toFixed(0)}W)`);
                 }
 
                 if (device.status === 'on') {
-                    device.runtime += 2/60; // 2 seconds in minutes
+                    device.runtime += 2/60;
                     deviceConsumption += device.power;
                 }
             });
 
-            // Total load = base + devices
             this.values.loadPower = baseLoad + deviceConsumption;
 
-            // Battery logic (simplified but realistic)
+            // Battery logic
             let batteryContribution = 0;
 
             if (this.values.pvPower > this.values.loadPower && this.values.batterySoc < 95) {
-                // Charge battery with surplus
                 const surplus = this.values.pvPower - this.values.loadPower;
                 this.values.batteryPower = -Math.min(surplus * 0.9, 2500);
                 this.values.batterySoc = Math.min(100, this.values.batterySoc + 0.3);
-                batteryContribution = 0; // Charging, not contributing
+                batteryContribution = 0;
             } else if (this.values.pvPower < this.values.loadPower && this.values.batterySoc > 20) {
-                // Discharge battery to help
                 const deficit = this.values.loadPower - this.values.pvPower;
                 this.values.batteryPower = Math.min(deficit * 0.9, 2500);
                 this.values.batterySoc = Math.max(0, this.values.batterySoc - 0.2);
@@ -248,7 +313,6 @@ export class TerminalAnimation {
                 batteryContribution = 0;
             }
 
-            // CORRECT CALCULATIONS
             // Total available power from our sources
             const ownProduction = this.values.pvPower + batteryContribution;
 
