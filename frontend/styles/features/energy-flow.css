@@ -1,0 +1,149 @@
+.energy-flow-section {
+    margin-bottom: var(--spacing-3xl);
+}
+
+.energy-flow-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    position: relative;
+}
+
+/* Flow Cards */
+.flow-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    position: relative;
+    transition: all var(--transition-base);
+    overflow: hidden;
+}
+
+.flow-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--color-border);
+    transition: all var(--transition-base);
+}
+
+.flow-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Card Types */
+.flow-card.solar {
+    background: var(--color-solar);
+    border-color: transparent;
+    color: var(--color-bg-primary);
+}
+
+.flow-card.solar::before {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.flow-card.grid.feeding {
+    background: var(--color-grid-feeding);
+    border-color: transparent;
+    color: white;
+}
+
+.flow-card.grid.consuming {
+    background: var(--color-grid-consuming);
+    border-color: transparent;
+    color: white;
+}
+
+.flow-card.battery {
+    background: var(--color-battery);
+    border-color: transparent;
+    color: white;
+}
+
+/* Flow Center (House) */
+.flow-center {
+    background: var(--color-bg-elevated);
+    border: 2px solid var(--color-accent-green);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    box-shadow: var(--shadow-glow);
+    position: relative;
+}
+
+.flow-center::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, var(--color-accent-green), var(--color-accent-yellow));
+    border-radius: var(--radius-xl);
+    z-index: -1;
+    opacity: 0.3;
+    animation: pulse 3s infinite;
+}
+
+/* Icons */
+.flow-icon {
+    margin-bottom: var(--spacing-md);
+}
+
+.flow-icon svg,
+.house-icon svg {
+    width: 48px;
+    height: 48px;
+    stroke-width: 1.5;
+}
+
+.flow-card.solar .flow-icon svg {
+    stroke: var(--color-bg-primary);
+    fill: var(--color-bg-primary);
+}
+
+.flow-card.grid .flow-icon svg,
+.flow-card.battery .flow-icon svg {
+    stroke: white;
+}
+
+.house-icon svg {
+    stroke: var(--color-accent-green);
+    width: 56px;
+    height: 56px;
+}
+
+/* Labels & Values */
+.flow-label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    opacity: 0.9;
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.flow-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Energy Flow Lines Animation */
+@keyframes energyFlow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -30; }
+}
+
+.energy-flow-line {
+    stroke: var(--color-accent-green);
+    stroke-width: 2;
+    stroke-dasharray: 5 10;
+    animation: energyFlow 1s linear infinite;
+    fill: none;
+    opacity: 0.5;
+}

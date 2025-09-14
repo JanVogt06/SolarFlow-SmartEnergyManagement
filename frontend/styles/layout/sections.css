@@ -1,0 +1,38 @@
+/* Section Layouts - Im Landingpage-Stil */
+.main-content {
+    flex: 1;
+    padding: var(--spacing-2xl) 0;
+    background: var(--color-bg-primary);
+    min-height: calc(100vh - var(--navbar-height) - var(--tab-height));
+}
+
+/* Content Wrapper */
+.content-wrapper {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--spacing-xl);
+}
+
+/* Summary Cards */
+.devices-summary {
+    display: flex;
+    gap: var(--spacing-xl);
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.devices-summary strong {
+    color: var(--color-accent-green);
+    font-size: var(--font-size-lg);
+    margin-left: var(--spacing-xs);
+}
+
+/* Stats Date */
+.stats-date {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-md);
+}

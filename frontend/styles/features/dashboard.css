@@ -1,0 +1,113 @@
+/* Dashboard Specific Styles - Mit Landingpage-Elementen */
+.dashboard-container {
+    padding: var(--spacing-2xl) 0;
+}
+
+/* Dashboard Cards - Wie feature-card aus Landingpage */
+.dashboard-card {
+    background: var(--color-bg-secondary);
+    padding: 40px 30px;
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all var(--transition-base);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-2xl);
+}
+
+.quick-action-btn {
+    flex: 1;
+    padding: var(--spacing-lg);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.quick-action-btn:hover {
+    border-color: var(--color-accent-green);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(16, 185, 129, 0.05) 100%);
+    transform: translateY(-2px);
+}
+
+.quick-action-btn svg {
+    width: 32px;
+    height: 32px;
+    stroke: var(--color-accent-green);
+    margin-bottom: var(--spacing-sm);
+}
+
+.quick-action-btn span {
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+/* Summary Widget */
+.summary-widget {
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid var(--color-accent-green);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-widget::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg,
+        var(--color-accent-green),
+        var(--color-accent-yellow));
+}
+
+.summary-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.summary-stat {
+    text-align: center;
+}
+
+.summary-stat-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-accent-green);
+}
+
+.summary-stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-xs);
+}

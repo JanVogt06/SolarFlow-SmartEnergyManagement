@@ -1,0 +1,50 @@
+/* Footer - Im Landingpage-Stil */
+.app-footer {
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
+    padding: var(--spacing-lg) 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-lg);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.footer-separator {
+    color: var(--color-text-muted);
+    opacity: 0.5;
+}
+
+.footer-content a {
+    color: var(--color-accent-green);
+    text-decoration: none;
+    transition: opacity var(--transition-base);
+}
+
+.footer-content a:hover {
+    opacity: 0.8;
+}
+
+/* Footer Links */
+.footer-links {
+    display: flex;
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-md);
+    justify-content: center;
+}
+
+.footer-links a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-base);
+}
+
+.footer-links a:hover {
+    color: var(--color-accent-green);
+}

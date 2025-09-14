@@ -1,0 +1,299 @@
+/* Large Desktop (1400px+) - Default styles */
+
+/* Desktop (1200px) */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
+
+    .energy-flow-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Tablet Landscape (992px) */
+@media (max-width: 992px) {
+    :root {
+        --font-size-5xl: 2.25rem;
+        --font-size-4xl: 1.875rem;
+        --font-size-3xl: 1.5rem;
+    }
+
+    .container {
+        max-width: 960px;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .devices-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tablet Portrait (768px) */
+@media (max-width: 768px) {
+    :root {
+        --font-size-5xl: 1.875rem;
+        --font-size-4xl: 1.5rem;
+        --font-size-3xl: 1.25rem;
+        --font-size-2xl: 1.125rem;
+        --spacing-3xl: 2rem;
+        --spacing-2xl: 1.5rem;
+    }
+
+    .container {
+        max-width: 720px;
+        padding: 0 var(--spacing-md);
+    }
+
+    /* Navigation */
+    .navbar .container {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .nav-brand span {
+        display: none;
+    }
+
+    .nav-status {
+        gap: var(--spacing-md);
+    }
+
+    .last-update {
+        display: none;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+        justify-content: space-around;
+        padding: var(--spacing-sm);
+    }
+
+    .nav-tab {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-xs);
+    }
+
+    .nav-tab span {
+        display: none;
+    }
+
+    .nav-tab svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Energy Flow */
+    .energy-flow-container {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .flow-card,
+    .flow-center {
+        padding: var(--spacing-lg);
+    }
+
+    .flow-value {
+        font-size: var(--font-size-2xl);
+    }
+
+    /* Metrics */
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .metric-value {
+        font-size: var(--font-size-2xl);
+    }
+
+    /* Statistics */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+    }
+
+    .stat-value {
+        font-size: var(--font-size-xl);
+    }
+
+    /* Devices */
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+
+    .devices-summary {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Settings */
+    .setting-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+
+    .setting-row label {
+        min-width: auto;
+    }
+
+    /* Footer */
+    .footer-content {
+        font-size: var(--font-size-xs);
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .footer-separator {
+        display: none;
+    }
+}
+
+/* Mobile (576px) */
+@media (max-width: 576px) {
+    :root {
+        --font-size-3xl: 1.125rem;
+        --font-size-2xl: 1rem;
+        --font-size-xl: 0.9375rem;
+        --spacing-2xl: 1.25rem;
+        --spacing-xl: 1rem;
+    }
+
+    .container {
+        max-width: 540px;
+    }
+
+    /* Navigation */
+    .connection-status .status-text {
+        display: none;
+    }
+
+    /* Energy Flow */
+    .flow-icon svg,
+    .house-icon svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .flow-value {
+        font-size: var(--font-size-xl);
+    }
+
+    /* Buttons */
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Cost Summary */
+    .cost-summary-card {
+        padding: var(--spacing-lg);
+    }
+
+    .cost-row {
+        font-size: var(--font-size-base);
+    }
+}
+
+/* Small Mobile (480px) */
+@media (max-width: 480px) {
+    :root {
+        --font-size-base: 0.875rem;
+        --font-size-sm: 0.75rem;
+        --font-size-xs: 0.6875rem;
+    }
+
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Device Cards */
+    .device-card {
+        padding: var(--spacing-md);
+    }
+
+    .device-info-row {
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* Extra Small (360px) */
+@media (max-width: 360px) {
+    :root {
+        --font-size-3xl: 1rem;
+        --font-size-2xl: 0.875rem;
+        --font-size-xl: 0.8125rem;
+    }
+
+    /* Metric Cards */
+    .metric-card {
+        padding: var(--spacing-md);
+    }
+
+    .metric-value {
+        font-size: var(--font-size-xl);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .navbar,
+    .tab-navigation,
+    .app-footer,
+    .btn,
+    button {
+        display: none !important;
+    }
+
+    .tab-content {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+
+    .card,
+    .metric-card,
+    .device-card,
+    .stat-card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Dark Mode Override (for future implementation) */
+@media (prefers-color-scheme: light) {
+    .light-mode {
+        /* Light mode variables would go here */
+    }
+}

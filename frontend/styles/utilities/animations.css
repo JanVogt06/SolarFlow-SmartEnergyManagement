@@ -1,0 +1,112 @@
+/* Für Tab-Wechsel (.tab-content) */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Für Status-Dots und Connection-Status */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.05);
+    }
+}
+
+/* Für Loading-Spinner */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Für High-Power Anzeige */
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+    }
+}
+
+/* Für Energie-Fluss-Linien */
+@keyframes energyFlow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -30; }
+}
+
+/* Für Update-Flash bei Wertänderungen */
+@keyframes updateFlash {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(16, 185, 129, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+
+/* Loading State */
+.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--color-accent-green);
+    border-top-color: transparent;
+    border-radius: var(--radius-round);
+    animation: spin 0.8s linear infinite;
+}
+
+/* High Power Pulse */
+.high-power {
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* Update Flash */
+.updating {
+    animation: updateFlash 0.3s ease;
+}
+
+/* Hover Effects - Genutzt in Cards */
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+}
+
+/* Disabled State */
+.disabled,
+[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

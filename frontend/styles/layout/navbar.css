@@ -1,0 +1,87 @@
+.navbar {
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    backdrop-filter: blur(10px);
+    background: rgba(2, 6, 23, 0.95);
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-xl);
+    height: var(--navbar-height);
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--color-accent-green), var(--color-accent-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-logo {
+    height: 36px;
+    width: auto;
+}
+
+.nav-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    transition: all var(--transition-base);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-round);
+    background: var(--color-accent-red);
+    animation: pulse 2s infinite;
+}
+
+.connection-status.online .status-dot {
+    background: var(--color-accent-green);
+}
+
+.status-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.last-update {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.last-update::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    background: var(--color-text-muted);
+    border-radius: var(--radius-round);
+}

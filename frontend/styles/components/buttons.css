@@ -1,0 +1,79 @@
+/* Button Styles - Aus Landingpage übernommen */
+.btn {
+    padding: 12px 30px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+}
+
+.btn-primary {
+    background: var(--color-accent-green);
+    color: var(--color-bg-primary);
+}
+
+.btn-primary:hover {
+    background: #0ea571;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+    border: 2px solid var(--color-accent-green);
+    color: var(--color-accent-green);
+    background: transparent;
+}
+
+.btn-secondary:hover {
+    background: var(--color-accent-green);
+    transform: translateY(-2px);
+    color: var(--color-bg-primary);
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: var(--font-size-sm);
+}
+
+.btn-icon {
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    transition: all var(--transition-base);
+}
+
+.btn-icon:hover {
+    border-color: var(--color-accent-green);
+    background: var(--color-accent-green);
+    color: var(--color-bg-primary);
+}
+
+.btn i svg,
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    stroke: currentColor;
+}
+
+/* Button Group */
+.btn-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+/* Disabled State */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

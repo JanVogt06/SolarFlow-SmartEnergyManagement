@@ -1,0 +1,108 @@
+/* Status Indicators - Im Landingpage-Stil */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all var(--transition-base);
+}
+
+.status-indicator.online {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-accent-green);
+    border: 1px solid var(--color-accent-green);
+}
+
+.status-indicator.offline {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-accent-red);
+    border: 1px solid var(--color-accent-red);
+}
+
+.status-indicator.warning {
+    background: rgba(251, 191, 36, 0.1);
+    color: var(--color-accent-yellow);
+    border: 1px solid var(--color-accent-yellow);
+}
+
+/* Status Dot Animation */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-round);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* Connection Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 8px 16px;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.connection-status:hover {
+    border-color: var(--color-accent-green);
+    box-shadow: var(--shadow-glow);
+}
+
+.connection-status.online {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(16, 185, 129, 0.05) 100%);
+}
+
+.connection-status.online .status-dot {
+    background: var(--color-accent-green);
+}
+
+.connection-status.offline .status-dot {
+    background: var(--color-accent-red);
+}
+
+/* Info Box */
+.info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.info-box svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--color-accent-green);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.info-box p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
