@@ -13,12 +13,6 @@ export function updateConnectionStatus(isOnline) {
     if (statusText) {
         statusText.textContent = isOnline ? 'Verbunden' : 'Getrennt';
     }
-
-    // Add pulse animation when connecting
-    if (isOnline) {
-        statusEl.classList.add('pulse');
-        setTimeout(() => statusEl.classList.remove('pulse'), 2000);
-    }
 }
 
 export function debounce(func, wait) {

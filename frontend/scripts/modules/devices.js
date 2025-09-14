@@ -5,7 +5,6 @@ export class DevicesController {
         this.activeDevicesEl = document.getElementById('active-devices');
         this.totalConsumptionEl = document.getElementById('total-consumption');
         this.devices = [];
-        this.animationClasses = ['scroll-fade-in-up', 'scroll-stagger'];
     }
 
     update(devicesData) {
@@ -23,7 +22,7 @@ export class DevicesController {
         this.container.innerHTML = this.devices.map((device, index) => `
             <div class="device-card ${device.status === 'on' ? 'active' : ''} scroll-fade-in-up scroll-stagger" 
                  data-device="${device.name}"
-                 style="transition-delay: ${index * 0.1}s">
+                 style="transition-delay: ${index * 0.1}">
                 
                 <div class="device-header">
                     <div class="device-info">

@@ -44,9 +44,9 @@ class SolarFlowApp {
             // Set up event listeners
             this.setupEventListeners();
 
-            console.log('✅ SolarFlow App initialized successfully');
+            console.log('SolarFlow App initialized successfully');
         } catch (error) {
-            console.error('❌ Failed to initialize app:', error);
+            console.error('Failed to initialize app:', error);
             updateConnectionStatus(false);
         }
     }
