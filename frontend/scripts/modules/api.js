@@ -51,10 +51,4 @@ export class ApiClient {
     async getDevices() {
         return this.request('/api/devices');
     }
-
-    async toggleDevice(deviceName) {
-        return this.request(`/api/devices/${encodeURIComponent(deviceName)}/toggle`, {
-            method: 'POST'
-        });
-    }
 }

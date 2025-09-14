@@ -10,6 +10,13 @@ export class DevicesController {
     update(devicesData) {
         if (!devicesData || !devicesData.devices) return;
 
+        // Überprüfe, ob alle Geräte einen Status haben
+        devicesData.devices.forEach(device => {
+            if (!device.state) {
+                console.warn(`Gerät ${device.name} hat keinen Status.`);
+            }
+        });
+
         this.devices = devicesData.devices;
         this.renderDevices();
         this.updateSummary();
@@ -20,7 +27,7 @@ export class DevicesController {
         if (!this.container) return;
 
         this.container.innerHTML = this.devices.map((device, index) => `
-            <div class="device-card ${device.status === 'on' ? 'active' : ''} scroll-fade-in-up scroll-stagger" 
+            <div class="device-card ${device.state === 'on' ? 'active' : ''} scroll-fade-in-up scroll-stagger" 
                  data-device="${device.name}"
                  style="transition-delay: ${index * 0.1}">
                 
@@ -29,8 +36,8 @@ export class DevicesController {
                         <h3 class="device-name text-gradient">${device.name}</h3>
                         <p class="device-description">${device.description || ''}</p>
                     </div>
-                    <span class="device-status ${device.status}">
-                        ${this.getStatusText(device.status)}
+                    <span class="device-status ${device.state}">
+                        ${this.getStatusText(device.state)}
                     </span>
                 </div>
 
@@ -77,15 +84,6 @@ export class DevicesController {
                     </div>
                 </div>
 
-                <div class="device-actions">
-                    <button class="btn btn-secondary btn-small" 
-                            onclick="app.controllers.devices.toggleDevice('${device.name}')"
-                            ${device.control_allowed ? '' : 'disabled'}>
-                        <i data-lucide="${device.status === 'on' ? 'power-off' : 'power'}"></i>
-                        ${device.status === 'on' ? 'Ausschalten' : 'Einschalten'}
-                    </button>
-                </div>
-
                 ${device.blocked_reason ? `
                     <div class="device-warning">
                         <i data-lucide="alert-triangle"></i>
@@ -119,7 +117,7 @@ export class DevicesController {
     }
 
     updateSummary() {
-        const activeDevices = this.devices.filter(d => d.status === 'on');
+        const activeDevices = this.devices.filter(d => d.state === 'on');
         const totalConsumption = activeDevices.reduce((sum, d) => sum + d.power_consumption, 0);
 
         if (this.activeDevicesEl) {
@@ -145,23 +143,6 @@ export class DevicesController {
                 card.classList.add('scroll-visible');
             }, index * 100);
         });
-    }
-
-    async toggleDevice(deviceName) {
-        try {
-            const button = event.currentTarget;
-            button.classList.add('loading');
-
-            await this.api.toggleDevice(deviceName);
-
-            // Refresh devices
-            const devicesData = await this.api.getDevices();
-            this.update(devicesData);
-
-        } catch (error) {
-            console.error('Failed to toggle device:', error);
-            this.showNotification('Fehler beim Schalten des Geräts', 'error');
-        }
     }
 
     showNotification(message, type = 'info') {
