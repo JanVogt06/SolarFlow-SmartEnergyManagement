@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarFlow - Smart Energy Management</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <!-- Chart.js für Visualisierungen -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <h1>SolarFlow Energy Manager</h1>
+                </div>
+                <div class="header-status">
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Verbinde...</span>
+                    </div>
+                    <div class="last-update" id="last-update">--:--:--</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="overview">Übersicht</button>
+            <button class="nav-tab" data-tab="devices">Geräte</button>
+            <button class="nav-tab" data-tab="statistics">Statistik</button>
+            <button class="nav-tab" data-tab="settings">Einstellungen</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Übersicht Tab -->
+            <div class="tab-content active" id="overview-tab">
+                <!-- Energie-Fluss Visualisierung -->
+                <div class="energy-flow-container">
+                    <div class="flow-card solar">
+                        <div class="flow-icon">☀️</div>
+                        <div class="flow-label">PV-Erzeugung</div>
+                        <div class="flow-value" id="pv-power">-- W</div>
+                        <div class="flow-arrow">→</div>
+                    </div>
+
+                    <div class="flow-center">
+                        <div class="house-icon">🏠</div>
+                        <div class="flow-label">Verbrauch</div>
+                        <div class="flow-value" id="load-power">-- W</div>
+                    </div>
+
+                    <div class="flow-card grid" id="grid-card">
+                        <div class="flow-icon">⚡</div>
+                        <div class="flow-label" id="grid-label">Netz</div>
+                        <div class="flow-value" id="grid-power">-- W</div>
+                        <div class="flow-arrow" id="grid-arrow">←</div>
+                    </div>
+
+                    <div class="flow-card battery" id="battery-card">
+                        <div class="flow-icon">🔋</div>
+                        <div class="flow-label">Batterie</div>
+                        <div class="flow-value" id="battery-soc">--%</div>
+                        <div class="battery-bar">
+                            <div class="battery-fill" id="battery-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metriken Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-icon">♻️</span>
+                            <span class="metric-label">Autarkie</span>
+                        </div>
+                        <div class="metric-value" id="autarky-rate">--%</div>
+                        <div class="metric-chart">
+                            <canvas id="autarky-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-icon">💰</span>
+                            <span class="metric-label">Ersparnis heute</span>
+                        </div>
+                        <div class="metric-value" id="cost-saved">--€</div>
+                        <div class="metric-subtext" id="total-benefit">Gesamt: --€</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-icon">⚡</span>
+                            <span class="metric-label">Überschuss</span>
+                        </div>
+                        <div class="metric-value" id="surplus-power">-- W</div>
+                        <div class="metric-subtext" id="surplus-status">--</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-icon">📊</span>
+                            <span class="metric-label">Tagesenergie</span>
+                        </div>
+                        <div class="metric-value" id="daily-energy">-- kWh</div>
+                        <div class="metric-subtext">
+                            Einspeisung: <span id="feed-in-energy">-- kWh</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Chart -->
+                <div class="chart-container">
+                    <h3>Leistungsverlauf (letzte 60 Minuten)</h3>
+                    <canvas id="power-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Geräte Tab -->
+            <div class="tab-content" id="devices-tab">
+                <div class="devices-header">
+                    <h2>Intelligente Gerätesteuerung</h2>
+                    <div class="devices-summary">
+                        <span>Aktive Geräte: <strong id="active-devices">0</strong></span>
+                        <span>Gesamtverbrauch: <strong id="total-consumption">0 W</strong></span>
+                    </div>
+                </div>
+
+                <div class="devices-grid" id="devices-grid">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+
+                <div class="devices-info">
+                    <p>Geräte werden automatisch basierend auf dem verfügbaren Überschuss gesteuert.</p>
+                </div>
+            </div>
+
+            <!-- Statistik Tab -->
+            <div class="tab-content" id="statistics-tab">
+                <div class="stats-header">
+                    <h2>Tagesstatistik</h2>
+                    <div class="stats-date" id="stats-date">--</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">PV-Produktion</div>
+                        <div class="stat-value" id="stat-pv-energy">-- kWh</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Verbrauch</div>
+                        <div class="stat-value" id="stat-consumption">-- kWh</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Eigenverbrauch</div>
+                        <div class="stat-value" id="stat-self-consumption">-- kWh</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Netzbezug</div>
+                        <div class="stat-value" id="stat-grid-energy">-- kWh</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Einspeisung</div>
+                        <div class="stat-value" id="stat-feed-in">-- kWh</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Ø Autarkie</div>
+                        <div class="stat-value" id="stat-autarky-avg">-- %</div>
+                    </div>
+                </div>
+
+                <div class="cost-summary">
+                    <h3>Kostenübersicht</h3>
+                    <div class="cost-row">
+                        <span>Eingesparte Kosten:</span>
+                        <span id="stat-cost-saved">-- €</span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Gesamtnutzen:</span>
+                        <span id="stat-total-benefit">-- €</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Einstellungen Tab -->
+            <div class="tab-content" id="settings-tab">
+                <div class="settings-section">
+                    <h3>API Verbindung</h3>
+                    <div class="setting-row">
+                        <label>Server URL:</label>
+                        <input type="text" id="api-url" value="http://localhost:8000">
+                        <button onclick="saveSettings()">Speichern</button>
+                    </div>
+                    <div class="setting-row">
+                        <label>Update Intervall:</label>
+                        <select id="update-interval">
+                            <option value="1000">1 Sekunde</option>
+                            <option value="5000" selected>5 Sekunden</option>
+                            <option value="10000">10 Sekunden</option>
+                            <option value="30000">30 Sekunden</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Anzeige</h3>
+                    <div class="setting-row">
+                        <label>
+                            <input type="checkbox" id="show-animations" checked>
+                            Animationen anzeigen
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <label>
+                            <input type="checkbox" id="dark-mode">
+                            Dark Mode (coming soon)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span>SolarFlow v1.1.1</span>
+                <span>•</span>
+                <span>Friedrich-Schiller-Universität Jena</span>
+                <span>•</span>
+                <span>© 2024 Jan Vogt</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="scripts/api.js"></script>
+    <script src="scripts/charts.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html>

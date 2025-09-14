@@ -328,6 +328,23 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'name': '--version',
                 'action': 'version',
                 'version': 'Fronius Solar Monitor 1.0.0'
+            },
+            {
+                'name': '--api',
+                'action': 'store_true',
+                'help': 'Startet mit REST API für Frontend (Port 8000)'
+            },
+            {
+                'name': '--api-port',
+                'type': int,
+                'default': 8000,
+                'help': 'Port für API Server (Standard: 8000)'
+            },
+            {
+                'name': '--api-host',
+                'type': str,
+                'default': '0.0.0.0',
+                'help': 'Host für API Server (Standard: 0.0.0.0)'
             }
         ]
     }

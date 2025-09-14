@@ -7,3 +7,7 @@ rich>=13.7.0             # Rich Terminal UI für Live-Display
 
 # Hue Integration
 phue>=1.1                # Philips Hue Bridge Steuerung
+
+# Api
+fastapi>=0.104.0
+uvicorn>=0.24.0

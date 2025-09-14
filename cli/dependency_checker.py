@@ -14,13 +14,19 @@ REQUIRED_DEPENDENCIES: Dict[str, str] = {
     'phue': 'phue>=1.1',
 }
 
+OPTIONAL_DEPENDENCIES: Dict[str, str] = {
+    'fastapi': 'fastapi>=0.104.0',
+    'uvicorn': 'uvicorn>=0.24.0',
+}
 
-def check_dependencies(skip_check: bool = False) -> bool:
+
+def check_dependencies(skip_check: bool = False, with_api: bool = False) -> bool:
     """
     Prüft und installiert fehlende Dependencies.
 
     Args:
         skip_check: Wenn True, wird die Prüfung übersprungen
+        with_api: Wenn True, werden auch API-Dependencies geprüft
 
     Returns:
         True wenn alle Dependencies verfügbar sind, False sonst
@@ -30,6 +36,12 @@ def check_dependencies(skip_check: bool = False) -> bool:
 
     # Sammle fehlende Dependencies
     missing_deps = _find_missing_dependencies()
+
+    # Prüfe API-Dependencies wenn --api gesetzt
+    if with_api:
+        for module_name, pip_package in OPTIONAL_DEPENDENCIES.items():
+            if not _check_single_dependency(module_name, pip_package):
+                missing_deps.append((module_name, pip_package))
 
     # Wenn alle Dependencies installiert sind
     if not missing_deps:
