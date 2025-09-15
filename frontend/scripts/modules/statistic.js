@@ -34,9 +34,6 @@ export class StatisticsController {
 
         // Update cost summary with special animation
         this.updateCostSummary(stats);
-
-        // Apply card animations
-        this.applyCardAnimations();
     }
 
     updateDate() {
@@ -106,21 +103,8 @@ export class StatisticsController {
         }, stepDuration);
     }
 
-    applyCardAnimations() {
-        // Apply scroll animations to all stat cards
-        const cards = document.querySelectorAll('.stat-card');
-        cards.forEach((card, index) => {
-            card.classList.add('scroll-fade-in-up', 'scroll-stagger');
-            setTimeout(() => {
-                card.classList.add('scroll-visible');
-            }, index * 100);
-        });
-    }
-
     onActivate() {
         // Called when statistics tab is activated
-        this.applyCardAnimations();
-
         if (this.api) {
             this.api.getStats().then(stats => this.update(stats));
         }

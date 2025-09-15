@@ -132,18 +132,3 @@
     font-weight: 700;
     line-height: 1;
 }
-
-/* Energy Flow Lines Animation */
-@keyframes energyFlow {
-    0% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: -30; }
-}
-
-.energy-flow-line {
-    stroke: var(--color-accent-green);
-    stroke-width: 2;
-    stroke-dasharray: 5 10;
-    animation: energyFlow 1s linear infinite;
-    fill: none;
-    opacity: 0.5;
-}

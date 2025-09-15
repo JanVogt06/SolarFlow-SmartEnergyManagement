@@ -20,14 +20,13 @@ export class DevicesController {
         this.devices = devicesData.devices;
         this.renderDevices();
         this.updateSummary();
-        this.applyAnimations();
     }
 
     renderDevices() {
         if (!this.container) return;
 
         this.container.innerHTML = this.devices.map((device, index) => `
-            <div class="device-card ${device.state === 'on' ? 'active' : ''} scroll-fade-in-up scroll-stagger" 
+            <div class="device-card ${device.state === 'on' ? 'active' : ''}" 
                  data-device="${device.name}"
                  style="transition-delay: ${index * 0.1}">
                 
@@ -133,20 +132,10 @@ export class DevicesController {
         element.textContent = newValue;
     }
 
-    applyAnimations() {
-        // Trigger scroll animations wie auf der Landingpage
-        const cards = this.container.querySelectorAll('.device-card');
-        cards.forEach((card, index) => {
-            setTimeout(() => {
-                card.classList.add('scroll-visible');
-            }, index * 100);
-        });
-    }
-
     showNotification(message, type = 'info') {
-        // Notification system wie auf der Landingpage
+        // Notification system
         const notification = document.createElement('div');
-        notification.className = `notification notification-${type} scroll-fade-in-right`;
+        notification.className = `notification notification-${type}`;
         notification.innerHTML = `
             <i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}"></i>
             <span>${message}</span>
@@ -162,6 +151,6 @@ export class DevicesController {
 
     onActivate() {
         // Called when devices tab is activated
-        this.applyAnimations();
+        // Simply refresh if needed
     }
 }

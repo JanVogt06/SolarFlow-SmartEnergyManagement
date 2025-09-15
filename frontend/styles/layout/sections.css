@@ -1,9 +1,8 @@
 /* Section Layouts - Im Landingpage-Stil */
 .main-content {
     flex: 1;
-    padding: var(--spacing-2xl) 0;
+    padding: var(--spacing-lg) 0;  /* Reduziert von 2xl auf lg */
     background: var(--color-bg-primary);
-    min-height: calc(100vh - var(--navbar-height) - var(--tab-height));
 }
 
 /* Content Wrapper */

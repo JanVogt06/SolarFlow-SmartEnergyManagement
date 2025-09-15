@@ -10,8 +10,7 @@ export class SettingsController {
         return {
             apiUrl: document.getElementById('api-url'),
             updateInterval: document.getElementById('update-interval'),
-            saveButton: document.getElementById('save-settings'),
-            showAnimations: document.getElementById('show-animations'),
+            saveButton: document.getElementById('save-settings')
         };
     }
 
@@ -26,12 +25,6 @@ export class SettingsController {
             this.elements.saveButton.addEventListener('click', () => this.saveSettings());
         }
 
-        if (this.elements.showAnimations) {
-            this.elements.showAnimations.addEventListener('change', (e) => {
-                this.toggleAnimations(e.target.checked);
-            });
-        }
-
         // Add input validation
         if (this.elements.apiUrl) {
             this.elements.apiUrl.addEventListener('input', () => {
@@ -44,7 +37,6 @@ export class SettingsController {
         // Load saved settings
         const apiUrl = localStorage.getItem('apiUrl') || 'http://localhost:8000';
         const updateInterval = localStorage.getItem('updateInterval') || '5000';
-        const showAnimations = localStorage.getItem('showAnimations') !== 'false';
 
         if (this.elements.apiUrl) {
             this.elements.apiUrl.value = apiUrl;
@@ -52,10 +44,6 @@ export class SettingsController {
 
         if (this.elements.updateInterval) {
             this.elements.updateInterval.value = updateInterval;
-        }
-
-        if (this.elements.showAnimations) {
-            this.elements.showAnimations.checked = showAnimations;
         }
     }
 
@@ -182,7 +170,7 @@ export class SettingsController {
 
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
-        notification.className = `notification notification-${type} scroll-fade-in-right`;
+        notification.className = `notification notification-${type}`;
 
         const icon = type === 'success' ? 'check-circle' :
                      type === 'error' ? 'alert-circle' : 'info';
@@ -202,21 +190,11 @@ export class SettingsController {
         }, 3000);
     }
 
-    toggleAnimations(enabled) {
-        localStorage.setItem('showAnimations', enabled);
-        document.body.classList.toggle('no-animations', !enabled);
-    }
-
     applySettingsAnimation() {
         // Apply stagger animation to settings cards
         const cards = document.querySelectorAll('.settings-card');
         cards.forEach((card, index) => {
-            card.classList.add('scroll-fade-in-up');
             card.style.transitionDelay = `${index * 0.1}s`;
-
-            setTimeout(() => {
-                card.classList.add('scroll-visible');
-            }, 100);
         });
     }
 

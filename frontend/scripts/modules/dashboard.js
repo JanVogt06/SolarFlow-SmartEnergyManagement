@@ -98,13 +98,6 @@ export class DashboardController {
         // Update label and value
         label.textContent = isFeeding ? 'Einspeisung' : 'Netzbezug';
         power.textContent = `${absolutePower} W`;
-
-        // Add pulse animation for significant power
-        if (absolutePower > 1000) {
-            card.classList.add('high-power');
-        } else {
-            card.classList.remove('high-power');
-        }
     }
 
     updateBatteryStatus(data) {
