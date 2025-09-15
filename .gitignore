@@ -7,5 +7,8 @@
 Datalogs/
 solar_monitor.log
 
+# Builts
+build/
+
 # Lokale Konfigurationsdatei
 devices.json

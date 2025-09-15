@@ -1,25 +1,26 @@
+# SolarFlow.spec
 import os
 from pathlib import Path
 
 block_cipher = None
 
-# Sammle Frontend-Dateien (HTML, CSS, JS)
+# Sammle Frontend-Dateien
 frontend_path = Path('frontend')
 frontend_files = []
 if frontend_path.exists():
     for root, dirs, files in os.walk(frontend_path):
         for file in files:
-            if file.endswith(('.html', '.css', '.js', '.json', '.png', '.jpg', '.ico', '.svg')):
+            if not file.startswith('.'):  # Ignoriere versteckte Dateien wie .DS_Store
                 file_path = Path(root) / file
                 relative_path = file_path.relative_to(frontend_path.parent)
                 frontend_files.append((str(file_path), str(relative_path.parent)))
 
 # Weitere Daten-Dateien
-datas = frontend_files + [
-    ('devices.json', '.') if os.path.exists('devices.json') else ('devices.json.example', '.') if os.path.exists('devices.json.example') else None,
-]
-# Filtere None-Werte
-datas = [d for d in datas if d is not None]
+datas = frontend_files
+if os.path.exists('devices.json'):
+    datas.append(('devices.json', '.'))
+elif os.path.exists('devices.json.example'):
+    datas.append(('devices.json.example', '.'))
 
 a = Analysis(
     ['main.py'],
@@ -40,6 +41,16 @@ a = Analysis(
         'fastapi',
         'starlette',
         'pydantic',
+        'anyio',
+        'sniffio',
+        'httptools',
+        'websockets',
+        'watchfiles',
+        'python-multipart',
+        'click',
+        'h11',
+        'httpcore',
+        'httpx',
     ],
     hookspath=[],
     hooksconfig={},
@@ -67,7 +78,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,  # Auf False setzen für Windows ohne Konsolenfenster
+    console=True,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,

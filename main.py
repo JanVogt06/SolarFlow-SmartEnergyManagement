@@ -30,6 +30,7 @@ from solar_monitor import SolarMonitor, Config
 
 # API Import nur wenn benötigt
 if api_enabled:
+    print(f"DEBUG: api_enabled = {api_enabled}")
     try:
         from api import APIServer
     except ImportError:
