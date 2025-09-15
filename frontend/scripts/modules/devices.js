@@ -130,9 +130,7 @@ export class DevicesController {
     }
 
     animateValue(element, newValue) {
-        element.classList.add('updating');
         element.textContent = newValue;
-        setTimeout(() => element.classList.remove('updating'), 300);
     }
 
     applyAnimations() {

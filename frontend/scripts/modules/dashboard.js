@@ -46,13 +46,31 @@ export class DashboardController {
     updateStats(stats) {
         if (!stats) return;
 
-        // Update cost savings
-        this.updateValue('costSaved', `${stats.cost_saved.toFixed(2)}€`);
-        this.updateValue('totalBenefit', `Gesamt: ${stats.total_benefit.toFixed(2)}€`);
+        // Update cost savings with fallback
+        if (stats.cost_saved !== undefined && stats.cost_saved !== null) {
+            this.updateValue('costSaved', `${stats.cost_saved.toFixed(2)}€`);
+        } else {
+            this.updateValue('costSaved', '0.00€');
+        }
 
-        // Update daily energy
-        this.updateValue('dailyEnergy', `${stats.pv_energy.toFixed(1)} kWh`);
-        this.updateValue('feedInEnergy', `${stats.feed_in_energy.toFixed(1)} kWh`);
+        if (stats.total_benefit !== undefined && stats.total_benefit !== null) {
+            this.updateValue('totalBenefit', `Gesamt: ${stats.total_benefit.toFixed(2)}€`);
+        } else {
+            this.updateValue('totalBenefit', 'Gesamt: 0.00€');
+        }
+
+        // Update daily energy with fallback
+        if (stats.pv_energy !== undefined && stats.pv_energy !== null) {
+            this.updateValue('dailyEnergy', `${stats.pv_energy.toFixed(1)} kWh`);
+        } else {
+            this.updateValue('dailyEnergy', '0.0 kWh');
+        }
+
+        if (stats.feed_in_energy !== undefined && stats.feed_in_energy !== null) {
+            this.updateValue('feedInEnergy', `${stats.feed_in_energy.toFixed(1)} kWh`);
+        } else {
+            this.updateValue('feedInEnergy', '0.0 kWh');
+        }
     }
 
     updatePowerValue(elementId, value, unit) {
@@ -60,13 +78,7 @@ export class DashboardController {
         if (!element) return;
 
         const formattedValue = Math.round(value);
-        const newText = `${formattedValue} ${unit}`;
-
-        if (element.textContent !== newText) {
-            element.classList.add('updating');
-            element.textContent = newText;
-            setTimeout(() => element.classList.remove('updating'), 300);
-        }
+        element.textContent = `${formattedValue} ${unit}`;
     }
 
     updateGridStatus(gridPower) {

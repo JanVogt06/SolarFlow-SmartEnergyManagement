@@ -25,12 +25,12 @@ export class StatisticsController {
         this.updateDate();
 
         // Update all statistics with stagger animation
-        this.updateStatWithAnimation('pvEnergy', `${stats.pv_energy.toFixed(1)} kWh`, 0);
-        this.updateStatWithAnimation('consumption', `${stats.consumption_energy.toFixed(1)} kWh`, 100);
-        this.updateStatWithAnimation('selfConsumption', `${stats.self_consumption_energy.toFixed(1)} kWh`, 200);
-        this.updateStatWithAnimation('gridEnergy', `${stats.grid_energy.toFixed(1)} kWh`, 300);
-        this.updateStatWithAnimation('feedIn', `${stats.feed_in_energy.toFixed(1)} kWh`, 400);
-        this.updateStatWithAnimation('autarkyAvg', `${stats.autarky_average.toFixed(1)} %`, 500);
+        this.updateStat('pvEnergy', `${stats.pv_energy.toFixed(1)} kWh`, 0);
+        this.updateStat('consumption', `${stats.consumption_energy.toFixed(1)} kWh`, 100);
+        this.updateStat('selfConsumption', `${stats.self_consumption_energy.toFixed(1)} kWh`, 200);
+        this.updateStat('gridEnergy', `${stats.grid_energy.toFixed(1)} kWh`, 300);
+        this.updateStat('feedIn', `${stats.feed_in_energy.toFixed(1)} kWh`, 400);
+        this.updateStat('autarkyAvg', `${stats.autarky_avg.toFixed(1)} %`, 500);
 
         // Update cost summary with special animation
         this.updateCostSummary(stats);
@@ -55,24 +55,10 @@ export class StatisticsController {
         setTimeout(() => this.elements.statsDate.classList.remove('updating'), 300);
     }
 
-    updateStatWithAnimation(key, value, delay) {
+    updateStat(key, value, delay) {
         const element = this.elements[key];
         if (!element) return;
-
-        setTimeout(() => {
-            element.classList.add('updating');
-            element.style.transform = 'scale(0.95)';
-
-            setTimeout(() => {
-                element.textContent = value;
-                element.style.transform = 'scale(1.05)';
-
-                setTimeout(() => {
-                    element.style.transform = 'scale(1)';
-                    element.classList.remove('updating');
-                }, 150);
-            }, 150);
-        }, delay);
+        element.textContent = value;
     }
 
     updateCostSummary(stats) {

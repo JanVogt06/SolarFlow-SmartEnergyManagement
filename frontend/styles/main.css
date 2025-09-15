@@ -17,7 +17,6 @@
 @import './components/status.css';
 
 /* Features - Page specific */
-@import './features/dashboard.css';
 @import './features/energy-flow.css';
 
 /* Utilities - Helpers */

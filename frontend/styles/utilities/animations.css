@@ -36,19 +36,6 @@
     100% { stroke-dashoffset: -30; }
 }
 
-/* Für Update-Flash bei Wertänderungen */
-@keyframes updateFlash {
-    0% {
-        background-color: transparent;
-    }
-    50% {
-        background-color: rgba(16, 185, 129, 0.1);
-    }
-    100% {
-        background-color: transparent;
-    }
-}
-
 
 /* Loading State */
 .loading {
@@ -74,11 +61,6 @@
 /* High Power Pulse */
 .high-power {
     animation: glow 2s ease-in-out infinite;
-}
-
-/* Update Flash */
-.updating {
-    animation: updateFlash 0.3s ease;
 }
 
 /* Hover Effects - Genutzt in Cards */

@@ -12,6 +12,8 @@ class SolarFlowApp {
         this.controllers = {};
         this.updateInterval = 5000;
         this.intervalId = null;
+        this.isConnected = false;  // NEU: Verbindungsstatus tracken
+        this.connectionCheckCounter = 0;  // NEU: Fehler-Counter
 
         this.init();
     }
@@ -64,6 +66,7 @@ class SolarFlowApp {
         // Network status
         window.addEventListener('online', () => this.resumeUpdates());
         window.addEventListener('offline', () => {
+            this.isConnected = false;  // GEÄNDERT
             updateConnectionStatus(false);
             this.pauseUpdates();
         });
@@ -92,13 +95,21 @@ class SolarFlowApp {
 
     async updateAll() {
         try {
-            // Update connection status
-            updateConnectionStatus(true);
+
+            // Update timestamp
+            this.updateTimestamp();
 
             // Get current data
             const currentData = await this.api.getCurrentData();
             if (currentData) {
                 this.controllers.dashboard.update(currentData);
+
+                // Verbindung ist gut - nur updaten wenn Status sich ändert
+                if (!this.isConnected) {
+                    this.isConnected = true;
+                    updateConnectionStatus(true);
+                }
+                this.connectionCheckCounter = 0;  // Reset error counter
             }
 
             // Get devices data
@@ -114,13 +125,15 @@ class SolarFlowApp {
                 // Update dashboard stats
                 this.controllers.dashboard.updateStats(statsData);
             }
-
-            // Update timestamp
-            this.updateTimestamp();
-
         } catch (error) {
             console.error('Update error:', error);
-            updateConnectionStatus(false);
+
+            // NEU: Nur als getrennt markieren nach mehreren Fehlversuchen
+            this.connectionCheckCounter++;
+            if (this.connectionCheckCounter >= 3 && this.isConnected) {
+                this.isConnected = false;
+                updateConnectionStatus(false);
+            }
         }
     }
 

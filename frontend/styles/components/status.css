@@ -12,24 +12,6 @@
     transition: all var(--transition-base);
 }
 
-.status-indicator.online {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--color-accent-green);
-    border: 1px solid var(--color-accent-green);
-}
-
-.status-indicator.offline {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--color-accent-red);
-    border: 1px solid var(--color-accent-red);
-}
-
-.status-indicator.warning {
-    background: rgba(251, 191, 36, 0.1);
-    color: var(--color-accent-yellow);
-    border: 1px solid var(--color-accent-yellow);
-}
-
 /* Status Dot Animation */
 .status-dot {
     width: 8px;
