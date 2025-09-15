@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'  # z.B. v1.0.0, v1.1.2
+      - 'v*'  # Triggert bei Tags wie v1.0.0, v1.1.2
 
 permissions:
   contents: write
@@ -19,12 +19,15 @@ jobs:
           - os: windows-latest
             artifact_name: SolarFlow.exe
             asset_name: SolarFlow-windows-x64.exe
+            archive_name: SolarFlow-windows-x64.zip
           - os: macos-latest
             artifact_name: SolarFlow
             asset_name: SolarFlow-macos-x64
+            archive_name: SolarFlow-macos-x64.tar.gz
           - os: ubuntu-latest
             artifact_name: SolarFlow
             asset_name: SolarFlow-linux-x64
+            archive_name: SolarFlow-linux-x64.tar.gz
 
     steps:
     - name: Checkout code
@@ -43,7 +46,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --name SolarFlow --icon assets/icon.ico main.py
+        pyinstaller SolarFlow.spec --clean
 
     - name: Rename executable
       run: |
@@ -51,14 +54,71 @@ jobs:
           mv dist/SolarFlow.exe dist/${{ matrix.asset_name }}
         else
           mv dist/SolarFlow dist/${{ matrix.asset_name }}
+          chmod +x dist/${{ matrix.asset_name }}
         fi
       shell: bash
 
-    - name: Upload artifacts
+    - name: Create README
+      run: |
+        cat > dist/README.md << 'EOF'
+        # SolarFlow Smart Energy Management
+
+        ## 🚀 Quick Start
+        1. Executable starten (Doppelklick oder Terminal)
+        2. Browser öffnet automatisch das Dashboard (http://localhost:8000)
+        3. Fronius IP-Adresse konfigurieren
+
+        ## ⚙️ Kommandozeilen-Optionen
+        - `--ip <IP>`: Fronius Wechselrichter IP direkt setzen
+        - `--no-api`: Ohne Web-Interface starten (nur Terminal)
+        - `--no-colors`: Ohne Farben im Terminal
+        - `--simple`: Einfache einzeilige Ausgabe
+        - `--interval <sec>`: Update-Intervall in Sekunden
+
+        ## 📊 Features
+        - Echtzeit Solar-Monitoring
+        - Web Dashboard mit Live-Updates
+        - Intelligente Gerätesteuerung
+        - Tagesstatistiken und Kostenberechnung
+        - REST API für Integration
+
+        ## 🔗 Links
+        - Dashboard: http://localhost:8000
+        - API Dokumentation: http://localhost:8000/docs
+        EOF
+      shell: bash
+
+    - name: Copy example config if exists
+      run: |
+        if [ -f "devices.json.example" ]; then
+          cp devices.json.example dist/devices.json.example
+        fi
+        if [ -f "config.json.example" ]; then
+          cp config.json.example dist/config.json.example
+        fi
+      shell: bash
+
+    - name: Create archive
+      run: |
+        cd dist
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          7z a ${{ matrix.archive_name }} ${{ matrix.asset_name }} README.md *.example
+        else
+          tar -czf ${{ matrix.archive_name }} ${{ matrix.asset_name }} README.md *.example 2>/dev/null || tar -czf ${{ matrix.archive_name }} ${{ matrix.asset_name }} README.md
+        fi
+      shell: bash
+
+    - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
         path: dist/${{ matrix.asset_name }}
+
+    - name: Upload archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.archive_name }}
+        path: dist/${{ matrix.archive_name }}
 
   release:
     name: Create Release
@@ -66,38 +126,106 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout code (for CHANGELOG if exists)
+      uses: actions/checkout@v4
+
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
         path: ./artifacts
 
-    - name: List downloaded files
+    - name: List downloaded files (debug)
       run: |
         echo "Downloaded artifacts:"
         ls -la ./artifacts/
-        ls -la ./artifacts/*/
+
+    - name: Extract version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog (if CHANGELOG.md exists)
+      id: changelog
+      run: |
+        if [ -f "CHANGELOG.md" ]; then
+          # Extrahiere den relevanten Teil des Changelogs
+          awk '/^## \[/ {if (p) exit; p=1; next} p' CHANGELOG.md > changelog_excerpt.txt
+          echo "CHANGELOG_EXISTS=true" >> $GITHUB_OUTPUT
+        else
+          echo "CHANGELOG_EXISTS=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           ./artifacts/SolarFlow-windows-x64.exe/SolarFlow-windows-x64.exe
+          ./artifacts/SolarFlow-windows-x64.zip/SolarFlow-windows-x64.zip
           ./artifacts/SolarFlow-macos-x64/SolarFlow-macos-x64
+          ./artifacts/SolarFlow-macos-x64.tar.gz/SolarFlow-macos-x64.tar.gz
           ./artifacts/SolarFlow-linux-x64/SolarFlow-linux-x64
+          ./artifacts/SolarFlow-linux-x64.tar.gz/SolarFlow-linux-x64.tar.gz
+        name: SolarFlow ${{ steps.get_version.outputs.VERSION }}
         body: |
-          ## ☀️ SolarFlow Release
+          # ☀️ SolarFlow Smart Energy Management ${{ steps.get_version.outputs.VERSION }}
 
-          Diese Version wurde automatisch von GitHub Actions erstellt.
+          ## ✨ Highlights
+          - 📊 **Web Dashboard**: Modernes Dashboard mit Echtzeit-Visualisierung
+          - 🔌 **REST API**: Vollständige API für Integration und Automatisierung
+          - 🏠 **Intelligente Gerätesteuerung**: Optimale Nutzung des Solarstroms
+          - 📈 **Live Monitoring**: Echtzeit-Daten von Fronius Wechselrichtern
 
-          ### 🧾 Plattformen
-          - **Windows:** `SolarFlow-windows-x64.exe`
-          - **macOS:** `SolarFlow-macos-x64`
-          - **Linux:** `SolarFlow-linux-x64`
+          ## 📦 Downloads
 
-          ### 🔧 Nutzung
-          1. Passende Datei für dein System herunterladen
-          2. (Linux/macOS) Datei ausführbar machen: `chmod +x SolarFlow-*`
-          3. Ausführen: `./SolarFlow-*`
+          ### Standalone Executables (Empfohlen)
+          Einzelne ausführbare Datei mit allem was benötigt wird:
+          - **Windows**: [`SolarFlow-windows-x64.exe`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-windows-x64.exe)
+          - **macOS**: [`SolarFlow-macos-x64`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-macos-x64)
+          - **Linux**: [`SolarFlow-linux-x64`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-linux-x64)
+
+          ### Archive mit Zusatzdateien
+          Enthält Executable, README und Beispielkonfigurationen:
+          - **Windows**: [`SolarFlow-windows-x64.zip`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-windows-x64.zip)
+          - **macOS**: [`SolarFlow-macos-x64.tar.gz`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-macos-x64.tar.gz)
+          - **Linux**: [`SolarFlow-linux-x64.tar.gz`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-linux-x64.tar.gz)
+
+          ## 🚀 Installation & Start
+
+          ### Windows
+          1. `SolarFlow-windows-x64.exe` herunterladen
+          2. Doppelklick zum Starten
+          3. Browser öffnet automatisch das Dashboard
+
+          ### macOS / Linux
+          ```bash
+          # Herunterladen
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-linux-x64
+          
+          # Ausführbar machen
+          chmod +x SolarFlow-linux-x64
+          
+          # Starten
+          ./SolarFlow-linux-x64
+          ```
+
+          ## 🔧 Erste Schritte
+
+          1. **Fronius IP konfigurieren**: 
+             ```bash
+             ./SolarFlow --ip 192.168.178.90
+             ```
+
+          2. **Dashboard öffnet sich automatisch** auf http://localhost:8000
+
+          3. **API-Dokumentation** verfügbar unter http://localhost:8000/docs
+
+          ## 📝 Systemanforderungen
+
+          - Fronius Wechselrichter mit Solar API
+          - Netzwerkzugang zum Wechselrichter
+          - Moderner Webbrowser für Dashboard
+
+          ---
+          *Built with ❤️ using GitHub Actions*
 
         draft: false
         prerelease: false

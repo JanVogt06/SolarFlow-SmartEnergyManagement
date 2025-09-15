@@ -6,6 +6,8 @@ Fronius Solar Monitor - Haupteinstiegspunkt
 import sys
 import time
 from pathlib import Path
+import webbrowser
+import threading
 
 # Füge das Projekt-Verzeichnis zum Python-Path hinzu
 sys.path.insert(0, str(Path(__file__).parent))
@@ -34,6 +36,15 @@ if api_enabled:
         print("Warnung: API-Module konnten nicht importiert werden. API wird deaktiviert.")
         api_enabled = False
 
+def open_browser_delayed(url: str, delay: float = 1.5):
+    """Öffnet Browser nach kurzer Verzögerung"""
+
+    def _open():
+        time.sleep(delay)
+        webbrowser.open(url)
+
+    thread = threading.Thread(target=_open, daemon=True)
+    thread.start()
 
 def main():
     """Hauptfunktion"""
@@ -67,10 +78,17 @@ def main():
                 # Warte kurz bis API läuft
                 time.sleep(1)
 
+                dashboard_url = f"http://localhost:{config.api.port}/"
+
                 print(f"API Server gestartet auf http://{config.api.host}:{config.api.port}")
-                print(f"Dashboard: http://localhost:{config.api.port}/")
+                print(f"Dashboard: {dashboard_url}")
                 print(f"API Dokumentation: http://localhost:{config.api.port}/docs")
-                print("")  # Leerzeile für bessere Lesbarkeit
+                print("")
+
+                # Browser automatisch öffnen (NEU)
+                if not hasattr(args, 'no_browser') or not args.no_browser:
+                    print("Öffne Dashboard im Browser...")
+                    open_browser_delayed(dashboard_url)
 
             except Exception as e:
                 print(f"Warnung: API Server konnte nicht gestartet werden: {e}")

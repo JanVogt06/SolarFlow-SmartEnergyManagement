@@ -5,21 +5,15 @@ FastAPI Endpoints
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pathlib import Path
 from typing import Any, Optional, List, Dict
 from datetime import datetime
+from fastapi.responses import FileResponse, HTMLResponse
 
 
 def create_app(monitor: Any) -> FastAPI:
     """
     Erstellt die FastAPI App mit allen Endpoints.
-
-    Args:
-        monitor: SolarMonitor Instanz
-
-    Returns:
-        FastAPI App
     """
     app = FastAPI(
         title="SolarFlow API",
@@ -35,15 +29,55 @@ def create_app(monitor: Any) -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Frontend static files (wenn vorhanden)
-    frontend_path = Path(__file__).parent.parent.parent / "frontend"
-    if frontend_path.exists():
-        app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
+    # Frontend static files
+    import sys
+    from pathlib import Path
 
-        @app.get("/")
-        async def serve_frontend():
-            """Serve Frontend"""
-            return FileResponse(frontend_path / "index.html")
+    # Bestimme Basis-Pfad
+    if getattr(sys, 'frozen', False):
+        # Wenn als exe ausgeführt
+        base_path = Path(sys._MEIPASS)
+    else:
+        # Normal Python Ausführung
+        # Von api/endpoints.py zwei Ebenen hoch zum Projekt-Root
+        base_path = Path(__file__).parent.parent
+
+    frontend_path = base_path / "frontend"
+
+    print(f"Debug: Suche Frontend in: {frontend_path}")
+    print(f"Debug: Frontend existiert: {frontend_path.exists()}")
+
+    if frontend_path.exists():
+        index_file = frontend_path / "index.html"
+        if index_file.exists():
+            print(f"Debug: index.html gefunden: {index_file}")
+
+            # Mount die einzelnen Verzeichnisse unter ihren eigenen Pfaden
+            styles_path = frontend_path / "styles"
+            scripts_path = frontend_path / "scripts"
+            assets_path = frontend_path / "assets"
+
+            if styles_path.exists():
+                app.mount("/styles", StaticFiles(directory=str(styles_path)), name="styles")
+                print(f"Mounted: /styles -> {styles_path}")
+
+            if scripts_path.exists():
+                app.mount("/scripts", StaticFiles(directory=str(scripts_path)), name="scripts")
+                print(f"Mounted: /scripts -> {scripts_path}")
+
+            if assets_path.exists():
+                app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+                print(f"Mounted: /assets -> {assets_path}")
+
+            @app.get("/", response_class=HTMLResponse)
+            async def serve_frontend():
+                """Serve Frontend index.html"""
+                with open(index_file, 'r', encoding='utf-8') as f:
+                    return f.read()
+        else:
+            print(f"WARNUNG: index.html nicht gefunden in {frontend_path}")
+    else:
+        print(f"WARNUNG: Frontend-Verzeichnis nicht gefunden: {frontend_path}")
 
     # === API Endpoints ===
 
