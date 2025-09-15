@@ -12,8 +12,9 @@ class SolarFlowApp {
         this.controllers = {};
         this.updateInterval = 5000;
         this.intervalId = null;
-        this.isConnected = false;  // NEU: Verbindungsstatus tracken
-        this.connectionCheckCounter = 0;  // NEU: Fehler-Counter
+        this.isConnected = false;
+        this.connectionCheckCounter = 0;
+        this.helpModalShown = false;
 
         this.init();
     }
@@ -37,6 +38,9 @@ class SolarFlowApp {
             this.controllers.statistics = new StatisticsController(this.api);
             this.controllers.settings = new SettingsController(this.api, this.onSettingsChange.bind(this));
 
+            // Initialize Help Modal
+            this.initHelpModal();
+
             // Load saved settings
             this.loadSettings();
 
@@ -50,6 +54,76 @@ class SolarFlowApp {
         } catch (error) {
             console.error('Failed to initialize app:', error);
             updateConnectionStatus(false);
+            this.showHelpModal();  // NEU: Zeige Hilfe bei Initialisierungsfehler
+        }
+    }
+
+    initHelpModal() {
+        const modal = document.getElementById('connection-help-modal');
+        const closeBtn = document.getElementById('close-help-modal');
+        const retryBtn = document.getElementById('retry-connection');
+        const settingsBtn = document.getElementById('open-settings');
+        const copyBtns = document.querySelectorAll('.copy-btn');
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hideHelpModal());
+        }
+
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                this.hideHelpModal();
+                this.connectionCheckCounter = 0;
+                this.restartUpdates();
+            });
+        }
+
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.hideHelpModal();
+                this.tabController.switchTab('settings');
+            });
+        }
+
+        // Copy button functionality
+        copyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const textToCopy = btn.dataset.copy;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalIcon = btn.innerHTML;
+                    btn.innerHTML = '<i data-lucide="check"></i>';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        btn.innerHTML = originalIcon;
+                        lucide.createIcons();
+                    }, 2000);
+                });
+            });
+        });
+
+        // Close modal on overlay click
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-overlay')) {
+                    this.hideHelpModal();
+                }
+            });
+        }
+    }
+
+    showHelpModal() {
+        const modal = document.getElementById('connection-help-modal');
+        if (modal) {
+            modal.classList.add('active');
+            this.modalVisible = true;
+            // Re-initialize icons in modal
+            setTimeout(() => lucide.createIcons(), 100);
+        }
+    }
+
+    hideHelpModal() {
+        const modal = document.getElementById('connection-help-modal');
+        if (modal) {
+            modal.classList.remove('active');
         }
     }
 
@@ -66,9 +140,10 @@ class SolarFlowApp {
         // Network status
         window.addEventListener('online', () => this.resumeUpdates());
         window.addEventListener('offline', () => {
-            this.isConnected = false;  // GEÄNDERT
+            this.isConnected = false;
             updateConnectionStatus(false);
             this.pauseUpdates();
+            this.showHelpModal();
         });
     }
 
@@ -91,11 +166,13 @@ class SolarFlowApp {
             this.api.setBaseUrl(settings.apiUrl);
             this.restartUpdates();
         }
+
+        // Reset help modal flag when settings change
+        this.helpModalShown = false;
     }
 
     async updateAll() {
         try {
-
             // Update timestamp
             this.updateTimestamp();
 
@@ -104,12 +181,13 @@ class SolarFlowApp {
             if (currentData) {
                 this.controllers.dashboard.update(currentData);
 
-                // Verbindung ist gut - nur updaten wenn Status sich ändert
+                // Verbindung ist gut
                 if (!this.isConnected) {
                     this.isConnected = true;
                     updateConnectionStatus(true);
+                    this.hideHelpModal();  // NEU: Verstecke Modal bei erfolgreicher Verbindung
                 }
-                this.connectionCheckCounter = 0;  // Reset error counter
+                this.connectionCheckCounter = 0;
             }
 
             // Get devices data
@@ -128,11 +206,14 @@ class SolarFlowApp {
         } catch (error) {
             console.error('Update error:', error);
 
-            // NEU: Nur als getrennt markieren nach mehreren Fehlversuchen
+            // Nur als getrennt markieren nach mehreren Fehlversuchen
             this.connectionCheckCounter++;
-            if (this.connectionCheckCounter >= 3 && this.isConnected) {
+            if (this.connectionCheckCounter >= 1 && this.isConnected) {
                 this.isConnected = false;
                 updateConnectionStatus(false);
+                this.showHelpModal();
+            } else if (this.connectionCheckCounter >= 1 && !this.isConnected && !this.helpModalShown) {
+                this.showHelpModal();
             }
         }
     }

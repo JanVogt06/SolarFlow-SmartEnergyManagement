@@ -251,5 +251,80 @@
             </div>
         </div>
     </footer>
+
+    <!-- Connection Help Modal -->
+    <div class="modal" id="connection-help-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i data-lucide="wifi-off"></i>
+                    Verbindungsproblem
+                </h2>
+                <button class="modal-close" id="close-help-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="help-section">
+                    <div class="help-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Fronius API aktivieren</h3>
+                            <p>Öffnen Sie die Einstellungen Ihres Fronius Wechselrichters:</p>
+                            <ul class="help-list">
+                                <li>Navigieren Sie zu <strong>Kommunikation → Solar API</strong></li>
+                                <li>Aktivieren Sie die <strong>API-Funktion</strong></li>
+                                <li>Notieren Sie sich die <strong>IP-Adresse</strong> des Wechselrichters</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Backend-Server starten</h3>
+                            <p>Starten Sie das SolarFlow Backend mit der IP-Adresse Ihrer Fronius Anlage:</p>
+                            <div class="code-block">
+                                <code>python main.py --ip &lt;IP-Adresse&gt;</code>
+                                <button class="copy-btn" data-copy="python main.py --ip ">
+                                    <i data-lucide="copy"></i>
+                                </button>
+                            </div>
+                            <p class="help-note">
+                                <i data-lucide="info"></i>
+                                Beispiel: <code>python main.py --ip 192.168.1.100</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="help-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Verbindung prüfen</h3>
+                            <p>Stellen Sie sicher, dass:</p>
+                            <ul class="help-list">
+                                <li>Der Backend-Server läuft (Port 8000)</li>
+                                <li>Firewall-Einstellungen korrekt sind</li>
+                                <li>Die Fronius Anlage im gleichen Netzwerk ist</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="retry-connection">
+                        <i data-lucide="refresh-cw"></i>
+                        Verbindung erneut versuchen
+                    </button>
+                    <button class="btn btn-primary" id="open-settings">
+                        <i data-lucide="settings"></i>
+                        Zu den Einstellungen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
