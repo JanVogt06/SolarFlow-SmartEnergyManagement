@@ -330,21 +330,25 @@ ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
                 'version': 'Fronius Solar Monitor 1.0.0'
             },
             {
-                'name': '--api',
+                'name': '--no-api',
                 'action': 'store_true',
-                'help': 'Startet mit REST API für Frontend (Port 8000)'
+                'help': 'Deaktiviert die REST API für Frontend (Standard: aktiviert auf Port 8000)',
+                'config_path': 'api.enabled',
+                'config_value': lambda args: not getattr(args, 'no_api', False)
             },
             {
                 'name': '--api-port',
                 'type': int,
                 'default': 8000,
-                'help': 'Port für API Server (Standard: 8000)'
+                'help': 'Port für API Server (Standard: 8000)',
+                'config_path': 'api.port'
             },
             {
                 'name': '--api-host',
                 'type': str,
                 'default': '0.0.0.0',
-                'help': 'Host für API Server (Standard: 0.0.0.0)'
+                'help': 'Host für API Server (Standard: 0.0.0.0)',
+                'config_path': 'api.host'
             }
         ]
     }

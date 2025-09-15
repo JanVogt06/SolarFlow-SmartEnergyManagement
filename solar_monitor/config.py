@@ -2,12 +2,13 @@
 Konfigurationsmodul für den Fronius Solar Monitor.
 """
 
-import logging  # Explizit das Standard-logging Modul importieren
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 from pathlib import Path
 from typing import Dict, Optional, Any
+
 
 @dataclass
 class ConnectionConfig:
@@ -75,7 +76,7 @@ class DeviceControlConfig:
         default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
 
     # HUE INTEGRATION
-    enable_hue: bool = field(default_factory=lambda: os.getenv("ENABLE_HUE", "False").lower() == "False")
+    enable_hue: bool = field(default_factory=lambda: os.getenv("ENABLE_HUE", "False").lower() == "true")
     hue_bridge_ip: str = field(default_factory=lambda: os.getenv("HUE_BRIDGE_IP", "192.168.178.26"))
     hue_connection_timeout: int = field(default_factory=lambda: int(os.getenv("HUE_CONNECTION_TIMEOUT", "10")))
 
@@ -144,6 +145,14 @@ class ThresholdsConfig:
     })
 
 
+@dataclass
+class APIConfig:
+    """API Server Einstellungen"""
+    enabled: bool = field(default_factory=lambda: os.getenv("API_ENABLED", "True").lower() == "true")
+    host: str = field(default_factory=lambda: os.getenv("API_HOST", "0.0.0.0"))
+    port: int = field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
+
+
 class Config:
     """Zentrale Konfigurationsklasse mit gruppierten Einstellungen"""
 
@@ -160,6 +169,7 @@ class Config:
         self.database = DatabaseConfig()
         self.battery = BatteryConfig()
         self.thresholds = ThresholdsConfig()
+        self.api = APIConfig()  # Neue API-Konfiguration
 
     @property
     def THRESHOLDS(self) -> Dict[str, Dict[str, float]]:
@@ -201,6 +211,10 @@ class Config:
         if self.battery.idle_threshold < 0:
             errors.append("battery.idle_threshold muss positiv sein")
 
+        # API-Validierung
+        if self.api.port < 1 or self.api.port > 65535:
+            errors.append("api.port muss zwischen 1 und 65535 liegen")
+
         # Schwellwert-Validierung
         for key, thresholds in self.thresholds.__dict__.items():
             if isinstance(thresholds, dict) and 'high' in thresholds and 'medium' in thresholds:
@@ -227,7 +241,8 @@ class Config:
             'costs': self.costs.__dict__,
             'database': self.database.__dict__,
             'battery': self.battery.__dict__,
-            'thresholds': self.thresholds.__dict__
+            'thresholds': self.thresholds.__dict__,
+            'api': self.api.__dict__
         }
 
     def save_to_file(self, filepath: Path) -> None:

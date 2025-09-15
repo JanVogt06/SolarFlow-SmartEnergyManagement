@@ -117,17 +117,59 @@ class LoggingCoordinator:
         self.logger.info("Logging-System geschlossen")
 
     def log_startup_info(self, has_device_control: bool) -> None:
-        """Loggt Informationen beim Start"""
-        self.logger.info("Monitor gestartet. Drücke Ctrl+C zum Beenden.")
+        """
+        Loggt Informationen beim Start.
 
+        Args:
+            has_device_control: Ob Gerätesteuerung aktiviert ist
+        """
+        self.logger.info("=" * 60)
+        self.logger.info("Solar Monitor gestartet")
+        self.logger.info("=" * 60)
+
+        # API-Status
+        if hasattr(self.config, 'api') and self.config.api.enabled:
+            self.logger.info(f"API Server: Aktiviert auf http://{self.config.api.host}:{self.config.api.port}")
+            self.logger.info(f"  - Dashboard: http://localhost:{self.config.api.port}/")
+            self.logger.info(f"  - API Docs: http://localhost:{self.config.api.port}/docs")
+        else:
+            self.logger.info("API Server: Deaktiviert (--no-api zum Deaktivieren)")
+
+        # Tagesstatistiken
         if self.config.display.show_daily_stats:
             interval_min = self.config.timing.daily_stats_interval / 60
-            self.logger.info(f"Tagesstatistiken werden alle {interval_min:.0f} Minuten angezeigt.")
+            self.logger.info(f"Tagesstatistiken: Alle {interval_min:.0f} Minuten")
+        else:
+            self.logger.info("Tagesstatistiken: Deaktiviert")
 
+        # Gerätesteuerung
         if has_device_control:
-            self.logger.info("Intelligente Gerätesteuerung ist aktiviert.")
+            self.logger.info("Gerätesteuerung: Aktiviert")
             if self.config.logging.enable_device_logging:
                 self.logger.info(
-                    f"Geräte-Logging aktiviert (Events: {self.config.logging.device_log_events}, "
-                    f"Status: {self.config.logging.device_log_status})"
+                    f"  - Logging: Events={self.config.logging.device_log_events}, "
+                    f"Status={self.config.logging.device_log_status}"
                 )
+        else:
+            self.logger.info("Gerätesteuerung: Deaktiviert")
+
+        # Update-Intervall
+        self.logger.info(f"Update-Intervall: {self.config.timing.update_interval} Sekunden")
+
+        # Logging-Status
+        log_features = []
+        if self.config.logging.enable_data_logging:
+            log_features.append("Solar-Daten")
+        if self.config.logging.enable_daily_stats_logging:
+            log_features.append("Tagesstatistiken")
+        if self.config.database.enable_database:
+            log_features.append("Datenbank")
+
+        if log_features:
+            self.logger.info(f"Logging: {', '.join(log_features)}")
+        else:
+            self.logger.info("Logging: Deaktiviert")
+
+        self.logger.info("=" * 60)
+        self.logger.info("Drücke Ctrl+C zum Beenden")
+        self.logger.info("")
