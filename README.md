@@ -1,346 +1,261 @@
-# Smart Energy Manager
+# SolarFlow Smart Energy Management
 
 <p align="center">
-  <img src="assets/logo_without-background.png" alt="Smart Energy Manager Logo" width="512">
+  <img src="assets/logo_without-background.png" alt="SolarFlow Logo" width="512">
 </p>
 
 <p align="center">
-  <strong>🌞 Intelligentes Energie-Management-System für Fronius Solaranlagen</strong>
+  <strong>☀️ Intelligentes Energie-Management für Ihre Solaranlage</strong><br>
+  <sub>Maximieren Sie Ihren Eigenverbrauch • Sparen Sie Stromkosten • Schonen Sie die Umwelt</sub>
 </p>
 
 <p align="center">
-  <a href="https://janvogt06.github.io/SolarFlow-SmartEnergyManagement/">🌐 Website</a>
+  <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest">
+    <img src="https://img.shields.io/github/v/release/JanVogt06/SolarFlow-SmartEnergyManagement?style=for-the-badge&label=Download" alt="Download">
+  </a>
+  <a href="https://janvogt06.github.io/SolarFlow-SmartEnergyManagement/">
+    <img src="https://img.shields.io/badge/Dokumentation-Website-blue?style=for-the-badge" alt="Dokumentation">
+  </a>
+  <a href="https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/JanVogt06/SolarFlow-SmartEnergyManagement?style=for-the-badge" alt="Lizenz">
+  </a>
 </p>
 
 ---
 
-## 📋 Überblick
+## 🎯 Was ist SolarFlow?
 
-Der **Smart Energy Manager** ist ein fortschrittliches Python-basiertes Energie-Management-System für Fronius Wechselrichter. Es maximiert Ihren Solarstrom-Eigenverbrauch durch intelligente Gerätesteuerung und bietet dabei umfassende Analyse- und Visualisierungsmöglichkeiten.
+SolarFlow ist ein benutzerfreundliches Energie-Management-System für **Fronius Solaranlagen**. Es hilft Ihnen, Ihren selbst erzeugten Solarstrom optimal zu nutzen und dadurch Stromkosten zu sparen.
 
-### 🎯 Hauptziele
-- **Maximaler Eigenverbrauch** durch intelligente Lastverteilung
-- **Automatische Gerätesteuerung** basierend auf Überschussenergie
-- **Echte Hardware-Integration** (z.B. Philips Hue)
-- **Echtzeit-Visualisierung** mit modernem Live-Display
-- **Umfassende Datenanalyse** für optimale Kosteneinsparungen
+### Das macht SolarFlow für Sie:
+- 📊 **Zeigt Ihre Solarproduktion in Echtzeit** im Browser
+- 🔌 **Schaltet Geräte automatisch ein** wenn genug Solarstrom da ist
+- 💰 **Berechnet Ihre Ersparnis** und zeigt Tagesstatistiken
+- 📱 **Funktioniert auf jedem Gerät** mit Webbrowser (PC, Tablet, Smartphone)
+- 🏠 **Steuert smarte Geräte** wie Philips Hue Steckdosen
 
-## ✨ Features
+## 🚀 Schnellstart (5 Minuten)
 
-### 🖥️ Modernes Live-Display
-- **Rich Live Display** mit automatischen Updates
-- Farbcodierte Echtzeitanzeige aller relevanten Werte
-- Übersichtliche Panels für Leistungsdaten, Kennzahlen und Gerätesteuerung
-- Fallback auf klassische Anzeige bei Bedarf
+### 1️⃣ Programm herunterladen
 
-![Live Display Image](assets/live-display-demo.png)
+Laden Sie die passende Version für Ihr System herunter:
 
-### 🌞 Solar-Monitoring
-- **Echtzeit-Überwachung** aller Leistungsflüsse
-- Automatische Erkennung von **Batteriespeichern**
-- Berechnung von:
-  - Eigenverbrauch und Autarkiegrad
-  - Verfügbarem Überschuss
-  - Netzeinspeisung und -bezug
-  - Batterie-Lade-/Entladeleistung
+| System | Download | Hinweis |
+|--------|----------|---------|
+| **Windows** | [⬇️ SolarFlow-windows-x64.exe](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-windows-x64.exe) | Doppelklick zum Starten |
+| **macOS** | [⬇️ SolarFlow-macos-x64](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-macos-x64) | Terminal: `chmod +x` dann starten |
+| **Linux** | [⬇️ SolarFlow-linux-x64](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-linux-x64) | Terminal: `chmod +x` dann starten |
+
+### 2️⃣ Programm starten
+
+**Windows:**
+- Doppelklick auf `SolarFlow-windows-x64.exe`
+- Falls Windows warnt: "Weitere Informationen" → "Trotzdem ausführen"
+
+**macOS/Linux:**
+```bash
+# Datei ausführbar machen (nur beim ersten Mal)
+chmod +x SolarFlow-*
+
+# Programm starten
+./SolarFlow-*
+```
+
+### 3️⃣ Browser öffnet automatisch
+
+Das Web-Dashboard öffnet sich automatisch unter: **http://localhost:8000**
+
+Falls nicht, öffnen Sie einen Browser und geben Sie die Adresse manuell ein.
+
+### 4️⃣ Fronius IP-Adresse eingeben
+
+Starten Sie das SolarFlow Backend mit der IP-Adresse Ihrer Fronius Anlage:
+
+```bash python main.py --ip```
+
+Oder verwenden Sie die Executable:
+
+```bash SolarFlow-windows-x64.exe --ip```
+
+Beispiele:
+
+```bash
+python main.py --ip 192.168.1.100
+```
+```bash
+SolarFlow-windows-x64.exe --ip 192.168.178.99
+```
+
+## 📸 So sieht's aus
+
+### Web-Dashboard
+![Dashboard Screenshot](assets/dashboard-screenshot.png)
+*Modernes Web-Dashboard mit Live-Daten Ihrer Solaranlage*
+
+### Terminal-Ansicht (optional)
+![Live Display](assets/live-display-demo.png)
+*Zusätzliche Terminal-Ansicht für Technik-Interessierte*
+
+## ✨ Hauptfunktionen
+
+### 📊 Live-Monitoring
+- **Echtzeitdaten** von Ihrem Fronius Wechselrichter
+- **Übersichtliche Grafiken** für:
+  - Aktuelle Solarproduktion
+  - Hausverbrauch
+  - Einspeisung ins Netz
+  - Batteriestand (falls vorhanden)
+- **Tagesstatistiken** mit Kostenberechnung
 
 ### 🔌 Intelligente Gerätesteuerung
-- **10-stufiges Prioritätssystem** für optimale Lastverteilung
-- **Philips Hue Integration** für echte Hardware-Steuerung
-- Zeitbasierte Einschränkungen (z.B. "nur tagsüber")
-- Hysterese-Funktionalität gegen häufiges Schalten
-- Berücksichtigung von:
-  - Mindest- und Maximallaufzeiten
-  - Einschalt- und Ausschalt-Schwellwerten
-  - Mehreren Zeitfenstern pro Gerät
+- **Automatisches Ein-/Ausschalten** von Geräten bei Solarüberschuss
+- **Prioritätssystem**: Wichtige Geräte werden zuerst eingeschaltet
+- **Zeitsteuerung**: Geräte nur zu bestimmten Zeiten (z.B. Poolpumpe nur tagsüber)
+- **Philips Hue Integration**: Steuert echte Smart-Home-Geräte
 
-### 💡 Hardware-Integration
-- **Philips Hue Bridge** Unterstützung
-- Automatische Geräteerkennung
-- Synchronisation zwischen virtuellem und realem Status
-- Sauberer Startzustand (alle Geräte aus)
+### 💰 Kostenanalyse
+- **Tägliche Ersparnis** in Euro
+- **Eigenverbrauchsquote** und Autarkiegrad
+- **Vergleich**: Was hätte der Strom ohne Solar gekostet?
+- **Einspeisevergütung** wird berücksichtigt
 
-### 📊 Datenerfassung & Analyse
-- **Multi-Format Logging**:
-  - CSV-Dateien (konfigurierbar)
-  - SQLite-Datenbank
-  - Separate Logs für Solar-, Geräte- und Statistikdaten
-- **Automatische Statistiken**:
-  - Tagesstatistiken mit Kostenberechnung
-  - Min/Max-Werte für alle Parameter
-  - Energie-Akkumulation
-- **Kostenoptimierung**:
-  - Tag-/Nachttarif-Unterstützung
-  - Einspeisevergütung
-  - ROI-Berechnung
+## ⚙️ Erweiterte Einstellungen
 
-### 🎨 Flexible Anzeigemodi
-- **Rich Live Display** (Standard) - Modernes Terminal-UI
-- **Klassische Anzeige** - Traditionelle Ausgabe
-- **Simple Mode** - Einzeilig für kleine Displays
-- **Multiline Compact** - Kompakte Übersicht
-- Konfigurierbare Farben und Schwellwerte
+### Geräte konfigurieren
 
-## 🚀 Installation
-
-### Systemvoraussetzungen
-- Python 3.8 oder höher
-- Fronius Wechselrichter mit aktivierter Solar API
-- Optional: Philips Hue Bridge für Hardware-Steuerung
-- Terminal mit Farbunterstützung (für optimale Darstellung)
-
-### Schnellinstallation
-
-1. **Repository klonen**
-   ```bash
-   git clone https://github.com/yourusername/smart-energy-manager.git
-   cd smart-energy-manager
-   ```
-
-2. **Automatische Installation**
-   
-   Das Programm prüft beim Start automatisch alle Abhängigkeiten:
-   ```bash
-   python main.py
-   ```
-   
-   Bei fehlenden Paketen wird eine automatische Installation angeboten.
-
-3. **Manuelle Installation** (optional)
-   ```bash
-   pip install requests rich phue
-   # oder
-   pip install -r requirements.txt
-   ```
-
-### Erste Konfiguration
-
-1. **Fronius IP-Adresse ermitteln**
-   ```bash
-   # Im Router nachsehen oder:
-   ping fronius.local
-   ```
-
-2. **Testlauf starten**
-   ```bash
-   python main.py --ip <FRONIUS_IP>
-   ```
-
-3. **Geräte konfigurieren** (optional)
-   ```bash
-   # devices.json anpassen (siehe Beispiele unten)
-   ```
-
-## 📖 Verwendung
-
-### Basis-Befehle
-
-```bash
-# Standard-Start mit Live-Display und Gerätesteuerung
-python main.py
-
-# Mit spezifischer Fronius IP
-python main.py --ip 192.168.1.100
-
-# Simple Mode für SSH/kleine Displays
-python main.py --simple
-
-# Klassische Anzeige ohne Live-Updates
-python main.py --no-live
-```
-
-### Erweiterte Optionen
-
-```bash
-# Hue-Integration aktivieren
-python main.py --enable-hue --hue-ip 192.168.1.50
-
-# Angepasste Update-Intervalle
-python main.py --interval 10 --daily-stats-interval 900
-
-# Kostenparameter
-python main.py --electricity-price 0.35 --feed-in-tariff 0.08
-
-# Debug-Modus
-python main.py --log-level DEBUG
-```
-
-### Umgebungsvariablen
-
-Alternativ zur Kommandozeile können Umgebungsvariablen verwendet werden:
-
-```bash
-export FRONIUS_IP="192.168.1.100"
-export ENABLE_HUE="True"
-export HUE_BRIDGE_IP="192.168.1.50"
-export UPDATE_INTERVAL="5"
-```
-
-## ⚙️ Gerätesteuerung
-
-### Konfigurationsdatei (devices.json)
+SolarFlow kann Ihre Haushaltsgeräte intelligent steuern. Erstellen Sie eine `devices.json` Datei:
 
 ```json
 [
   {
-    "name": "Hue Steckdose Waschmaschine",
-    "description": "Smarte Steckdose für Waschmaschine",
+    "name": "Waschmaschine",
     "power_consumption": 2000,
     "priority": 3,
-    "min_runtime": 30,
-    "max_runtime_per_day": 180,
     "switch_on_threshold": 2200,
     "switch_off_threshold": 1800,
-    "allowed_time_ranges": [
-      ["08:00", "20:00"]
-    ]
+    "allowed_time_ranges": [["08:00", "20:00"]]
   },
   {
-    "name": "Hue Lampe Büro",
-    "description": "Bürobeleuchtung bei Überschuss",
-    "power_consumption": 20,
-    "priority": 8,
-    "min_runtime": 5,
-    "max_runtime_per_day": 0,
-    "switch_on_threshold": 100,
-    "switch_off_threshold": 50,
-    "allowed_time_ranges": [
-      ["07:00", "22:00"]
-    ]
-  },
-  {
-    "name": "Poolpumpe",
-    "description": "Filterpumpe für Pool",
+    "name": "Poolpumpe", 
     "power_consumption": 750,
     "priority": 6,
-    "min_runtime": 120,
-    "max_runtime_per_day": 480,
     "switch_on_threshold": 1000,
     "switch_off_threshold": 500,
-    "allowed_time_ranges": [
-      ["10:00", "18:00"]
-    ]
+    "allowed_time_ranges": [["10:00", "18:00"]]
   }
 ]
 ```
 
-### Prioritätssystem
+### Kommandozeilen-Optionen
 
-| Priorität | Kategorie | Verwendung | Beispiele |
-|-----------|-----------|------------|-----------|
-| 1 | Kritisch | Unverzichtbare Geräte | Kühlschrank, Server |
-| 2-3 | Sehr hoch | Wichtige Alltagsgeräte | Waschmaschine, Geschirrspüler |
-| 4-5 | Hoch | Regelmäßig genutzt | Warmwasserbereiter |
-| 6-7 | Mittel | Flexible Nutzung | Poolpumpe, Klimaanlage |
-| 8-9 | Niedrig | Optionale Verbraucher | Zusatzbeleuchtung |
-| 10 | Optional | Nur bei viel Überschuss | Elektroheizung |
+Für erfahrene Nutzer gibt es zusätzliche Startoptionen:
 
-### Steuerungslogik im Detail
+```bash
+# Mit direkter IP-Angabe starten
+SolarFlow --ip 192.168.178.90
 
-1. **Einschaltbedingungen**:
-   - Überschuss ≥ Einschalt-Schwellwert
-   - Gerät ist in erlaubtem Zeitfenster
-   - Maximale Tageslaufzeit nicht erreicht
-   - Hysterese-Zeit abgelaufen
+# Ohne Web-Interface (nur Terminal)
+SolarFlow --no-api
 
-2. **Ausschaltbedingungen**:
-   - Überschuss < Ausschalt-Schwellwert
-   - Außerhalb des Zeitfensters
-   - Maximale Laufzeit erreicht
-   - Mindestlaufzeit wurde eingehalten
-
-3. **Hysterese**:
-   - Verhindert "Flackern" bei schwankender Erzeugung
-   - Standard: 5 Minuten zwischen Schaltvorgängen
-   - Pro Gerät konfigurierbar
-
-## 📊 Ausgabe-Beispiel
-
-### Standard-Anzeige
-
-```
-============================================================
-Zeitstempel:         2025-07-26 14:32:15
-============================================================
-PV-Erzeugung:              4,235 W
-Hausverbrauch:             1,842 W
-Einspeisung:               2,393 W
-Batterie-Ladestand:         85.2 %
-------------------------------------------------------------
-Eigenverbrauch:            1,842 W
-Autarkiegrad:              100.0 %
-Verfügbarer Überschuss:    2,393 W
-============================================================
-
-GERÄTESTEUERUNG:
-------------------------------------------------------------
-Gesteuerter Verbrauch:          0 W
-Aktueller Überschuss:       2,393 W
-
-Gerät                Priorität  Leistung Status       Laufzeit heute
----------------------------------------------------------------------------
-Waschmaschine                3     2000W AUS              0h 0m
-Poolpumpe                    7      750W EIN             2h 15m
+# Mit angepasstem Update-Intervall (Sekunden)
+SolarFlow --interval 10
 ```
 
-### Tagesstatistik
+## 🔗 Nützliche Links
 
+- 🌐 **Web-Dashboard**: http://localhost:8000 (nach dem Start)
+- 📚 **API-Dokumentation**: http://localhost:8000/docs
+- 🏠 **Projekt-Website**: [janvogt06.github.io/SolarFlow-SmartEnergyManagement](https://janvogt06.github.io/SolarFlow-SmartEnergyManagement/)
+- 🐛 **Probleme melden**: [GitHub Issues](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/issues)
+
+## 💡 Häufige Fragen
+
+<details>
+<summary><b>Wie finde ich die IP-Adresse meines Fronius Wechselrichters?</b></summary>
+
+1. **Im Router nachschauen**: 
+   - Router-Oberfläche öffnen (meist `192.168.1.1` oder `192.168.178.1`)
+   - Nach "Verbundene Geräte" oder "DHCP-Clients" suchen
+   - Nach "Fronius" oder "Solar" suchen
+
+2. **Am Wechselrichter-Display**:
+   - Menü → Einstellungen → Netzwerk → IP-Adresse
+
+3. **Mit der Fronius Solar.web App**:
+   - In der App ist die lokale IP sichtbar
+</details>
+
+<details>
+<summary><b>Funktioniert SolarFlow mit meinem Wechselrichter?</b></summary>
+
+SolarFlow funktioniert mit allen **Fronius Wechselrichtern**, die die Solar API unterstützen:
+- Fronius Symo
+- Fronius Primo  
+- Fronius GEN24
+- Fronius Tauro
+- Und weitere...
+
+Die Solar API ist bei den meisten Fronius Wechselrichtern ab Baujahr 2013 verfügbar.
+</details>
+
+<details>
+<summary><b>Kann ich SolarFlow von unterwegs nutzen?</b></summary>
+
+Standardmäßig läuft SolarFlow nur in Ihrem Heimnetzwerk. Für Zugriff von außen:
+- VPN zu Ihrem Heimnetzwerk einrichten
+- Oder Port-Weiterleitung im Router (Sicherheitsrisiko beachten!)
+</details>
+
+<details>
+<summary><b>Was kostet SolarFlow?</b></summary>
+
+**Nichts!** SolarFlow ist komplett kostenlos und Open Source. Sie können es beliebig nutzen und sogar den Quellcode anpassen.
+</details>
+
+## 🛠️ Für Entwickler
+
+<details>
+<summary><b>Von Quellcode ausführen</b></summary>
+
+```bash
+# Repository klonen
+git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git
+cd SolarFlow-SmartEnergyManagement
+
+# Abhängigkeiten installieren
+pip install -r requirements.txt
+
+# Starten
+python SolarFlow.py --ip <FRONIUS_IP>
 ```
-============================================================
-TAGESSTATISTIK              26.07.2025
-============================================================
+</details>
 
-Energie heute:
-PV-Produktion:              24.83 kWh
-Verbrauch:                  18.42 kWh
-Eigenverbrauch:             15.31 kWh
-Einspeisung:                 9.52 kWh
-Netzbezug:                   3.11 kWh
-  → Tagtarif:                2.14 kWh
-  → Nachttarif:              0.97 kWh
+<details>
+<summary><b>Eigene Builds erstellen</b></summary>
 
-Kostenberechnung:
-Stromkosten (Netzbezug):     1.14 €
-Einspeisevergütung:          0.78 €
-Eingesparte Kosten:          6.23 €
-------------------------------------------------------------
-GESAMTNUTZEN:                7.01 €
+```bash
+# PyInstaller installieren
+pip install pyinstaller
 
-Kosten ohne Solar:           7.37 €
-Einsparungsquote:           95.1 %
+# Executable erstellen
+pyinstaller SolarFlow.spec --clean
 ```
+</details>
 
+## 🤝 Unterstützung & Beitrag
 
-## 🔧 Troubleshooting
+- **Probleme?** [Issue erstellen](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/issues/new)
+- **Fragen?** [Discussions](https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/discussions)
+- **Verbesserungen?** Pull Requests sind willkommen!
 
-### Häufige Probleme
+## 📄 Lizenz
 
-**Keine Verbindung zum Wechselrichter**
-- Prüfen Sie die IP-Adresse: `ping <FRONIUS_IP>`
-- Stellen Sie sicher, dass die Solar API aktiviert ist
-- Firewall-Einstellungen prüfen
-
-**Hue Bridge findet keine Geräte**
-- Beim ersten Start den Knopf auf der Bridge drücken
-- Gerätenamen in devices.json müssen exakt mit Hue-Namen übereinstimmen
-- Bridge und Geräte müssen im gleichen Netzwerk sein
-
-**Live Display funktioniert nicht**
-- Terminal unterstützt möglicherweise keine ANSI-Codes
-- Mit `--no-live` auf klassische Anzeige wechseln
-- Windows: Windows Terminal verwenden
-
-**Geräte schalten zu häufig**
-- Hysterese-Zeit erhöhen: `--device-hysteresis 10`
-- Schwellwerte anpassen (größerer Abstand zwischen Ein/Aus)
-
-## 📝 Lizenz
-
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) für Details.
+Dieses Projekt steht unter der MIT-Lizenz - siehe [LICENSE](LICENSE) für Details.
 
 ---
 
 <p align="center">
-  Made with ❤️ for sustainable energy management<br>
-  <sub>Optimiere deinen Eigenverbrauch und schone die Umwelt! 🌍</sub>
+  <b>⭐ Gefällt Ihnen SolarFlow?</b><br>
+  Geben Sie dem Projekt einen Stern auf GitHub!<br><br>
+  <sub>Made with ❤️ für nachhaltige Energienutzung</sub>
 </p>
