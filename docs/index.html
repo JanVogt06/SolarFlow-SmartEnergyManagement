@@ -182,14 +182,17 @@
                 <h3 data-i18n="quickstart.step1.title">Installation</h3>
                 <p class="step-description" data-i18n="quickstart.step1.desc">Get latest Release</p>
                 <div class="code-block">
-                    <pre><code># Download
-wget https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-linux-x64
+                    <pre><code># Windows
+curl -L -o SolarFlow-win-x64.exe https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-windows-x64.exe
 
-# make it executable
+# Linux
+wget https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-linux-x64
 chmod +x SolarFlow-linux-x64
 
-# start
-./SolarFlow-linux-x64</code></pre>
+# MacOS
+wget https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-macos-x64
+chmod +x SolarFlow-macos-x64
+</code></pre>
                 </div>
             </div>
 
@@ -221,7 +224,14 @@ chmod +x SolarFlow-linux-x64
                 <h3 data-i18n="quickstart.step3.title">Start</h3>
                 <p class="step-description" data-i18n="quickstart.step3.desc">Start the Energy Manager with correct IP-Address</p>
                 <div class="code-block">
-                    <code>./SolarFlow-linux-x64 --ip 192.168.178.90</code>
+                    <pre><code># Windows
+./SolarFlow-windows-x64 --ip 192.168.178.90
+
+# Linux
+./SolarFlow-linux-x64 --ip 192.168.178.90
+
+# MacOS
+./SolarFlow-macos-x64 --ip 192.168.178.90</code></pre>
                 </div>
             </div>
         </div>
