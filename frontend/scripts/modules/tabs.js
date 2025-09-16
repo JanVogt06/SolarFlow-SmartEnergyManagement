@@ -7,7 +7,6 @@ export class TabController {
 
     init() {
         this.setupTabListeners();
-        this.restoreLastTab();
     }
 
     setupTabListeners() {
@@ -36,7 +35,6 @@ export class TabController {
         });
 
         this.currentTab = tabName;
-        this.saveLastTab(tabName);
 
         // Trigger callback
         if (this.onTabChange) {
@@ -46,19 +44,6 @@ export class TabController {
         // Update icons if lucide exists
         if (window.lucide) {
             setTimeout(() => lucide.createIcons(), 100);
-        }
-    }
-
-    saveLastTab(tabName) {
-        localStorage.setItem('lastTab', tabName);
-    }
-
-    restoreLastTab() {
-        const lastTab = localStorage.getItem('lastTab');
-        const validTabs = ['overview', 'devices', 'statistics', 'settings'];
-
-        if (lastTab && validTabs.includes(lastTab)) {
-            this.switchTab(lastTab);
         }
     }
 }

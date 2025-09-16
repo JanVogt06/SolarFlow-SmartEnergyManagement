@@ -148,7 +148,7 @@ class SolarMonitor:
             self.logging_coordinator.log_startup_info(self.device_controller.is_active())
 
         consecutive_errors = 0
-        max_consecutive_errors = 5
+        max_consecutive_errors = 15
 
         try:
             while self.running:

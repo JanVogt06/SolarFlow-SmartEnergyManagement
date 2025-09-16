@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Fronius Solar Monitor - Haupteinstiegspunkt
 """
@@ -29,6 +28,7 @@ if not check_dependencies(args.skip_check, with_api=api_enabled):
 from solar_monitor import SolarMonitor, Config
 
 # API Import nur wenn benötigt
+APIServer = None  # Standardwert falls Import fehlschlägt
 if api_enabled:
     print(f"DEBUG: api_enabled = {api_enabled}")
     try:
@@ -36,6 +36,7 @@ if api_enabled:
     except ImportError:
         print("Warnung: API-Module konnten nicht importiert werden. API wird deaktiviert.")
         api_enabled = False
+        APIServer = None  # Explizit None setzen
 
 def open_browser_delayed(url: str, delay: float = 1.5):
     """Öffnet Browser nach kurzer Verzögerung"""
@@ -65,13 +66,15 @@ def main():
     if hasattr(args, 'api_port') and args.api_port:
         config.api.port = args.api_port
 
+    # api_server vor try-Block initialisieren
+    api_server = None
+
     try:
         # Monitor erstellen
         monitor = SolarMonitor(config)
 
         # API Server starten wenn aktiviert
-        api_server = None
-        if config.api.enabled and api_enabled:
+        if config.api.enabled and api_enabled and APIServer is not None:
             try:
                 api_server = APIServer(monitor, config)
                 api_server.start(host=config.api.host, port=config.api.port)
