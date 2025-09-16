@@ -180,11 +180,16 @@
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">1</div>
                 <h3 data-i18n="quickstart.step1.title">Installation</h3>
-                <p class="step-description" data-i18n="quickstart.step1.desc">Clone the repository and install dependencies</p>
+                <p class="step-description" data-i18n="quickstart.step1.desc">Get latest Release</p>
                 <div class="code-block">
-                    <code>git clone https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement.git
-                        cd SolarFlow-SmartEnergyManagement
-                        pip install -r requirements.txt</code>
+                    <pre><code># Download
+wget https://github.com/JanVogt06/SolarFlow-SmartEnergyManagement/releases/latest/download/SolarFlow-linux-x64
+
+# make it executable
+chmod +x SolarFlow-linux-x64
+
+# start
+./SolarFlow-linux-x64</code></pre>
                 </div>
             </div>
 
@@ -192,7 +197,7 @@
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">2</div>
                 <h3 data-i18n="quickstart.step2.title">Configuration</h3>
-                <p class="step-description" data-i18n="quickstart.step2.desc">Adjust config.yaml to your system</p>
+                <p class="step-description" data-i18n="quickstart.step2.desc">Adjust devices.json to your system</p>
                 <div class="code-block">
                     <pre id="config-example">{
     "name": "Washing Machine",
@@ -214,9 +219,9 @@
             <div class="step-card scroll-fade-in-left scroll-stagger">
                 <div class="step-number">3</div>
                 <h3 data-i18n="quickstart.step3.title">Start</h3>
-                <p class="step-description" data-i18n="quickstart.step3.desc">Start the Energy Manager</p>
+                <p class="step-description" data-i18n="quickstart.step3.desc">Start the Energy Manager with correct IP-Address</p>
                 <div class="code-block">
-                    <code>python solar_monitor.py</code>
+                    <code>./SolarFlow-linux-x64 --ip 192.168.178.90</code>
                 </div>
             </div>
         </div>
