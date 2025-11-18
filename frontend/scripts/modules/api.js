@@ -1,6 +1,6 @@
 export class ApiClient {
     constructor() {
-        this.baseUrl = localStorage.getItem('apiUrl') || 'http://localhost:8000';
+        this.baseUrl = localStorage.getItem('apiUrl') || window.location.origin;
         this.timeout = 5000;
     }
 
