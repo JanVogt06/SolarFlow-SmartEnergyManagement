@@ -1,0 +1,36 @@
+services:
+  solarflow:
+    # Baut Image aus dem Dockerfile im aktuellen Verzeichnis
+    build: .
+    
+    # Container-Name (für einfaches Management)
+    container_name: solarflow-monitor
+    
+    # Neustart-Policy: immer neu starten, außer manuell gestoppt
+    restart: unless-stopped
+    
+    # Port-Mapping: Host-Port:Container-Port
+    ports:
+      - "8000:8000"
+    
+    # Umgebungsvariablen (aus deinem Code)
+    environment:
+      - API_ENABLED=True
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    
+    # Volumes: Host-Pfad:Container-Pfad
+    # Diese Dateien werden NICHT bei Updates überschrieben!
+    volumes:
+      - ./solar_monitor.log:/app/solar_monitor.log
+      - ./devices.json:/app/devices.json
+      - ./Datalogs:/app/Datalogs
+    
+    # Eigenes Netzwerk für Container-Kommunikation
+    networks:
+      - solarflow-network
+
+# Netzwerk-Definition
+networks:
+  solarflow-network:
+    driver: bridge
