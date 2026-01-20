@@ -25,7 +25,15 @@ def apply_args_to_config(config: Any, args: argparse.Namespace) -> None:
             arg_name = arg_config['name'].lstrip('-').replace('-', '_')
 
             # Prüfe ob Argument gesetzt wurde
-            if hasattr(args, arg_name) and getattr(args, arg_name) is not None:
+            arg_value = getattr(args, arg_name, None)
+
+            # Bei store_true Argumenten: nur überschreiben wenn True
+            # (False bedeutet: nicht auf Kommandozeile angegeben, also Env-Var behalten)
+            is_store_true = arg_config.get('action') == 'store_true'
+            if is_store_true and arg_value is False:
+                continue
+
+            if hasattr(args, arg_name) and arg_value is not None:
                 # Bestimme den zu setzenden Wert
                 if 'config_value' in arg_config:
                     # Custom value function
