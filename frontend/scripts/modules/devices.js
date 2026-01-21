@@ -14,6 +14,7 @@ export class DevicesController {
         // Hue elements
         this.hueSection = document.getElementById('hue-section');
         this.hueDeviceSelect = document.getElementById('device-hue-device');
+        this.deviceNameInput = document.getElementById('device-name');
         this.hueEnabled = false;
         this.hueDevices = [];
 
@@ -52,6 +53,26 @@ export class DevicesController {
         const addTimeRangeBtn = document.getElementById('add-time-range');
         if (addTimeRangeBtn) {
             addTimeRangeBtn.addEventListener('click', () => this.addTimeRange());
+        }
+
+        // Hue device selection - sync name field
+        if (this.hueDeviceSelect) {
+            this.hueDeviceSelect.addEventListener('change', () => this.onHueDeviceChange());
+        }
+    }
+
+    onHueDeviceChange() {
+        const selectedHueDevice = this.hueDeviceSelect.value;
+
+        if (selectedHueDevice) {
+            // Hue-Gerät ausgewählt: Name übernehmen und readonly setzen
+            this.deviceNameInput.value = selectedHueDevice;
+            this.deviceNameInput.readOnly = true;
+            this.deviceNameInput.classList.add('readonly');
+        } else {
+            // Kein Hue-Gerät: Name editierbar machen
+            this.deviceNameInput.readOnly = false;
+            this.deviceNameInput.classList.remove('readonly');
         }
     }
 
@@ -115,6 +136,11 @@ export class DevicesController {
         }
         if (this.timeRangesContainer) {
             this.timeRangesContainer.innerHTML = '';
+        }
+        // Reset name field to editable
+        if (this.deviceNameInput) {
+            this.deviceNameInput.readOnly = false;
+            this.deviceNameInput.classList.remove('readonly');
         }
     }
 
@@ -180,12 +206,6 @@ export class DevicesController {
             max_runtime_per_day: parseInt(formData.get('max_runtime_per_day')) || 0,
             allowed_time_ranges: this.getTimeRanges()
         };
-
-        // Add Hue device if selected
-        const hueDevice = formData.get('hue_device_name');
-        if (hueDevice && this.hueEnabled) {
-            device.hue_device_name = hueDevice;
-        }
 
         // Validate thresholds
         if (device.switch_off_threshold > device.switch_on_threshold) {

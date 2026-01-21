@@ -206,3 +206,18 @@ input[type="radio"] {
     height: 18px;
     stroke: var(--color-accent-yellow);
 }
+
+/* Readonly Input */
+input.readonly,
+input[readonly] {
+    background: var(--color-bg-card);
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+input.readonly:focus,
+input[readonly]:focus {
+    border-color: rgba(251, 191, 36, 0.3);
+    box-shadow: none;
+}
