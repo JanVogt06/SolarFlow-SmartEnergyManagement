@@ -30,6 +30,11 @@ class EnergyController:
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)
 
+        # Tracking für kürzlich geschaltete Geräte (verhindert falsche Sync-Erkennung)
+        # Format: {device_name: datetime_of_last_switch}
+        self._recent_switches: Dict[str, datetime] = {}
+        self._switch_settle_time: timedelta = timedelta(seconds=15)
+
     def update(self, surplus_power: float, current_time: Optional[datetime] = None) -> Dict[str, str]:
         """
         Aktualisiert Gerätezustände basierend auf verfügbarem Überschuss.
@@ -45,6 +50,9 @@ class EnergyController:
             current_time = datetime.now()
 
         changes: Dict[str, str] = {}
+
+        # Synchronisiere Gerätestatus mit Hardware (falls manuell geschaltet wurde)
+        self._sync_device_states(current_time)
 
         # Sortiere Geräte nach Priorität (niedrigere Zahl = höhere Priorität)
         devices = self.device_manager.get_devices_by_priority()
@@ -94,6 +102,62 @@ class EnergyController:
                     available_for_new -= device.power_consumption
 
         return changes
+
+    def _sync_device_states(self, current_time: datetime) -> None:
+        """
+        Synchronisiert den internen Gerätestatus mit dem tatsächlichen Hardware-Status.
+
+        Dies ist wichtig, falls Geräte manuell (z.B. über die Hue-App) geschaltet wurden.
+        """
+        if not self.device_interface or not self.device_interface.connected:
+            return
+
+        for device in self.device_manager.devices:
+            # Nur Geräte synchronisieren, die im Hardware-Interface verfügbar sind
+            if not self.device_interface.is_device_available(device.name):
+                continue
+
+            # Überspringe Geräte, die kürzlich von uns geschaltet wurden
+            # (Hardware braucht Zeit zum Reagieren)
+            if device.name in self._recent_switches:
+                time_since_switch = current_time - self._recent_switches[device.name]
+                if time_since_switch < self._switch_settle_time:
+                    self.logger.debug(f"Überspringe Sync für '{device.name}' - "
+                                     f"kürzlich geschaltet ({time_since_switch.total_seconds():.0f}s)")
+                    continue
+                else:
+                    # Wartezeit abgelaufen - aus Tracking entfernen
+                    del self._recent_switches[device.name]
+
+            # Aktuellen Hardware-Status abfragen
+            hw_state = self.device_interface.get_state(device.name)
+            if hw_state is None:
+                # Konnte Status nicht abfragen - überspringen
+                continue
+
+            # Vergleiche mit internem Status
+            internal_is_on = device.state == DeviceState.ON
+            hw_is_on = hw_state
+
+            if hw_is_on and not internal_is_on:
+                # Gerät wurde manuell eingeschaltet
+                self.logger.info(f"Gerät '{device.name}' wurde extern eingeschaltet - synchronisiere Status")
+                device.state = DeviceState.ON
+                device.last_state_change = current_time
+
+            elif not hw_is_on and internal_is_on:
+                # Gerät wurde manuell ausgeschaltet
+                self.logger.info(f"Gerät '{device.name}' wurde extern ausgeschaltet - synchronisiere Status")
+
+                # Berechne Laufzeit vor Statusänderung
+                if device.last_state_change:
+                    runtime = int((current_time - device.last_state_change).total_seconds() / 60)
+                    device.runtime_today += runtime
+                    self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten (extern ausgeschaltet)")
+
+                device.state = DeviceState.OFF
+                device.last_state_change = current_time
+                device.last_switch_off = current_time
 
     def _handle_priority_preemption(self, devices: List[Device], total_available: float,
                                     current_time: datetime) -> Dict[str, str]:
@@ -231,6 +295,8 @@ class EnergyController:
                 success = self.device_interface.switch_on(device.name)
                 if success:
                     self.logger.debug(f"Hardware '{device.name}' erfolgreich eingeschaltet")
+                    # Merke Schaltzeit für Sync-Verzögerung
+                    self._recent_switches[device.name] = current_time
                 else:
                     self.logger.warning(f"Hardware '{device.name}' konnte nicht eingeschaltet werden")
             except Exception as e:
@@ -262,6 +328,8 @@ class EnergyController:
                 success = self.device_interface.switch_off(device.name)
                 if success:
                     self.logger.debug(f"Hardware '{device.name}' erfolgreich ausgeschaltet")
+                    # Merke Schaltzeit für Sync-Verzögerung
+                    self._recent_switches[device.name] = current_time
                 else:
                     self.logger.warning(f"Hardware '{device.name}' konnte nicht ausgeschaltet werden")
             except Exception as e:
