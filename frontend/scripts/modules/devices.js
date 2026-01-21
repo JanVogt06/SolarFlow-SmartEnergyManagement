@@ -5,6 +5,207 @@ export class DevicesController {
         this.activeDevicesEl = document.getElementById('active-devices');
         this.totalConsumptionEl = document.getElementById('total-consumption');
         this.devices = [];
+
+        // Modal elements
+        this.modal = document.getElementById('add-device-modal');
+        this.form = document.getElementById('add-device-form');
+        this.timeRangesContainer = document.getElementById('time-ranges-container');
+
+        // Hue elements
+        this.hueSection = document.getElementById('hue-section');
+        this.hueDeviceSelect = document.getElementById('device-hue-device');
+        this.hueEnabled = false;
+        this.hueDevices = [];
+
+        this.initializeEventListeners();
+        this.loadHueConfig();
+    }
+
+    initializeEventListeners() {
+        // Add device button
+        const addDeviceBtn = document.getElementById('add-device-btn');
+        if (addDeviceBtn) {
+            addDeviceBtn.addEventListener('click', () => this.openModal());
+        }
+
+        // Close modal buttons
+        const closeBtn = document.getElementById('close-add-device-modal');
+        const cancelBtn = document.getElementById('cancel-add-device');
+        if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
+        if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeModal());
+
+        // Close on overlay click
+        if (this.modal) {
+            const overlay = this.modal.querySelector('.modal-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', () => this.closeModal());
+            }
+        }
+
+        // Save device button
+        const saveBtn = document.getElementById('save-device');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveDevice());
+        }
+
+        // Add time range button
+        const addTimeRangeBtn = document.getElementById('add-time-range');
+        if (addTimeRangeBtn) {
+            addTimeRangeBtn.addEventListener('click', () => this.addTimeRange());
+        }
+    }
+
+    async loadHueConfig() {
+        try {
+            const hueConfig = await this.api.getHueConfig();
+            this.hueEnabled = hueConfig.enabled;
+            this.hueDevices = hueConfig.devices || [];
+
+            // Update UI
+            if (this.hueSection) {
+                this.hueSection.style.display = this.hueEnabled ? 'block' : 'none';
+            }
+
+            // Populate Hue device dropdown
+            this.populateHueDevices();
+        } catch (error) {
+            console.warn('Could not load Hue config:', error);
+            this.hueEnabled = false;
+        }
+    }
+
+    populateHueDevices() {
+        if (!this.hueDeviceSelect) return;
+
+        // Clear existing options (except first)
+        while (this.hueDeviceSelect.options.length > 1) {
+            this.hueDeviceSelect.remove(1);
+        }
+
+        // Add Hue devices
+        this.hueDevices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device;
+            option.textContent = device;
+            this.hueDeviceSelect.appendChild(option);
+        });
+    }
+
+    openModal() {
+        if (this.modal) {
+            this.modal.classList.add('active');
+            this.resetForm();
+            // Refresh Hue config when opening modal
+            this.loadHueConfig();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+    }
+
+    closeModal() {
+        if (this.modal) {
+            this.modal.classList.remove('active');
+        }
+    }
+
+    resetForm() {
+        if (this.form) {
+            this.form.reset();
+        }
+        if (this.timeRangesContainer) {
+            this.timeRangesContainer.innerHTML = '';
+        }
+    }
+
+    addTimeRange() {
+        if (!this.timeRangesContainer) return;
+
+        const timeRangeRow = document.createElement('div');
+        timeRangeRow.className = 'time-range-row';
+        timeRangeRow.innerHTML = `
+            <input type="time" class="time-start" value="06:00" required>
+            <span class="time-separator">bis</span>
+            <input type="time" class="time-end" value="22:00" required>
+            <button type="button" class="remove-time-range">
+                <i data-lucide="x"></i>
+            </button>
+        `;
+
+        // Add remove listener
+        const removeBtn = timeRangeRow.querySelector('.remove-time-range');
+        removeBtn.addEventListener('click', () => timeRangeRow.remove());
+
+        this.timeRangesContainer.appendChild(timeRangeRow);
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    getTimeRanges() {
+        const ranges = [];
+        if (!this.timeRangesContainer) return ranges;
+
+        const rows = this.timeRangesContainer.querySelectorAll('.time-range-row');
+        rows.forEach(row => {
+            const start = row.querySelector('.time-start').value;
+            const end = row.querySelector('.time-end').value;
+            if (start && end) {
+                ranges.push([start + ':00', end + ':00']);
+            }
+        });
+        return ranges;
+    }
+
+    async saveDevice() {
+        if (!this.form) return;
+
+        // Validate form
+        if (!this.form.checkValidity()) {
+            this.form.reportValidity();
+            return;
+        }
+
+        // Get form data
+        const formData = new FormData(this.form);
+        const device = {
+            name: formData.get('name'),
+            description: formData.get('description') || '',
+            power_consumption: parseInt(formData.get('power_consumption')),
+            priority: parseInt(formData.get('priority')),
+            switch_on_threshold: parseInt(formData.get('switch_on_threshold')),
+            switch_off_threshold: parseInt(formData.get('switch_off_threshold')),
+            min_runtime: parseInt(formData.get('min_runtime')) || 0,
+            max_runtime_per_day: parseInt(formData.get('max_runtime_per_day')) || 0,
+            allowed_time_ranges: this.getTimeRanges()
+        };
+
+        // Add Hue device if selected
+        const hueDevice = formData.get('hue_device_name');
+        if (hueDevice && this.hueEnabled) {
+            device.hue_device_name = hueDevice;
+        }
+
+        // Validate thresholds
+        if (device.switch_off_threshold > device.switch_on_threshold) {
+            this.showNotification('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein', 'error');
+            return;
+        }
+
+        try {
+            const response = await this.api.createDevice(device);
+            if (response) {
+                this.showNotification(`Gerät "${device.name}" wurde erfolgreich hinzugefügt`, 'success');
+                this.closeModal();
+                // Refresh devices list
+                const devicesData = await this.api.getDevices();
+                this.update(devicesData);
+            }
+        } catch (error) {
+            console.error('Error saving device:', error);
+            this.showNotification(error.message || 'Fehler beim Speichern des Geräts', 'error');
+        }
     }
 
     update(devicesData) {
@@ -26,10 +227,10 @@ export class DevicesController {
         if (!this.container) return;
 
         this.container.innerHTML = this.devices.map((device, index) => `
-            <div class="device-card ${device.state === 'on' ? 'active' : ''}" 
+            <div class="device-card ${device.state === 'on' ? 'active' : ''}"
                  data-device="${device.name}"
-                 style="transition-delay: ${index * 0.1}">
-                
+                 style="transition-delay: ${index * 0.1}s">
+
                 <div class="device-header">
                     <div class="device-info">
                         <h3 class="device-name text-gradient">${device.name}</h3>
@@ -142,6 +343,10 @@ export class DevicesController {
         `;
 
         document.body.appendChild(notification);
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
 
         setTimeout(() => {
             notification.classList.add('fade-out');

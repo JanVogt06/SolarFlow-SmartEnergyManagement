@@ -96,3 +96,113 @@ input[type="radio"] {
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
 }
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+}
+
+@media (max-width: 600px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Form Hint */
+.form-hint {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* Form Section Title */
+.form-section-title {
+    margin: var(--spacing-xl) 0 var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Time Range Row */
+.time-range-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+}
+
+.time-range-row input[type="time"] {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.time-range-row .time-separator {
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.time-range-row .remove-time-range {
+    padding: var(--spacing-xs);
+    background: transparent;
+    border: none;
+    color: var(--color-accent-red);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-base);
+}
+
+.time-range-row .remove-time-range:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.time-range-row .remove-time-range svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Small Button */
+.btn-small {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.btn-small svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Hue Section */
+.form-section-hue {
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg,
+        var(--color-bg-card) 0%,
+        rgba(251, 191, 36, 0.05) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: var(--radius-lg);
+}
+
+.form-section-hue .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: 0;
+    color: var(--color-accent-yellow);
+    border-bottom-color: rgba(251, 191, 36, 0.3);
+}
+
+.form-section-hue .form-section-title svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--color-accent-yellow);
+}

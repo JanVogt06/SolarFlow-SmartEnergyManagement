@@ -7,8 +7,41 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from typing import Any, Optional, List, Dict
-from datetime import datetime
+from datetime import datetime, time
 from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import BaseModel, validator
+
+
+class DeviceCreate(BaseModel):
+    """Schema für das Erstellen eines neuen Geräts"""
+    name: str
+    description: str = ""
+    power_consumption: float
+    priority: int
+    switch_on_threshold: float
+    switch_off_threshold: float
+    min_runtime: int = 0
+    max_runtime_per_day: int = 0
+    allowed_time_ranges: List[List[str]] = []
+    hue_device_name: Optional[str] = None  # Name des Hue-Geräts (wenn abweichend)
+
+    @validator('name')
+    def name_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Name darf nicht leer sein')
+        return v.strip()
+
+    @validator('priority')
+    def priority_in_range(cls, v):
+        if not 1 <= v <= 10:
+            raise ValueError('Priorität muss zwischen 1 und 10 liegen')
+        return v
+
+    @validator('switch_off_threshold')
+    def thresholds_valid(cls, v, values):
+        if 'switch_on_threshold' in values and v > values['switch_on_threshold']:
+            raise ValueError('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein')
+        return v
 
 
 def create_app(monitor: Any) -> FastAPI:
@@ -130,6 +163,37 @@ def create_app(monitor: Any) -> FastAPI:
             "total_benefit": stats.total_benefit
         }
 
+    @app.get("/api/hue")
+    async def get_hue_config():
+        """Hue-Konfiguration und verfügbare Geräte"""
+        # Hole Config vom Monitor
+        config = monitor.config
+
+        # Prüfe ob Hue aktiviert ist
+        hue_enabled = config.devices.enable_hue if hasattr(config, 'devices') else False
+
+        if not hue_enabled:
+            return {
+                "enabled": False,
+                "devices": [],
+                "bridge_ip": None
+            }
+
+        # Hole Hue-Geräte vom Device Interface
+        device_controller = monitor.device_controller
+        hue_devices = []
+
+        if (device_controller and
+            device_controller.device_interface and
+            device_controller.device_interface.interface_type == "hue"):
+            hue_devices = device_controller.device_interface.list_devices()
+
+        return {
+            "enabled": True,
+            "devices": hue_devices,
+            "bridge_ip": config.devices.hue_bridge_ip
+        }
+
     @app.get("/api/devices")
     async def get_devices():
         """Geräte-Status"""
@@ -175,5 +239,98 @@ def create_app(monitor: Any) -> FastAPI:
             "current_state": device.state.value,
             "message": "Manual control not yet implemented"
         }
+
+    @app.post("/api/devices")
+    async def create_device(device_data: DeviceCreate):
+        """Neues Gerät erstellen"""
+        device_manager = monitor.get_device_manager()
+
+        if not device_manager:
+            raise HTTPException(status_code=503, detail="Gerätesteuerung nicht aktiv")
+
+        # Prüfe ob Gerät bereits existiert
+        if device_manager.get_device(device_data.name):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Gerät mit Namen '{device_data.name}' existiert bereits"
+            )
+
+        try:
+            # Importiere Device-Klasse
+            from device_management.device import Device
+
+            # Konvertiere Zeitbereiche
+            time_ranges = []
+            for time_range in device_data.allowed_time_ranges:
+                if len(time_range) == 2:
+                    try:
+                        start = time.fromisoformat(time_range[0])
+                        end = time.fromisoformat(time_range[1])
+                        time_ranges.append((start, end))
+                    except ValueError as e:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Ungültiges Zeitformat: {e}"
+                        )
+
+            # Erstelle neues Gerät
+            new_device = Device(
+                name=device_data.name,
+                description=device_data.description,
+                power_consumption=device_data.power_consumption,
+                priority=device_data.priority,
+                switch_on_threshold=device_data.switch_on_threshold,
+                switch_off_threshold=device_data.switch_off_threshold,
+                min_runtime=device_data.min_runtime,
+                max_runtime_per_day=device_data.max_runtime_per_day,
+                allowed_time_ranges=time_ranges
+            )
+
+            # Füge Gerät hinzu
+            device_manager.add_device(new_device)
+
+            # Speichere in JSON
+            device_manager.save_devices()
+
+            return {
+                "success": True,
+                "message": f"Gerät '{device_data.name}' erfolgreich erstellt",
+                "device": {
+                    "name": new_device.name,
+                    "power_consumption": new_device.power_consumption,
+                    "priority": new_device.priority
+                }
+            }
+
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Fehler beim Erstellen: {str(e)}")
+
+    @app.delete("/api/devices/{device_name}")
+    async def delete_device(device_name: str):
+        """Gerät löschen"""
+        device_manager = monitor.get_device_manager()
+
+        if not device_manager:
+            raise HTTPException(status_code=503, detail="Gerätesteuerung nicht aktiv")
+
+        device = device_manager.get_device(device_name)
+        if not device:
+            raise HTTPException(status_code=404, detail=f"Gerät '{device_name}' nicht gefunden")
+
+        try:
+            # Entferne Gerät
+            device_manager.remove_device(device_name)
+
+            # Speichere in JSON
+            device_manager.save_devices()
+
+            return {
+                "success": True,
+                "message": f"Gerät '{device_name}' erfolgreich gelöscht"
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Fehler beim Löschen: {str(e)}")
 
     return app

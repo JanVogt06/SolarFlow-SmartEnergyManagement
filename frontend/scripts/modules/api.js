@@ -51,4 +51,21 @@ export class ApiClient {
     async getDevices() {
         return this.request('/api/devices');
     }
+
+    async getHueConfig() {
+        return this.request('/api/hue');
+    }
+
+    async createDevice(device) {
+        return this.request('/api/devices', {
+            method: 'POST',
+            body: JSON.stringify(device)
+        });
+    }
+
+    async deleteDevice(deviceName) {
+        return this.request(`/api/devices/${encodeURIComponent(deviceName)}`, {
+            method: 'DELETE'
+        });
+    }
 }

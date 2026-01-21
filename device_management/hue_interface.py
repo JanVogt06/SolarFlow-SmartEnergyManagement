@@ -156,8 +156,7 @@ class HueInterface(ISmartDeviceInterface):
             return None
 
         try:
-            light = self.bridge.get_light(device_name)
-            return light['state']['on']
+            return self.bridge.get_light(device_name, 'on')
 
         except Exception as e:
             self.logger.error(f"Fehler beim Abrufen des Status von '{device_name}': {e}")

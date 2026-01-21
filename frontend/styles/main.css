@@ -16,6 +16,7 @@
 @import './components/tabs.css';
 @import './components/status.css';
 @import './components/modal.css';
+@import './components/notifications.css';
 
 /* Features - Page specific */
 @import './features/energy-flow.css';

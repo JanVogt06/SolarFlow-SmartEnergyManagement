@@ -147,11 +147,17 @@
             <div class="tab-content" id="devices-tab">
                 <section class="devices-section">
                     <div class="section-header">
-                        <h2 class="section-title">Intelligente Gerätesteuerung</h2>
-                        <div class="devices-summary">
-                            <span>Aktive Geräte: <strong id="active-devices">0</strong></span>
-                            <span>Gesamtverbrauch: <strong id="total-consumption">0 W</strong></span>
+                        <div class="section-header-left">
+                            <h2 class="section-title">Intelligente Gerätesteuerung</h2>
+                            <div class="devices-summary">
+                                <span>Aktive Geräte: <strong id="active-devices">0</strong></span>
+                                <span>Gesamtverbrauch: <strong id="total-consumption">0 W</strong></span>
+                            </div>
                         </div>
+                        <button class="btn btn-primary" id="add-device-btn">
+                            <i data-lucide="plus"></i>
+                            Gerät hinzufügen
+                        </button>
                     </div>
 
                     <div class="devices-grid" id="devices-grid">
@@ -251,6 +257,136 @@
             </div>
         </div>
     </footer>
+
+    <!-- Add Device Modal -->
+    <div class="modal" id="add-device-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title modal-title-green">
+                    <i data-lucide="plus-circle"></i>
+                    Neues Gerät hinzufügen
+                </h2>
+                <button class="modal-close" id="close-add-device-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="add-device-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="device-name">Name *</label>
+                            <input type="text" id="device-name" name="name" required
+                                   placeholder="z.B. Waschmaschine">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="device-description">Beschreibung</label>
+                            <input type="text" id="device-description" name="description"
+                                   placeholder="Optionale Beschreibung">
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="device-power">Leistung (W) *</label>
+                            <input type="number" id="device-power" name="power_consumption"
+                                   required min="1" placeholder="z.B. 2000">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="device-priority">Priorität *</label>
+                            <select id="device-priority" name="priority" required>
+                                <option value="1">1 - Kritisch</option>
+                                <option value="2">2 - Sehr hoch</option>
+                                <option value="3">3 - Hoch</option>
+                                <option value="4">4 - Mittel-Hoch</option>
+                                <option value="5" selected>5 - Mittel</option>
+                                <option value="6">6 - Mittel-Niedrig</option>
+                                <option value="7">7 - Niedrig</option>
+                                <option value="8">8 - Sehr niedrig</option>
+                                <option value="9">9 - Minimal</option>
+                                <option value="10">10 - Optional</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="device-switch-on">Einschalten bei (W) *</label>
+                            <input type="number" id="device-switch-on" name="switch_on_threshold"
+                                   required min="0" placeholder="z.B. 2200">
+                            <span class="form-hint">Mindest-Überschuss zum Einschalten</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="device-switch-off">Ausschalten bei (W) *</label>
+                            <input type="number" id="device-switch-off" name="switch_off_threshold"
+                                   required min="0" placeholder="z.B. 1800">
+                            <span class="form-hint">Überschuss unter dem ausgeschaltet wird</span>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">Optionale Einstellungen</div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="device-min-runtime">Mindestlaufzeit (Min)</label>
+                            <input type="number" id="device-min-runtime" name="min_runtime"
+                                   min="0" value="0" placeholder="0">
+                            <span class="form-hint">0 = keine Mindestlaufzeit</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="device-max-runtime">Max. Laufzeit/Tag (Min)</label>
+                            <input type="number" id="device-max-runtime" name="max_runtime_per_day"
+                                   min="0" value="0" placeholder="0">
+                            <span class="form-hint">0 = unbegrenzt</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Erlaubte Zeitbereiche</label>
+                        <div id="time-ranges-container">
+                            <!-- Time ranges will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-small" id="add-time-range">
+                            <i data-lucide="plus"></i>
+                            Zeitbereich hinzufügen
+                        </button>
+                        <span class="form-hint">Leer = immer erlaubt</span>
+                    </div>
+
+                    <!-- Hue Integration Section (nur sichtbar wenn Hue aktiv) -->
+                    <div id="hue-section" class="form-section-hue" style="display: none;">
+                        <div class="form-section-title">
+                            <i data-lucide="lightbulb"></i>
+                            Philips Hue Integration
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="device-hue-device">Hue-Gerät zuordnen</label>
+                            <select id="device-hue-device" name="hue_device_name">
+                                <option value="">-- Kein Hue-Gerät --</option>
+                                <!-- Hue devices will be populated dynamically -->
+                            </select>
+                            <span class="form-hint">Wähle ein Hue-Gerät zur Steuerung aus</span>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-add-device">
+                        Abbrechen
+                    </button>
+                    <button class="btn btn-primary" id="save-device">
+                        <i data-lucide="save"></i>
+                        Gerät speichern
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Connection Help Modal -->
     <div class="modal" id="connection-help-modal">

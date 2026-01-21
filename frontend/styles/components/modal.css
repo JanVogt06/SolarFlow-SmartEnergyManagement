@@ -67,6 +67,10 @@
     margin: 0;
 }
 
+.modal-title.modal-title-green {
+    color: var(--color-accent-green);
+}
+
 .modal-title svg {
     width: 28px;
     height: 28px;
