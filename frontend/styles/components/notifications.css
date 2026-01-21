@@ -1,0 +1,113 @@
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: var(--spacing-xl);
+    right: var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-tooltip);
+    animation: slideInRight var(--transition-base);
+    max-width: 400px;
+}
+
+.notification svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.notification span {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    line-height: 1.4;
+}
+
+/* Success notification */
+.notification-success {
+    border-color: var(--color-accent-green);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(16, 185, 129, 0.1) 100%);
+}
+
+.notification-success svg {
+    stroke: var(--color-accent-green);
+}
+
+/* Error notification */
+.notification-error {
+    border-color: var(--color-accent-red);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(239, 68, 68, 0.1) 100%);
+}
+
+.notification-error svg {
+    stroke: var(--color-accent-red);
+}
+
+/* Info notification */
+.notification-info {
+    border-color: var(--color-accent-blue);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(59, 130, 246, 0.1) 100%);
+}
+
+.notification-info svg {
+    stroke: var(--color-accent-blue);
+}
+
+/* Warning notification */
+.notification-warning {
+    border-color: var(--color-accent-yellow);
+    background: linear-gradient(135deg,
+        var(--color-bg-elevated) 0%,
+        rgba(251, 191, 36, 0.1) 100%);
+}
+
+.notification-warning svg {
+    stroke: var(--color-accent-yellow);
+}
+
+/* Fade out animation */
+.notification.fade-out {
+    animation: fadeOutRight var(--transition-base) forwards;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .notification {
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        max-width: none;
+    }
+}
