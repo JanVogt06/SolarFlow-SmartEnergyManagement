@@ -46,7 +46,7 @@ class EnergyController:
 
         changes: Dict[str, str] = {}
 
-        # Sortiere Geräte nach Priorität
+        # Sortiere Geräte nach Priorität (niedrigere Zahl = höhere Priorität)
         devices = self.device_manager.get_devices_by_priority()
 
         # Berechne aktuellen Verbrauch der gesteuerten Geräte
@@ -59,8 +59,7 @@ class EnergyController:
         self.logger.debug(f"Überschuss: {surplus_power}W, Gesteuerter Verbrauch: {current_consumption}W, "
                           f"Total verfügbar: {total_available}W")
 
-        # Dann: Prüfe welche Geräte ausgeschaltet werden müssen
-        # Verwende den TATSÄCHLICHEN Überschuss für die Ausschalt-Entscheidung
+        # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen (zu wenig Überschuss)
         for device in devices:
             if device.state == DeviceState.ON:
                 # Gerät läuft - prüfe ob ausschalten basierend auf REALEM Überschuss
@@ -75,8 +74,15 @@ class EnergyController:
                             surplus_power += device.power_consumption
                             total_available = surplus_power + self.device_manager.get_total_consumption()
 
-        # Danach: Prüfe welche Geräte eingeschaltet werden können
-        # Verwende die TOTAL verfügbare Leistung für die Einschalt-Entscheidung
+        # Schritt 2: Prüfe ob höher priorisierte Geräte eingeschaltet werden können
+        # indem niedriger priorisierte ausgeschaltet werden
+        changes.update(self._handle_priority_preemption(devices, total_available, current_time))
+
+        # Aktualisiere total_available nach möglichen Änderungen
+        current_consumption = self.device_manager.get_total_consumption()
+        total_available = surplus_power + current_consumption
+
+        # Schritt 3: Prüfe welche Geräte eingeschaltet werden können
         available_for_new = total_available
         for device in devices:
             action = self._process_device_for_switching_on(device, available_for_new, current_time)
@@ -86,6 +92,86 @@ class EnergyController:
                 # Aktualisiere verfügbare Leistung nach Einschaltung
                 if "eingeschaltet" in action and device.state == DeviceState.ON:
                     available_for_new -= device.power_consumption
+
+        return changes
+
+    def _handle_priority_preemption(self, devices: List[Device], total_available: float,
+                                    current_time: datetime) -> Dict[str, str]:
+        """
+        Prüft ob höher priorisierte Geräte eingeschaltet werden können,
+        indem niedriger priorisierte ausgeschaltet werden.
+
+        Args:
+            devices: Liste der Geräte sortiert nach Priorität
+            total_available: Total verfügbare Leistung
+            current_time: Aktuelle Zeit
+
+        Returns:
+            Dict mit Statusänderungen
+        """
+        changes: Dict[str, str] = {}
+
+        for device in devices:
+            # Nur ausgeschaltete Geräte betrachten, die eingeschaltet werden könnten
+            if device.state not in (DeviceState.OFF, DeviceState.BLOCKED):
+                continue
+
+            # Prüfe ob Gerät grundsätzlich laufen darf (Zeit, Tageslaufzeit)
+            if not device.is_time_allowed(current_time) or not device.can_run_today():
+                continue
+
+            # Prüfe Hysterese
+            if not self._check_switch_on_hysteresis(device, current_time):
+                continue
+
+            # Genug Leistung vorhanden? Dann brauchen wir keine Verdrängung
+            if total_available >= device.switch_on_threshold:
+                continue
+
+            # Nicht genug Leistung - prüfe ob wir durch Abschalten von
+            # niedriger priorisierten Geräten genug Leistung freimachen können
+            potential_power = total_available
+            devices_to_preempt: List[Device] = []
+
+            # Gehe durch alle laufenden Geräte mit niedrigerer Priorität (höhere Zahl)
+            for other_device in reversed(devices):  # Von niedrigster Priorität her
+                if other_device.name == device.name:
+                    continue
+                if other_device.state != DeviceState.ON:
+                    continue
+                if other_device.priority <= device.priority:
+                    # Gleiche oder höhere Priorität - nicht verdrängen
+                    continue
+
+                # Prüfe Mindestlaufzeit des zu verdrängenden Geräts
+                if not self._check_min_runtime(other_device, current_time):
+                    continue
+
+                # Dieses Gerät könnte verdrängt werden
+                potential_power += other_device.power_consumption
+                devices_to_preempt.append(other_device)
+
+                # Genug Leistung gesammelt?
+                if potential_power >= device.switch_on_threshold:
+                    break
+
+            # Können wir genug Leistung freimachen?
+            if potential_power >= device.switch_on_threshold and devices_to_preempt:
+                # Schalte die niedriger priorisierten Geräte aus
+                for preempt_device in devices_to_preempt:
+                    action = self._switch_off(
+                        preempt_device, current_time,
+                        f"Verdrängt durch höher priorisiertes Gerät '{device.name}'"
+                    )
+                    if action:
+                        changes[preempt_device.name] = action
+                        total_available += preempt_device.power_consumption
+
+                # Schalte das höher priorisierte Gerät ein
+                action = self._switch_on(device, current_time)
+                if action:
+                    changes[device.name] = action
+                    total_available -= device.power_consumption
 
         return changes
 
