@@ -202,8 +202,23 @@ def create_app(monitor: Any) -> FastAPI:
         if not device_manager:
             return {"devices": [], "enabled": False}
 
+        # Hole EnergyController für Hysterese-Info
+        energy_controller = monitor.get_energy_controller()
+        hysteresis_seconds = 300  # Default: 5 Minuten
+        if energy_controller:
+            hysteresis_seconds = int(energy_controller.hysteresis_time.total_seconds())
+
+        now = datetime.now()
         devices = []
         for device in device_manager.get_devices_by_priority():
+            # Berechne verbleibende Hysterese-Zeit
+            hysteresis_remaining = None
+            if device.state.value == "off" and device.last_switch_off:
+                time_since_off = (now - device.last_switch_off).total_seconds()
+                remaining = hysteresis_seconds - time_since_off
+                if remaining > 0:
+                    hysteresis_remaining = int(remaining)
+
             devices.append({
                 "name": device.name,
                 "state": device.state.value,
@@ -211,7 +226,8 @@ def create_app(monitor: Any) -> FastAPI:
                 "priority": device.priority.value if hasattr(device.priority, 'value') else device.priority,
                 "runtime_today": device.runtime_today,
                 "switch_on_threshold": device.switch_on_threshold,
-                "switch_off_threshold": device.switch_off_threshold
+                "switch_off_threshold": device.switch_off_threshold,
+                "hysteresis_remaining": hysteresis_remaining
             })
 
         return {

@@ -304,6 +304,13 @@ export class DevicesController {
                     </div>
                 </div>
 
+                ${device.hysteresis_remaining ? `
+                    <div class="device-hysteresis">
+                        <i data-lucide="timer"></i>
+                        <span>Wartet noch ${this.formatHysteresis(device.hysteresis_remaining)}</span>
+                    </div>
+                ` : ''}
+
                 ${device.blocked_reason ? `
                     <div class="device-warning">
                         <i data-lucide="alert-triangle"></i>
@@ -334,6 +341,13 @@ export class DevicesController {
         const hours = Math.floor(minutes / 60);
         const mins = Math.round(minutes % 60);
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    }
+
+    formatHysteresis(seconds) {
+        if (!seconds || seconds <= 0) return '';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')} min` : `${secs}s`;
     }
 
     updateSummary() {
