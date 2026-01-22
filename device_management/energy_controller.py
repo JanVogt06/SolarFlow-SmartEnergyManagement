@@ -70,12 +70,18 @@ class EnergyController:
         # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen (zu wenig Überschuss)
         for device in devices:
             if device.state == DeviceState.ON:
-                # Gerät läuft - prüfe ob ausschalten basierend auf REALEM Überschuss
-                if surplus_power < device.switch_off_threshold:
+                # Gerät läuft - prüfe ob ausschalten
+                # WICHTIG: Der effektive Überschuss für dieses Gerät ist der aktuelle Überschuss (= Einspeisung)
+                # PLUS der eigene Verbrauch des Geräts, da dieses bereits in der reduzierten Einspeisung enthalten ist.
+                # Beispiel: 3242W Einspeisung vor Einschalten, Gerät 2000W → Einspeisung sinkt auf ~1242W
+                # Für die Ausschalt-Entscheidung muss aber der ursprüngliche Überschuss (3242W) betrachtet werden.
+                effective_surplus = surplus_power + device.power_consumption
+
+                if effective_surplus < device.switch_off_threshold:
                     # Prüfe Mindestlaufzeit
                     if self._check_min_runtime(device, current_time):
                         action = self._switch_off(device, current_time,
-                                                f"Überschuss ({surplus_power}W) < Schwellwert ({device.switch_off_threshold}W)")
+                                                f"Überschuss ({effective_surplus:.1f}W) < Schwellwert ({device.switch_off_threshold}W)")
                         if action:
                             changes[device.name] = action
                             # Aktualisiere verfügbare Leistung nach Abschaltung
