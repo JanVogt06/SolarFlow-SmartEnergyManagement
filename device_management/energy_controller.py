@@ -15,17 +15,25 @@ class EnergyController:
     """Steuert Geräte basierend auf verfügbarer Energie"""
 
     def __init__(self, device_manager: DeviceManager,
-                 device_interface: Optional[ISmartDeviceInterface] = None) -> None:
+                 device_interface: Optional[ISmartDeviceInterface] = None,
+                 min_battery_soc_on: float = 95.0,
+                 min_battery_soc_off: float = 20.0) -> None:
         """
         Initialisiert den EnergyController.
 
         Args:
             device_manager: Verwaltung der Geräte
             device_interface: Interface für Hardware-Steuerung (optional)
+            min_battery_soc_on: Mindest-Batteriestand zum Einschalten (Default: 95%)
+            min_battery_soc_off: Batteriestand unter dem ausgeschaltet wird (Default: 20%)
         """
         self.device_manager = device_manager
         self.device_interface = device_interface
         self.logger = logging.getLogger(__name__)
+
+        # Batterie-Schwellwerte
+        self.min_battery_soc_on = min_battery_soc_on
+        self.min_battery_soc_off = min_battery_soc_off
 
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)
@@ -35,13 +43,16 @@ class EnergyController:
         self._recent_switches: Dict[str, datetime] = {}
         self._switch_settle_time: timedelta = timedelta(seconds=15)
 
-    def update(self, surplus_power: float, current_time: Optional[datetime] = None) -> Dict[str, str]:
+    def update(self, surplus_power: float, current_time: Optional[datetime] = None,
+               battery_power: float = 0.0, battery_soc: float = 100.0) -> Dict[str, str]:
         """
         Aktualisiert Gerätezustände basierend auf verfügbarem Überschuss.
 
         Args:
-            surplus_power: Verfügbarer Überschuss in Watt (kann negativ sein!)
+            surplus_power: Aktuelle Einspeisung ins Netz in Watt (0 oder positiv)
             current_time: Aktuelle Zeit (optional, für Tests)
+            battery_power: Batterieleistung in Watt (positiv = entlädt, negativ = lädt)
+            battery_soc: Batterie-Ladestand in Prozent (0-100)
 
         Returns:
             Dict mit Statusänderungen {Gerätename: Aktion}
@@ -65,17 +76,34 @@ class EnergyController:
         total_available = surplus_power + current_consumption
 
         self.logger.debug(f"Überschuss: {surplus_power}W, Gesteuerter Verbrauch: {current_consumption}W, "
-                          f"Total verfügbar: {total_available}W")
+                          f"Total verfügbar: {total_available}W, "
+                          f"Batterie: {battery_soc:.1f}% ({battery_power:+.0f}W)")
 
-        # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen (zu wenig Überschuss)
+        # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen
         for device in devices:
             if device.state == DeviceState.ON:
-                # Gerät läuft - prüfe ob ausschalten
-                # WICHTIG: Der effektive Überschuss für dieses Gerät ist der aktuelle Überschuss (= Einspeisung)
-                # PLUS der eigene Verbrauch des Geräts, da dieses bereits in der reduzierten Einspeisung enthalten ist.
-                # Beispiel: 3242W Einspeisung vor Einschalten, Gerät 2000W → Einspeisung sinkt auf ~1242W
-                # Für die Ausschalt-Entscheidung muss aber der ursprüngliche Überschuss (3242W) betrachtet werden.
-                effective_surplus = surplus_power + device.power_consumption
+                # Prüfe kritischen Batteriestand
+                if battery_soc < self.min_battery_soc_off:
+                    if self._check_min_runtime(device, current_time):
+                        action = self._switch_off(device, current_time,
+                                                  f"Batteriestand kritisch ({battery_soc:.1f}% < {self.min_battery_soc_off}%)")
+                        if action:
+                            changes[device.name] = action
+                            surplus_power += device.power_consumption
+                            total_available = surplus_power + self.device_manager.get_total_consumption()
+                    continue
+
+                # Berechne den ECHTEN effektiven Überschuss
+                # Wenn die Batterie entlädt (positiv), kommt die Energie nicht aus PV-Überschuss!
+                if battery_power > 0:  # Batterie entlädt
+                    # Der echte Überschuss wäre: Einspeisung + Geräteleistung - Batterie-Entladung
+                    # Beispiel: 6W Einspeisung, 2000W Gerät, 3311W Batterie-Entladung
+                    # → echter Überschuss = 6 + 2000 - 3311 = -1305W (kein Überschuss!)
+                    effective_surplus = surplus_power + device.power_consumption - battery_power
+                else:
+                    # Batterie lädt oder Standby - normale Berechnung
+                    # Der Überschuss ist Einspeisung + Geräteleistung
+                    effective_surplus = surplus_power + device.power_consumption
 
                 if effective_surplus < device.switch_off_threshold:
                     # Prüfe Mindestlaufzeit
@@ -90,7 +118,7 @@ class EnergyController:
 
         # Schritt 2: Prüfe ob höher priorisierte Geräte eingeschaltet werden können
         # indem niedriger priorisierte ausgeschaltet werden
-        changes.update(self._handle_priority_preemption(devices, total_available, current_time))
+        changes.update(self._handle_priority_preemption(devices, total_available, current_time, battery_soc))
 
         # Aktualisiere total_available nach möglichen Änderungen
         current_consumption = self.device_manager.get_total_consumption()
@@ -99,7 +127,7 @@ class EnergyController:
         # Schritt 3: Prüfe welche Geräte eingeschaltet werden können
         available_for_new = total_available
         for device in devices:
-            action = self._process_device_for_switching_on(device, available_for_new, current_time)
+            action = self._process_device_for_switching_on(device, available_for_new, current_time, battery_soc)
 
             if action:
                 changes[device.name] = action
@@ -166,7 +194,7 @@ class EnergyController:
                 device.last_switch_off = current_time
 
     def _handle_priority_preemption(self, devices: List[Device], total_available: float,
-                                    current_time: datetime) -> Dict[str, str]:
+                                    current_time: datetime, battery_soc: float) -> Dict[str, str]:
         """
         Prüft ob höher priorisierte Geräte eingeschaltet werden können,
         indem niedriger priorisierte ausgeschaltet werden.
@@ -175,6 +203,7 @@ class EnergyController:
             devices: Liste der Geräte sortiert nach Priorität
             total_available: Total verfügbare Leistung
             current_time: Aktuelle Zeit
+            battery_soc: Batterie-Ladestand in Prozent
 
         Returns:
             Dict mit Statusänderungen
@@ -188,6 +217,10 @@ class EnergyController:
 
             # Prüfe ob Gerät grundsätzlich laufen darf (Zeit, Tageslaufzeit)
             if not device.is_time_allowed(current_time) or not device.can_run_today():
+                continue
+
+            # Prüfe Batterie-Mindeststand zum Einschalten
+            if battery_soc < self.min_battery_soc_on:
                 continue
 
             # Prüfe Hysterese
@@ -246,7 +279,8 @@ class EnergyController:
         return changes
 
     def _process_device_for_switching_on(self, device: Device, available_power: float,
-                                        current_time: datetime) -> Optional[str]:
+                                        current_time: datetime,
+                                        battery_soc: float = 100.0) -> Optional[str]:
         """
         Prüft ob ein Gerät eingeschaltet werden kann.
 
@@ -254,6 +288,7 @@ class EnergyController:
             device: Zu prüfendes Gerät
             available_power: Verfügbare Leistung in Watt
             current_time: Aktuelle Zeit
+            battery_soc: Batterie-Ladestand in Prozent
 
         Returns:
             Aktion oder None
@@ -276,6 +311,12 @@ class EnergyController:
 
         # Gerät kann grundsätzlich laufen - prüfe ob einschalten
         if device.state == DeviceState.OFF or device.state == DeviceState.BLOCKED:
+            # Prüfe Batterie-Mindeststand zum Einschalten
+            if battery_soc < self.min_battery_soc_on:
+                self.logger.debug(f"Gerät '{device.name}' wartet auf volle Batterie "
+                                f"({battery_soc:.1f}% < {self.min_battery_soc_on}%)")
+                return None
+
             # Gerät ist aus - prüfe ob einschalten
             if available_power >= device.switch_on_threshold:
                 # Prüfe Hysterese für EINSCHALTEN (basierend auf letztem Ausschalten)

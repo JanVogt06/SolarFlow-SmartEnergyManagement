@@ -161,8 +161,16 @@ class DeviceController:
         if not self._should_update_devices(data):
             return
 
-        # Führe Update durch
-        changes = self.energy_controller.update(data.surplus_power, data.timestamp)
+        # Batterie-Ladestand (Default 100% wenn keine Batterie)
+        battery_soc = data.battery_soc if data.battery_soc is not None else 100.0
+
+        # Führe Update durch mit Batterie-Informationen
+        changes = self.energy_controller.update(
+            surplus_power=data.surplus_power,
+            current_time=data.timestamp,
+            battery_power=data.battery_power,
+            battery_soc=battery_soc
+        )
 
         # Verarbeite Änderungen
         if changes:
