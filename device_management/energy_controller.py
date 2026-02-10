@@ -43,6 +43,9 @@ class EnergyController:
         self._recent_switches: Dict[str, datetime] = {}
         self._switch_settle_time: timedelta = timedelta(seconds=15)
 
+        # Tracking für Sync-Warnungen (nur einmal pro Gerät warnen)
+        self._sync_warned_devices: set = set()
+
     def update(self, surplus_power: float, current_time: Optional[datetime] = None,
                battery_power: float = 0.0, battery_soc: float = 100.0) -> Dict[str, str]:
         """
@@ -75,9 +78,10 @@ class EnergyController:
         # plus die Leistung, die wir durch Abschalten von Geräten freigeben könnten
         total_available = surplus_power + current_consumption
 
-        self.logger.debug(f"Überschuss: {surplus_power}W, Gesteuerter Verbrauch: {current_consumption}W, "
-                          f"Total verfügbar: {total_available}W, "
-                          f"Batterie: {battery_soc:.1f}% ({battery_power:+.0f}W)")
+        self.logger.info(f"Energie-Update: Überschuss={surplus_power:.0f}W, "
+                         f"Gesteuerter Verbrauch={current_consumption:.0f}W, "
+                         f"Total verfügbar={total_available:.0f}W, "
+                         f"Batterie={battery_soc:.1f}% ({battery_power:+.0f}W)")
 
         # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen
         for device in devices:
@@ -149,6 +153,12 @@ class EnergyController:
         for device in self.device_manager.devices:
             # Nur Geräte synchronisieren, die im Hardware-Interface verfügbar sind
             if not self.device_interface.is_device_available(device.name):
+                if device.name not in self._sync_warned_devices:
+                    self.logger.warning(
+                        f"Gerät '{device.name}' nicht im Hardware-Interface gefunden - "
+                        f"Sync übersprungen. Prüfe ob der Name exakt mit dem Hue-Gerätenamen übereinstimmt."
+                    )
+                    self._sync_warned_devices.add(device.name)
                 continue
 
             # Überspringe Geräte, die kürzlich von uns geschaltet wurden
@@ -313,8 +323,8 @@ class EnergyController:
         if device.state == DeviceState.OFF or device.state == DeviceState.BLOCKED:
             # Prüfe Batterie-Mindeststand zum Einschalten
             if battery_soc < self.min_battery_soc_on:
-                self.logger.debug(f"Gerät '{device.name}' wartet auf volle Batterie "
-                                f"({battery_soc:.1f}% < {self.min_battery_soc_on}%)")
+                self.logger.info(f"Gerät '{device.name}' wartet auf Batterie "
+                                 f"({battery_soc:.1f}% < {self.min_battery_soc_on}%)")
                 return None
 
             # Gerät ist aus - prüfe ob einschalten
@@ -322,6 +332,11 @@ class EnergyController:
                 # Prüfe Hysterese für EINSCHALTEN (basierend auf letztem Ausschalten)
                 if self._check_switch_on_hysteresis(device, current_time):
                     return self._switch_on(device, current_time)
+            else:
+                self.logger.debug(
+                    f"Gerät '{device.name}' bleibt aus: "
+                    f"Verfügbar={available_power:.0f}W < Schwellwert={device.switch_on_threshold:.0f}W"
+                )
 
         return None
 

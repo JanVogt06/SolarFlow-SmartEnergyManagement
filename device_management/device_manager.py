@@ -239,7 +239,7 @@ class DeviceManager:
         return warnings
 
     def save_devices(self) -> None:
-        """Speichert Geräte in JSON-Datei"""
+        """Speichert Geräte in JSON-Datei (atomar, um Datenverlust zu vermeiden)"""
         devices_data = []
         for device in self.devices:
             device_dict = {
@@ -258,10 +258,39 @@ class DeviceManager:
             }
             devices_data.append(device_dict)
 
-        with open(self.config_file, 'w') as f:
-            json.dump(devices_data, f, indent=2)
+        # Atomares Schreiben: erst in Temp-Datei, dann umbenennen
+        # Verhindert leere/korrupte Dateien bei Absturz während des Schreibens
+        import tempfile
+        import os
+        temp_file = None
+        try:
+            # Temp-Datei im selben Verzeichnis erstellen (für atomares Rename)
+            dir_path = self.config_file.parent
+            dir_path.mkdir(parents=True, exist_ok=True)
+            fd, temp_path = tempfile.mkstemp(
+                suffix='.tmp',
+                prefix='devices_',
+                dir=str(dir_path)
+            )
+            temp_file = temp_path
+            with os.fdopen(fd, 'w') as f:
+                json.dump(devices_data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
 
-        self.logger.info(f"Gespeichert: {len(self.devices)} Geräte")
+            # Atomares Umbenennen
+            os.replace(temp_path, str(self.config_file))
+            temp_file = None  # Erfolgreich - kein Cleanup nötig
+
+            self.logger.info(f"Gespeichert: {len(self.devices)} Geräte")
+        except Exception as e:
+            self.logger.error(f"Fehler beim Speichern der Geräte: {e}")
+            # Temp-Datei aufräumen falls noch vorhanden
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except OSError:
+                    pass
 
     def load_devices(self) -> None:
         """Lädt Geräte aus JSON-Datei mit verbesserter Validierung"""
@@ -271,7 +300,19 @@ class DeviceManager:
 
         try:
             with open(self.config_file, 'r') as f:
-                devices_data = json.load(f)
+                content = f.read().strip()
+
+            # Leere Datei graceful behandeln (kein Crash)
+            if not content:
+                self.logger.warning(
+                    f"Gerätekonfiguration ist leer: {self.config_file} - "
+                    f"starte mit leerer Geräteliste. "
+                    f"Geräte können über die API hinzugefügt werden."
+                )
+                self.devices.clear()
+                return
+
+            devices_data = json.loads(content)
 
             self.devices.clear()
 

@@ -41,15 +41,35 @@ class DeviceController:
             self._init_device_control()
 
     def _init_device_control(self) -> None:
-        """Initialisiert die Gerätesteuerung"""
+        """Initialisiert die Gerätesteuerung.
+
+        WICHTIG: Bei leerer/fehlerhafter Gerätekonfiguration wird die Steuerung
+        NICHT deaktiviert - es wird mit leerer Geräteliste weitergearbeitet.
+        Geräte können jederzeit über die API hinzugefügt werden.
+        """
+        config_file = Path(self.config.devices.config_file)
+
+        # DeviceManager erstellen - behandelt leere Dateien graceful
         try:
-            config_file = Path(self.config.devices.config_file)
             self.device_manager = DeviceManager(config_file)
+        except Exception as e:
+            self.logger.warning(
+                f"Gerätekonfiguration konnte nicht geladen werden: {e} - "
+                f"Starte mit leerer Geräteliste."
+            )
+            # DeviceManager ohne Datei erstellen (leere Liste)
+            self.device_manager = DeviceManager(config_file=None)
+            self.device_manager.config_file = config_file
 
-            # Device Interface initialisieren
+        # Device Interface initialisieren (Hue Bridge etc.)
+        try:
             self.device_interface = self._create_device_interface()
+        except Exception as e:
+            self.logger.error(f"Fehler bei Interface-Initialisierung: {e}")
+            self.device_interface = NullDeviceInterface()
 
-            # Energy Controller mit Interface erstellen
+        # Energy Controller mit Interface erstellen
+        try:
             self.energy_controller = EnergyController(
                 self.device_manager,
                 self.device_interface
@@ -59,23 +79,20 @@ class DeviceController:
             self.energy_controller.hysteresis_time = timedelta(
                 minutes=self.config.devices.hysteresis_minutes
             )
+        except Exception as e:
+            self.logger.error(f"Fehler bei EnergyController-Initialisierung: {e}")
+            self.energy_controller = None
 
-            self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
-            self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
-            self.logger.info(f"Hardware-Interface: {self.device_interface.interface_type}")
+        self.logger.info(f"Gerätesteuerung aktiviert. Konfiguration: {config_file}")
+        self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
+        self.logger.info(f"Hardware-Interface: {self.device_interface.interface_type}")
 
-            # Liste Geräte auf
+        # Liste Geräte auf
+        if self.device_manager.devices:
             self._list_devices()
 
-            # Stelle sauberen Startzustand her
-            self._ensure_clean_start_state()
-
-        except Exception as e:
-            self.logger.error(f"Fehler bei der Initialisierung der Gerätesteuerung: {e}")
-            self.config.devices.enable_control = False
-            self.device_manager = None
-            self.energy_controller = None
-            self.device_interface = None
+        # Stelle sauberen Startzustand her
+        self._ensure_clean_start_state()
 
     def _create_device_interface(self) -> ISmartDeviceInterface:
         """Erstellt das passende Device Interface basierend auf Konfiguration"""

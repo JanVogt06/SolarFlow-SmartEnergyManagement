@@ -18,13 +18,18 @@ services:
       - API_ENABLED=True
       - API_HOST=0.0.0.0
       - API_PORT=8000
-    
+      # Hue Bridge Integration
+      - ENABLE_HUE=True
+      - HUE_BRIDGE_IP=192.168.178.26
+
     # Volumes: Host-Pfad:Container-Pfad
     # Diese Dateien werden NICHT bei Updates überschrieben!
     volumes:
       - ./solar_monitor.log:/app/solar_monitor.log
       - ./devices.json:/app/devices.json
       - ./Datalogs:/app/Datalogs
+      # phue-Konfiguration persistieren (Bridge-Token bleibt nach Restart erhalten)
+      - ./.python_hue:/root/.python_hue
     
     # Eigenes Netzwerk für Container-Kommunikation
     networks:
