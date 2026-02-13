@@ -1,5 +1,5 @@
-# Base Image: Python 3.11 (schlank)
-FROM python:3.11-slim
+# Base Image: Python 3.14
+FROM python:3.14
 
 # Arbeitsverzeichnis im Container
 WORKDIR /app
