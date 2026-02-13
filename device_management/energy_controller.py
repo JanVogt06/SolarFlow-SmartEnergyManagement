@@ -319,8 +319,11 @@ class EnergyController:
             device.state = DeviceState.BLOCKED
             return None
 
-        # Gerät kann grundsätzlich laufen - prüfe ob einschalten
-        if device.state == DeviceState.OFF or device.state == DeviceState.BLOCKED:
+        # Gerät kann grundsätzlich laufen - BLOCKED zurücksetzen
+        if device.state == DeviceState.BLOCKED:
+            device.state = DeviceState.OFF
+
+        if device.state == DeviceState.OFF:
             # Prüfe Batterie-Mindeststand zum Einschalten
             if battery_soc < self.min_battery_soc_on:
                 self.logger.info(f"Gerät '{device.name}' wartet auf Batterie "
