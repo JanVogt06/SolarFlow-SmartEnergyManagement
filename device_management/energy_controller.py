@@ -84,7 +84,9 @@ class EnergyController:
                          f"Batterie={battery_soc:.1f}% ({battery_power:+.0f}W)")
 
         # Schritt 1: Prüfe welche Geräte ausgeschaltet werden müssen
-        for device in devices:
+        # Niedrigste Priorität zuerst (umgekehrte Reihenfolge), damit höher
+        # priorisierte Geräte mit gleichem Verbrauch länger laufen
+        for device in reversed(devices):
             if device.state == DeviceState.ON:
                 # Prüfe kritischen Batteriestand
                 if battery_soc < self.min_battery_soc_off:
