@@ -3,6 +3,7 @@ Hauptmonitor-Klasse für den Fronius Solar Monitor.
 """
 
 import logging
+import threading
 import time
 import sys
 from typing import Optional
@@ -60,6 +61,12 @@ class SolarMonitor:
         self.logger = logging.getLogger(__name__)
         self.running = False
         self.start_time: Optional[float] = None
+
+        # Cache für letzten validen Datensatz (für API-Konsumenten wie Frontend).
+        # Verhindert dass jeder /api/current-Aufruf einen separaten Request an
+        # den Wechselrichter auslöst.
+        self._latest_data: Optional[SolarData] = None
+        self._latest_data_lock = threading.Lock()
 
     def start(self) -> None:
         """Startet den Monitor"""
@@ -255,6 +262,10 @@ class SolarMonitor:
         Args:
             data: Validierte Solar-Daten
         """
+        # Cache für API-Konsumenten aktualisieren
+        with self._latest_data_lock:
+            self._latest_data = data
+
         # Gerätesteuerung aktualisieren
         self.device_controller.update(data)
 
@@ -281,11 +292,22 @@ class SolarMonitor:
 
     def get_current_data(self) -> Optional[SolarData]:
         """
-        Holt die aktuellen Daten (für externe Verwendung).
+        Holt die aktuellen Daten (für externe Verwendung, z.B. API).
+
+        Liefert den Cache aus dem letzten Update-Zyklus zurück, statt einen
+        zusätzlichen Request an den Wechselrichter auszulösen — sonst würde
+        jeder Frontend-Tab und jede /api/current-Anfrage Last erzeugen.
+
+        Wenn noch kein Cache vorhanden ist (z.B. App gerade gestartet),
+        wird einmalig direkt am Wechselrichter angefragt.
 
         Returns:
             Aktuelle Solardaten oder None
         """
+        with self._latest_data_lock:
+            cached = self._latest_data
+        if cached is not None:
+            return cached
         return self.api.get_power_flow_data()
 
     def get_daily_stats(self):
