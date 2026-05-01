@@ -4,6 +4,7 @@ Verwaltung mehrerer Geräte für den Smart Energy Manager.
 
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import time, datetime
@@ -24,7 +25,12 @@ class DeviceManager:
         """
         self.logger = logging.getLogger(__name__)
         self.devices: List[Device] = []
-        self.config_file = config_file or Path("../devices.json")
+        # Default: devices.json im Projekt-Root (eine Ebene über device_management/)
+        self.config_file = config_file or Path(__file__).resolve().parent.parent / "devices.json"
+
+        # Re-entrant Lock schützt self.devices vor parallelen API/Monitor-Zugriffen.
+        # RLock erlaubt verschachtelte Aufrufe (z.B. add_device → get_device).
+        self._lock = threading.RLock()
 
         # Lade Geräte wenn Konfiguration existiert
         if self.config_file.exists():
@@ -32,40 +38,55 @@ class DeviceManager:
 
     def add_device(self, device: Device) -> None:
         """Fügt ein Gerät hinzu"""
-        # Prüfe auf doppelte Namen
-        if any(d.name == device.name for d in self.devices):
-            raise ValueError(f"Gerät mit Namen '{device.name}' existiert bereits")
+        with self._lock:
+            # Prüfe auf doppelte Namen
+            if any(d.name == device.name for d in self.devices):
+                raise ValueError(f"Gerät mit Namen '{device.name}' existiert bereits")
 
-        self.devices.append(device)
-        self.logger.info(f"Gerät '{device.name}' hinzugefügt (Priorität: {device.priority})")
+            self.devices.append(device)
+            self.logger.info(f"Gerät '{device.name}' hinzugefügt (Priorität: {device.priority})")
 
     def remove_device(self, name: str) -> bool:
         """Entfernt ein Gerät"""
-        for i, device in enumerate(self.devices):
-            if device.name == name:
-                self.devices.pop(i)
-                self.logger.info(f"Gerät '{name}' entfernt")
-                return True
+        with self._lock:
+            for i, device in enumerate(self.devices):
+                if device.name == name:
+                    self.devices.pop(i)
+                    self.logger.info(f"Gerät '{name}' entfernt")
+                    return True
         return False
 
     def get_device(self, name: str) -> Optional[Device]:
         """Gibt ein Gerät nach Namen zurück"""
-        for device in self.devices:
-            if device.name == name:
-                return device
+        with self._lock:
+            for device in self.devices:
+                if device.name == name:
+                    return device
         return None
 
     def get_devices_by_priority(self) -> List[Device]:
-        """Gibt Geräte sortiert nach Priorität zurück (1 = höchste)"""
-        return sorted(self.devices, key=lambda d: d.priority)
+        """Gibt Geräte sortiert nach Priorität zurück (1 = höchste).
+
+        Liefert eine NEUE Liste (Snapshot) — Aufrufer können sicher iterieren,
+        auch wenn parallel über die API Geräte hinzugefügt/entfernt werden.
+        """
+        with self._lock:
+            return sorted(self.devices, key=lambda d: d.priority)
 
     def get_active_devices(self) -> List[Device]:
-        """Gibt alle eingeschalteten Geräte zurück"""
-        return [d for d in self.devices if d.state == DeviceState.ON]
+        """Gibt alle eingeschalteten Geräte zurück (Snapshot-Liste)"""
+        with self._lock:
+            return [d for d in self.devices if d.state == DeviceState.ON]
 
     def get_total_consumption(self) -> float:
         """Berechnet Gesamtverbrauch aller aktiven Geräte"""
-        return sum(d.power_consumption for d in self.get_active_devices())
+        with self._lock:
+            return sum(d.power_consumption for d in self.devices if d.state == DeviceState.ON)
+
+    def snapshot_devices(self) -> List[Device]:
+        """Gibt einen Snapshot der Geräteliste zurück (sicher zum Iterieren)."""
+        with self._lock:
+            return list(self.devices)
 
     def _validate_device_config(self, device_dict: Dict[str, Any]) -> List[str]:
         """
@@ -239,24 +260,32 @@ class DeviceManager:
         return warnings
 
     def save_devices(self) -> None:
-        """Speichert Geräte in JSON-Datei (atomar, um Datenverlust zu vermeiden)"""
-        devices_data = []
-        for device in self.devices:
-            device_dict = {
-                'name': device.name,
-                'description': device.description,
-                'power_consumption': device.power_consumption,
-                'priority': device.priority,
-                'min_runtime': device.min_runtime,
-                'max_runtime_per_day': device.max_runtime_per_day,
-                'switch_on_threshold': device.switch_on_threshold,
-                'switch_off_threshold': device.switch_off_threshold,
-                'allowed_time_ranges': [
-                    [t[0].isoformat(), t[1].isoformat()]
-                    for t in device.allowed_time_ranges
-                ]
-            }
-            devices_data.append(device_dict)
+        """Speichert Geräte in JSON-Datei (atomar, um Datenverlust zu vermeiden).
+
+        Erstellt unter Lock einen Snapshot der zu serialisierenden Daten,
+        damit parallele Mutationen während des Schreibvorgangs nicht zu
+        inkonsistentem JSON führen.
+        """
+        with self._lock:
+            devices_data = []
+            for device in self.devices:
+                # int(priority) statt IntEnum-Objekt: konsistent serialisierbar
+                priority_value = int(device.priority) if hasattr(device.priority, 'value') else int(device.priority)
+                device_dict = {
+                    'name': device.name,
+                    'description': device.description,
+                    'power_consumption': device.power_consumption,
+                    'priority': priority_value,
+                    'min_runtime': device.min_runtime,
+                    'max_runtime_per_day': device.max_runtime_per_day,
+                    'switch_on_threshold': device.switch_on_threshold,
+                    'switch_off_threshold': device.switch_off_threshold,
+                    'allowed_time_ranges': [
+                        [t[0].isoformat(), t[1].isoformat()]
+                        for t in device.allowed_time_ranges
+                    ]
+                }
+                devices_data.append(device_dict)
 
         # Atomares Schreiben: erst in Temp-Datei, dann umbenennen
         # Verhindert leere/korrupte Dateien bei Absturz während des Schreibens
@@ -309,12 +338,11 @@ class DeviceManager:
                     f"starte mit leerer Geräteliste. "
                     f"Geräte können über die API hinzugefügt werden."
                 )
-                self.devices.clear()
+                with self._lock:
+                    self.devices.clear()
                 return
 
             devices_data = json.loads(content)
-
-            self.devices.clear()
 
             # Validiere alle Geräte vor dem Laden
             all_errors = []
@@ -333,28 +361,24 @@ class DeviceManager:
                 error_msg = "Fehler in der Gerätekonfiguration:" + "".join(all_errors)
                 self.logger.error(error_msg)
 
-                # Frage ob trotzdem die gültigen Geräte geladen werden sollen
                 if valid_devices:
                     self.logger.warning(
                         f"{len(valid_devices)} von {len(devices_data)} Geräten "
                         f"sind gültig und könnten geladen werden."
                     )
-                    # In Produktionsumgebung könnte hier eine Benutzerabfrage erfolgen
-                    # Für jetzt: Lade nur die gültigen Geräte
                     devices_data = [device_dict for _, device_dict in valid_devices]
                 else:
                     raise ValueError("Keine gültigen Geräte in der Konfiguration")
 
-            # Lade die validierten Geräte
+            # Erstelle alle Devices erst lokal, dann unter Lock atomar austauschen
+            new_devices: List[Device] = []
             for device_dict in devices_data:
                 # Konvertiere Zeit-Strings
                 time_ranges = []
                 for start_str, end_str in device_dict.get('allowed_time_ranges', []):
-                    # Unterstütze beide Formate: HH:MM und HH:MM:SS
                     try:
                         start = time.fromisoformat(start_str)
                     except ValueError:
-                        # Versuche ohne Sekunden
                         start = datetime.strptime(start_str, "%H:%M").time()
 
                     try:
@@ -364,20 +388,28 @@ class DeviceManager:
 
                     time_ranges.append((start, end))
 
+                # Cast int für IntEnum-Sicherheit (akzeptiert auch float aus JSON)
+                priority_int = int(device_dict['priority'])
+
                 device = Device(
                     name=device_dict['name'],
                     description=device_dict.get('description', ''),
                     power_consumption=device_dict['power_consumption'],
-                    priority=device_dict['priority'],
+                    priority=priority_int,
                     min_runtime=device_dict.get('min_runtime', 0),
                     max_runtime_per_day=device_dict.get('max_runtime_per_day', 0),
                     switch_on_threshold=device_dict['switch_on_threshold'],
                     switch_off_threshold=device_dict['switch_off_threshold'],
                     allowed_time_ranges=time_ranges
                 )
-                self.devices.append(device)
+                new_devices.append(device)
 
-            self.logger.info(f"Erfolgreich geladen: {len(self.devices)} Geräte")
+            # Atomarer Austausch unter Lock
+            with self._lock:
+                self.devices.clear()
+                self.devices.extend(new_devices)
+
+            self.logger.info(f"Erfolgreich geladen: {len(new_devices)} Geräte")
 
             # Zeige Übersicht
             for device in self.get_devices_by_priority():
