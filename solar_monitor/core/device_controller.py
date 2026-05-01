@@ -146,23 +146,29 @@ class DeviceController:
             )
 
     def _ensure_clean_start_state(self) -> None:
-        """Stellt sicher, dass alle verwalteten Geräte beim Start aus sind"""
+        """Stellt sicher, dass alle verwalteten Geräte beim Start aus sind.
+
+        WICHTIG: `runtime_today` wird hier NICHT zurückgesetzt — bei einem
+        Programmrestart mitten am Tag würde sonst die akkumulierte Laufzeit
+        verloren gehen, und Geräte mit `max_runtime_per_day` bekämen ihre
+        volle Tageslaufzeit ein zweites Mal. Der echte Tagesreset passiert
+        in `reset_daily_stats()` beim Datumswechsel.
+        """
         if not self.device_interface or self.device_interface.interface_type == "null":
             return
 
         self.logger.info("Stelle sauberen Startzustand her - schalte alle verwalteten Geräte aus...")
 
-        for device in self.device_manager.devices:
+        for device in self.device_manager.snapshot_devices():
             # Prüfe ob Gerät im Interface verfügbar ist
             if self.device_interface.is_device_available(device.name):
                 # Schalte aus, egal welcher Status
                 if self.device_interface.switch_off(device.name):
                     self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
 
-            # Setze virtuellen Status
+            # Setze virtuellen Status (Laufzeit-Zähler bleibt erhalten)
             device.state = DeviceState.OFF
             device.last_state_change = datetime.now()
-            device.runtime_today = 0  # Reset Tagesstatistik beim Start
 
     def update(self, data: SolarData) -> None:
         """
