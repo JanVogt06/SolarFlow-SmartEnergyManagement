@@ -105,10 +105,15 @@ class CSVWriter(BaseWriter):
             # Öffne Datei
             mode = 'w' if write_header else 'a'
             with open(filepath, mode, newline='', encoding=self.encoding) as f:
+                # extrasaction='ignore': wenn ein Eintrag mehr Felder enthält
+                # als der Header (z.B. nach Hinzufügen eines Geräts zur
+                # Laufzeit), führt das nicht zum Crash, sondern überzählige
+                # Felder werden in dieser Zeile weggelassen.
                 writer = csv.DictWriter(
                     f,
                     fieldnames=fieldnames,
-                    delimiter=self.delimiter
+                    delimiter=self.delimiter,
+                    extrasaction='ignore'
                 )
 
                 # Schreibe Header wenn nötig
