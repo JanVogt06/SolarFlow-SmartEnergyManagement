@@ -153,7 +153,8 @@ class EnergyController:
         if not self.device_interface or not self.device_interface.connected:
             return
 
-        for device in self.device_manager.devices:
+        # Snapshot statt direktem Zugriff: schützt vor parallelen API-Mutationen
+        for device in self.device_manager.snapshot_devices():
             # Nur Geräte synchronisieren, die im Hardware-Interface verfügbar sind
             if not self.device_interface.is_device_available(device.name):
                 if device.name not in self._sync_warned_devices:
@@ -532,7 +533,7 @@ class EnergyController:
 
     def reset_daily_stats(self) -> None:
         """Setzt die Tagesstatistiken aller Geräte zurück"""
-        for device in self.device_manager.devices:
+        for device in self.device_manager.snapshot_devices():
             device.runtime_today = 0
             if device.state == DeviceState.BLOCKED:
                 device.state = DeviceState.OFF
