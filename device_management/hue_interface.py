@@ -5,8 +5,20 @@ Philips Hue Integration für den Smart Energy Manager
 import logging
 import time
 from typing import Optional, Dict, Any, List
-from phue import Bridge
 from .interfaces import ISmartDeviceInterface
+
+# Lazy-Import: phue wird erst bei Bedarf importiert. Damit lädt sich
+# das Modul auch dann, wenn phue nicht installiert ist (z.B. Hue deaktiviert).
+Bridge = None  # type: ignore
+
+
+def _import_bridge():
+    """Importiert phue.Bridge erst bei Bedarf (vermeidet harte Dependency)."""
+    global Bridge
+    if Bridge is None:
+        from phue import Bridge as _Bridge
+        Bridge = _Bridge
+    return Bridge
 
 
 class HueInterface(ISmartDeviceInterface):
@@ -22,7 +34,7 @@ class HueInterface(ISmartDeviceInterface):
         config = {'bridge_ip': bridge_ip}
         super().__init__(config)
         self.bridge_ip = bridge_ip
-        self.bridge: Optional[Bridge] = None
+        self.bridge: Optional[Any] = None
 
         # Cache für Geräte-IDs
         self.device_map: Dict[str, Any] = {}
@@ -35,8 +47,9 @@ class HueInterface(ISmartDeviceInterface):
             True bei erfolgreicher Verbindung
         """
         try:
+            BridgeCls = _import_bridge()
             self.logger.info(f"Verbinde zu Hue Bridge: {self.bridge_ip}")
-            self.bridge = Bridge(self.bridge_ip)
+            self.bridge = BridgeCls(self.bridge_ip)
 
             # Beim ersten Mal muss der Knopf gedrückt werden
             self.bridge.connect()
