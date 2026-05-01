@@ -49,8 +49,11 @@ class FileHandler(FileManager):
             }
         }
 
-        # Cache für aktuelle Pfade
-        self._current_paths: Dict[str, Path] = {}
+        # Cache für aktuelle Pfade — Schlüssel: (log_type, datums_string).
+        # Der Datumsbestandteil sorgt dafür, dass beim Tageswechsel
+        # automatisch ein neuer Pfad gewählt wird, statt weiter in die
+        # Datei vom Vortag zu schreiben.
+        self._current_paths: Dict[tuple, Path] = {}
 
         # Session-Zeitstempel für session-basierte Dateien
         self._session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -65,14 +68,21 @@ class FileHandler(FileManager):
         Returns:
             Pfad zur Log-Datei
         """
-        # Prüfe Cache
-        if log_type in self._current_paths:
-            return self._current_paths[log_type]
-
-        # Generiere neuen Pfad
+        # Generiere Cache-Key inkl. aktuellem Datum (oder Session-Timestamp)
         config = self.type_config.get(log_type)
         if not config:
             raise ValueError(f"Unbekannter log_type: {log_type}")
+
+        if config['session_based']:
+            time_key = self._session_timestamp
+        else:
+            time_key = datetime.now().strftime("%Y%m%d")
+
+        cache_key = (log_type, time_key)
+
+        # Prüfe Cache
+        if cache_key in self._current_paths:
+            return self._current_paths[cache_key]
 
         # Verzeichnis
         log_dir = self.base_dir / config['sub_dir']
@@ -80,19 +90,17 @@ class FileHandler(FileManager):
 
         # Dateiname
         base_name = config['base_name'].replace('.csv', '')
-
-        if config['session_based']:
-            # Session-basiert: Ein Mal pro Programmlauf
-            filename = f"{base_name}_{self._session_timestamp}.csv"
-        else:
-            # Tagesbasiert: Eine Datei pro Tag
-            date_str = datetime.now().strftime("%Y%m%d")
-            filename = f"{base_name}_{date_str}.csv"
-
+        filename = f"{base_name}_{time_key}.csv"
         path = log_dir / filename
 
+        # Beim Tageswechsel alte Cache-Einträge für diesen log_type entfernen,
+        # damit der CSV-Writer für die neue Datei wieder Header schreibt.
+        stale_keys = [k for k in self._current_paths if k[0] == log_type and k != cache_key]
+        for k in stale_keys:
+            del self._current_paths[k]
+
         # Cache aktualisieren
-        self._current_paths[log_type] = path
+        self._current_paths[cache_key] = path
 
         return path
 
