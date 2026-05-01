@@ -24,10 +24,16 @@ class TimingConfig:
     daily_stats_interval: int = field(default_factory=lambda: int(os.getenv("DAILY_STATS_INTERVAL", "1800")))
 
 
+def _resolve_log_level() -> int:
+    """Liest LOG_LEVEL aus der Env, fällt auf INFO zurück bei Tippfehlern."""
+    raw = os.getenv("LOG_LEVEL", "INFO").upper()
+    return getattr(logging, raw, logging.INFO)
+
+
 @dataclass
 class LoggingConfig:
     """Logging-Einstellungen"""
-    log_level: int = field(default_factory=lambda: getattr(logging, os.getenv("LOG_LEVEL", "INFO")))
+    log_level: int = field(default_factory=_resolve_log_level)
     log_file: str = field(default_factory=lambda: os.getenv("LOG_FILE", "solar_monitor.log"))
 
     # Feature-Flags
