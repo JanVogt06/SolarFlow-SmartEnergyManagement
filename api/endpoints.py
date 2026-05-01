@@ -2,6 +2,7 @@
 FastAPI Endpoints
 """
 
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -9,7 +10,10 @@ from pathlib import Path
 from typing import Any, Optional, List, Dict
 from datetime import datetime, time
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator, ValidationInfo
+
+
+_logger = logging.getLogger(__name__)
 
 
 class DeviceCreate(BaseModel):
@@ -25,21 +29,25 @@ class DeviceCreate(BaseModel):
     allowed_time_ranges: List[List[str]] = []
     hue_device_name: Optional[str] = None  # Name des Hue-Geräts (wenn abweichend)
 
-    @validator('name')
-    def name_not_empty(cls, v):
+    @field_validator('name')
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError('Name darf nicht leer sein')
         return v.strip()
 
-    @validator('priority')
-    def priority_in_range(cls, v):
+    @field_validator('priority')
+    @classmethod
+    def priority_in_range(cls, v: int) -> int:
         if not 1 <= v <= 10:
             raise ValueError('Priorität muss zwischen 1 und 10 liegen')
         return v
 
-    @validator('switch_off_threshold')
-    def thresholds_valid(cls, v, values):
-        if 'switch_on_threshold' in values and v > values['switch_on_threshold']:
+    @field_validator('switch_off_threshold')
+    @classmethod
+    def thresholds_valid(cls, v: float, info: ValidationInfo) -> float:
+        on_threshold = info.data.get('switch_on_threshold')
+        if on_threshold is not None and v > on_threshold:
             raise ValueError('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein')
         return v
 
@@ -54,11 +62,21 @@ def create_app(monitor: Any) -> FastAPI:
         description="Smart Energy Management System API"
     )
 
-    # CORS Middleware
+    # CORS Middleware: nur lokale Origins erlauben.
+    # Mit "*" könnte jede beliebige Webseite (im Browser des Nutzers) ohne Auth
+    # POST/DELETE-Calls auf /api/devices ausführen → CSRF-Risiko.
+    api_port = getattr(getattr(monitor, 'config', None), 'api', None)
+    api_port = api_port.port if api_port else 8000
+    cors_origins = [
+        f"http://localhost:{api_port}",
+        f"http://127.0.0.1:{api_port}",
+    ]
+    cors_origin_regex = r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):\d+$"
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
+        allow_origins=cors_origins,
+        allow_origin_regex=cors_origin_regex,
+        allow_methods=["GET", "POST", "DELETE", "PUT"],
         allow_headers=["*"],
     )
 
@@ -77,13 +95,12 @@ def create_app(monitor: Any) -> FastAPI:
 
     frontend_path = base_path / "frontend"
 
-    print(f"Debug: Suche Frontend in: {frontend_path}")
-    print(f"Debug: Frontend existiert: {frontend_path.exists()}")
+    _logger.debug(f"Suche Frontend in: {frontend_path} (existiert: {frontend_path.exists()})")
 
     if frontend_path.exists():
         index_file = frontend_path / "index.html"
         if index_file.exists():
-            print(f"Debug: index.html gefunden: {index_file}")
+            _logger.debug(f"index.html gefunden: {index_file}")
 
             # Mount die einzelnen Verzeichnisse unter ihren eigenen Pfaden
             styles_path = frontend_path / "styles"
@@ -92,15 +109,15 @@ def create_app(monitor: Any) -> FastAPI:
 
             if styles_path.exists():
                 app.mount("/styles", StaticFiles(directory=str(styles_path)), name="styles")
-                print(f"Mounted: /styles -> {styles_path}")
+                _logger.debug(f"Mounted: /styles -> {styles_path}")
 
             if scripts_path.exists():
                 app.mount("/scripts", StaticFiles(directory=str(scripts_path)), name="scripts")
-                print(f"Mounted: /scripts -> {scripts_path}")
+                _logger.debug(f"Mounted: /scripts -> {scripts_path}")
 
             if assets_path.exists():
                 app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
-                print(f"Mounted: /assets -> {assets_path}")
+                _logger.debug(f"Mounted: /assets -> {assets_path}")
 
             @app.get("/", response_class=HTMLResponse)
             async def serve_frontend():
@@ -108,9 +125,9 @@ def create_app(monitor: Any) -> FastAPI:
                 with open(index_file, 'r', encoding='utf-8') as f:
                     return f.read()
         else:
-            print(f"WARNUNG: index.html nicht gefunden in {frontend_path}")
+            _logger.warning(f"index.html nicht gefunden in {frontend_path}")
     else:
-        print(f"WARNUNG: Frontend-Verzeichnis nicht gefunden: {frontend_path}")
+        _logger.warning(f"Frontend-Verzeichnis nicht gefunden: {frontend_path}")
 
     # === API Endpoints ===
 
@@ -238,22 +255,67 @@ def create_app(monitor: Any) -> FastAPI:
 
     @app.post("/api/devices/{device_name}/toggle")
     async def toggle_device(device_name: str):
-        """Gerät manuell schalten"""
-        device_manager = monitor.get_device_manager()
+        """Gerät manuell schalten.
 
+        Schaltet das Hardware-Gerät direkt (über das Device-Interface) und
+        aktualisiert den virtuellen Status. Der nächste Update-Zyklus wird
+        anhand der Solar-Lage entscheiden, ob das Gerät weiterläuft —
+        d.h. ein manuelles EIN bleibt nur, wenn auch genug Überschuss da ist
+        (analog zum manuellen Schalten in der Hue-App).
+        """
+        from device_management.device import DeviceState
+
+        device_manager = monitor.get_device_manager()
         if not device_manager:
-            raise HTTPException(status_code=404, detail="Gerätesteuerung nicht aktiv")
+            raise HTTPException(status_code=503, detail="Gerätesteuerung nicht aktiv")
 
         device = device_manager.get_device(device_name)
         if not device:
             raise HTTPException(status_code=404, detail=f"Gerät '{device_name}' nicht gefunden")
 
-        # Hier würdest du die Schaltlogik implementieren
-        # Für jetzt nur Status zurückgeben
+        device_controller = getattr(monitor, 'device_controller', None)
+        device_interface = getattr(device_controller, 'device_interface', None) if device_controller else None
+        if device_interface is None:
+            raise HTTPException(status_code=503, detail="Device-Interface nicht verfügbar")
+
+        # Bei echtem Hardware-Interface muss das Gerät dort verfügbar sein
+        if (device_interface.interface_type != "null"
+                and not device_interface.is_device_available(device_name)):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Gerät '{device_name}' im Hardware-Interface nicht verfügbar"
+            )
+
+        target_on = device.state != DeviceState.ON
+        try:
+            success = (device_interface.switch_on(device_name) if target_on
+                       else device_interface.switch_off(device_name))
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Hardware-Fehler: {e}")
+
+        if not success and device_interface.interface_type != "null":
+            raise HTTPException(
+                status_code=502,
+                detail="Hardware-Schaltung fehlgeschlagen — Status unverändert"
+            )
+
+        # Virtuellen Status nachziehen (analog zur Logik in EnergyController)
+        now = datetime.now()
+        if target_on:
+            device.state = DeviceState.ON
+            device.last_state_change = now
+        else:
+            if device.last_state_change:
+                runtime = int((now - device.last_state_change).total_seconds() / 60)
+                device.runtime_today += runtime
+            device.state = DeviceState.OFF
+            device.last_state_change = now
+            device.last_switch_off = now
+
         return {
             "device": device_name,
             "current_state": device.state.value,
-            "message": "Manual control not yet implemented"
+            "message": f"Gerät '{device_name}' manuell {'eingeschaltet' if target_on else 'ausgeschaltet'}"
         }
 
     @app.post("/api/devices")
