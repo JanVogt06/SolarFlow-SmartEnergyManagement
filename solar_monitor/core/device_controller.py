@@ -301,9 +301,6 @@ class DeviceController:
                 self.file_handler.base_dir / self.config.directories.device_log_dir
             )
 
-        # Speichere Gerätekonfiguration
-        self.device_manager.save_devices()
-
     def reset_daily_stats(self) -> None:
         """Setzt die täglichen Gerätestatistiken zurück"""
         if self.energy_controller:

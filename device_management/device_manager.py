@@ -6,11 +6,11 @@ import json
 import logging
 import threading
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import time, datetime
-from typing import Tuple
 
-from .device import Device, DeviceState, DevicePriority
+from utils import read_json, write_json
+from .device import Device, DeviceState
 
 
 class DeviceManager:
@@ -259,90 +259,59 @@ class DeviceManager:
 
         return warnings
 
-    def save_devices(self) -> None:
-        """Speichert Geräte in JSON-Datei (atomar, um Datenverlust zu vermeiden).
+    def save_devices(self) -> bool:
+        """Speichert Geräte in die JSON-Datei.
 
         Erstellt unter Lock einen Snapshot der zu serialisierenden Daten,
         damit parallele Mutationen während des Schreibvorgangs nicht zu
         inkonsistentem JSON führen.
+
+        Returns:
+            True wenn die Datei geschrieben werden konnte
         """
         with self._lock:
-            devices_data = []
-            for device in self.devices:
-                # int(priority) statt IntEnum-Objekt: konsistent serialisierbar
-                priority_value = int(device.priority) if hasattr(device.priority, 'value') else int(device.priority)
-                device_dict = {
+            devices_data = [
+                {
                     'name': device.name,
                     'description': device.description,
                     'power_consumption': device.power_consumption,
-                    'priority': priority_value,
+                    'priority': int(device.priority),
                     'min_runtime': device.min_runtime,
                     'max_runtime_per_day': device.max_runtime_per_day,
                     'switch_on_threshold': device.switch_on_threshold,
                     'switch_off_threshold': device.switch_off_threshold,
                     'allowed_time_ranges': [
-                        [t[0].isoformat(), t[1].isoformat()]
-                        for t in device.allowed_time_ranges
+                        [start.isoformat(), end.isoformat()]
+                        for start, end in device.allowed_time_ranges
                     ]
                 }
-                devices_data.append(device_dict)
+                for device in self.devices
+            ]
 
-        # Atomares Schreiben: erst in Temp-Datei, dann umbenennen
-        # Verhindert leere/korrupte Dateien bei Absturz während des Schreibens
-        import tempfile
-        import os
-        temp_file = None
-        try:
-            # Temp-Datei im selben Verzeichnis erstellen (für atomares Rename)
-            dir_path = self.config_file.parent
-            dir_path.mkdir(parents=True, exist_ok=True)
-            fd, temp_path = tempfile.mkstemp(
-                suffix='.tmp',
-                prefix='devices_',
-                dir=str(dir_path)
+        if not write_json(self.config_file, devices_data):
+            self.logger.error(
+                f"Geräte konnten nicht nach {self.config_file} geschrieben werden - "
+                f"Änderungen gehen beim Neustart verloren"
             )
-            temp_file = temp_path
-            with os.fdopen(fd, 'w') as f:
-                json.dump(devices_data, f, indent=2)
-                f.flush()
-                os.fsync(f.fileno())
+            return False
 
-            # Atomares Umbenennen
-            os.replace(temp_path, str(self.config_file))
-            temp_file = None  # Erfolgreich - kein Cleanup nötig
-
-            self.logger.info(f"Gespeichert: {len(self.devices)} Geräte")
-        except Exception as e:
-            self.logger.error(f"Fehler beim Speichern der Geräte: {e}")
-            # Temp-Datei aufräumen falls noch vorhanden
-            if temp_file and os.path.exists(temp_file):
-                try:
-                    os.unlink(temp_file)
-                except OSError:
-                    pass
+        self.logger.info(f"Gespeichert: {len(devices_data)} Geräte")
+        return True
 
     def load_devices(self) -> None:
         """Lädt Geräte aus JSON-Datei mit verbesserter Validierung"""
-        if not self.config_file.exists():
-            self.logger.info(f"Keine Gerätekonfiguration gefunden: {self.config_file}")
-            return
-
         try:
-            with open(self.config_file, 'r') as f:
-                content = f.read().strip()
+            devices_data = read_json(self.config_file)
 
-            # Leere Datei graceful behandeln (kein Crash)
-            if not content:
+            if devices_data is None:
                 self.logger.warning(
-                    f"Gerätekonfiguration ist leer: {self.config_file} - "
+                    f"Keine oder leere Gerätekonfiguration: {self.config_file} - "
                     f"starte mit leerer Geräteliste. "
                     f"Geräte können über die API hinzugefügt werden."
                 )
                 with self._lock:
                     self.devices.clear()
                 return
-
-            devices_data = json.loads(content)
 
             # Validiere alle Geräte vor dem Laden
             all_errors = []

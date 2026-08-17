@@ -356,11 +356,14 @@ def create_app(monitor: Any) -> FastAPI:
                 allowed_time_ranges=time_ranges
             )
 
-            # Füge Gerät hinzu
             device_manager.add_device(new_device)
 
-            # Speichere in JSON
-            device_manager.save_devices()
+            if not device_manager.save_devices():
+                device_manager.remove_device(new_device.name)
+                raise HTTPException(
+                    status_code=500,
+                    detail="Gerät konnte nicht gespeichert werden — Konfigurationsdatei nicht beschreibbar"
+                )
 
             return {
                 "success": True,
@@ -389,18 +392,18 @@ def create_app(monitor: Any) -> FastAPI:
         if not device:
             raise HTTPException(status_code=404, detail=f"Gerät '{device_name}' nicht gefunden")
 
-        try:
-            # Entferne Gerät
-            device_manager.remove_device(device_name)
+        device_manager.remove_device(device_name)
 
-            # Speichere in JSON
-            device_manager.save_devices()
+        if not device_manager.save_devices():
+            device_manager.add_device(device)
+            raise HTTPException(
+                status_code=500,
+                detail="Löschen konnte nicht gespeichert werden — Konfigurationsdatei nicht beschreibbar"
+            )
 
-            return {
-                "success": True,
-                "message": f"Gerät '{device_name}' erfolgreich gelöscht"
-            }
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Fehler beim Löschen: {str(e)}")
+        return {
+            "success": True,
+            "message": f"Gerät '{device_name}' erfolgreich gelöscht"
+        }
 
     return app
