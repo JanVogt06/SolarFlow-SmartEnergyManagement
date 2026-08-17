@@ -112,6 +112,10 @@ SolarFlow-windows-x64.exe --ip 192.168.178.99
 - **Prioritätssystem**: Wichtige Geräte werden zuerst eingeschaltet
 - **Zeitsteuerung**: Geräte nur zu bestimmten Zeiten (z.B. Poolpumpe nur tagsüber)
 - **Philips Hue Integration**: Steuert echte Smart-Home-Geräte
+- **Manueller Modus**: Schalten Sie ein Gerät selbst — in der Weboberfläche oder in der
+  Hue-App — pausiert die Automatik für dieses Gerät (Standard: 30 Minuten)
+- **Erreichbarkeits-Erkennung**: Nicht eingesteckte Hue-Geräte werden als
+  „Nicht erreichbar" angezeigt statt fälschlich als eingeschaltet
 
 ### 💰 Kostenanalyse
 - **Tägliche Ersparnis** in Euro
@@ -120,6 +124,13 @@ SolarFlow-windows-x64.exe --ip 192.168.178.99
 - **Einspeisevergütung** wird berücksichtigt
 
 ## ⚙️ Erweiterte Einstellungen
+
+### Einstellungen im Browser
+
+Im Tab **Einstellungen** lassen sich Fronius-IP, Hue-Bridge, Strompreise, Einspeisevergütung
+sowie Hysterese-, Manuell- und Batterie-Schwellwerte ändern. Die Werte greifen sofort und
+landen in `settings.json`; alles, was dort nicht steht, kommt weiterhin aus den
+Umgebungsvariablen.
 
 ### Geräte konfigurieren
 
