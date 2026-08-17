@@ -75,9 +75,11 @@ class DeviceController:
                 self.device_interface
             )
 
-            # Setze Hysterese-Zeit
             self.energy_controller.hysteresis_time = timedelta(
                 minutes=self.config.devices.hysteresis_minutes
+            )
+            self.energy_controller.manual_override_time = timedelta(
+                minutes=self.config.devices.manual_override_minutes
             )
         except Exception as e:
             self.logger.error(f"Fehler bei EnergyController-Initialisierung: {e}")

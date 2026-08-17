@@ -153,6 +153,11 @@
     color: var(--color-text-primary);
 }
 
+.device-status.manual {
+    background: var(--color-accent-blue);
+    color: var(--color-text-primary);
+}
+
 .device-card.unreachable {
     border-color: var(--color-accent-red);
     opacity: 0.75;
@@ -258,6 +263,47 @@
     height: 16px;
     stroke: currentColor;
     flex-shrink: 0;
+}
+
+/* Device Manual Override */
+.device-manual {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid var(--color-accent-blue);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-accent-blue);
+}
+
+.device-manual svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+/* Device Actions */
+.device-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+.device-delete {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.device-delete:hover {
+    border-color: var(--color-accent-red);
+    background: var(--color-accent-red);
+    color: var(--color-text-primary);
 }
 
 /* Device Hysteresis (Waiting) */

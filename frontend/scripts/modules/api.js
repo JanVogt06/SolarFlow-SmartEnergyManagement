@@ -68,4 +68,16 @@ export class ApiClient {
             method: 'DELETE'
         });
     }
+
+    async toggleDevice(deviceName) {
+        return this.request(`/api/devices/${encodeURIComponent(deviceName)}/toggle`, {
+            method: 'POST'
+        });
+    }
+
+    async releaseManual(deviceName) {
+        return this.request(`/api/devices/${encodeURIComponent(deviceName)}/manual`, {
+            method: 'DELETE'
+        });
+    }
 }

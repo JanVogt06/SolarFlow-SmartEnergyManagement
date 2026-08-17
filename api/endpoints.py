@@ -236,6 +236,10 @@ def create_app(monitor: Any) -> FastAPI:
                 if remaining > 0:
                     hysteresis_remaining = int(remaining)
 
+            manual_remaining = None
+            if device.is_manual(now):
+                manual_remaining = int((device.manual_until - now).total_seconds())
+
             devices.append({
                 "name": device.name,
                 "description": device.description,
@@ -245,7 +249,8 @@ def create_app(monitor: Any) -> FastAPI:
                 "runtime_today": device.runtime_today,
                 "switch_on_threshold": device.switch_on_threshold,
                 "switch_off_threshold": device.switch_off_threshold,
-                "hysteresis_remaining": hysteresis_remaining
+                "hysteresis_remaining": hysteresis_remaining,
+                "manual_remaining": manual_remaining
             })
 
         return {
@@ -254,69 +259,55 @@ def create_app(monitor: Any) -> FastAPI:
             "total_consumption": device_manager.get_total_consumption()
         }
 
-    @app.post("/api/devices/{device_name}/toggle")
-    async def toggle_device(device_name: str):
-        """Gerät manuell schalten.
-
-        Schaltet das Hardware-Gerät direkt (über das Device-Interface) und
-        aktualisiert den virtuellen Status. Der nächste Update-Zyklus wird
-        anhand der Solar-Lage entscheiden, ob das Gerät weiterläuft —
-        d.h. ein manuelles EIN bleibt nur, wenn auch genug Überschuss da ist
-        (analog zum manuellen Schalten in der Hue-App).
-        """
-        from device_management.device import DeviceState
-
+    def _require_device(device_name: str):
+        """Holt ein Gerät samt EnergyController oder wirft einen HTTP-Fehler."""
         device_manager = monitor.get_device_manager()
-        if not device_manager:
+        energy_controller = monitor.get_energy_controller()
+
+        if not device_manager or not energy_controller:
             raise HTTPException(status_code=503, detail="Gerätesteuerung nicht aktiv")
 
         device = device_manager.get_device(device_name)
         if not device:
             raise HTTPException(status_code=404, detail=f"Gerät '{device_name}' nicht gefunden")
 
-        device_controller = getattr(monitor, 'device_controller', None)
-        device_interface = getattr(device_controller, 'device_interface', None) if device_controller else None
-        if device_interface is None:
-            raise HTTPException(status_code=503, detail="Device-Interface nicht verfügbar")
+        return device, energy_controller
 
-        # Bei echtem Hardware-Interface muss das Gerät dort verfügbar sein
-        if (device_interface.interface_type != "null"
-                and not device_interface.is_device_available(device_name)):
+    @app.post("/api/devices/{device_name}/toggle")
+    async def toggle_device(device_name: str):
+        """Gerät manuell schalten und für die Übersteuerungsdauer aus der Automatik nehmen."""
+        from device_management.device import DeviceState
+
+        device, energy_controller = _require_device(device_name)
+
+        if device.state == DeviceState.UNREACHABLE:
             raise HTTPException(
                 status_code=409,
-                detail=f"Gerät '{device_name}' im Hardware-Interface nicht verfügbar"
+                detail=f"Gerät '{device_name}' ist nicht erreichbar"
             )
 
         target_on = device.state != DeviceState.ON
-        try:
-            success = (device_interface.switch_on(device_name) if target_on
-                       else device_interface.switch_off(device_name))
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Hardware-Fehler: {e}")
-
-        if not success and device_interface.interface_type != "null":
+        if not energy_controller.switch_manually(device, target_on):
             raise HTTPException(
                 status_code=502,
-                detail="Hardware-Schaltung fehlgeschlagen — Status unverändert"
+                detail="Schaltung fehlgeschlagen — Status unverändert"
             )
-
-        # Virtuellen Status nachziehen (analog zur Logik in EnergyController)
-        now = datetime.now()
-        if target_on:
-            device.state = DeviceState.ON
-            device.last_state_change = now
-        else:
-            if device.last_state_change:
-                runtime = int((now - device.last_state_change).total_seconds() / 60)
-                device.runtime_today += runtime
-            device.state = DeviceState.OFF
-            device.last_state_change = now
-            device.last_switch_off = now
 
         return {
             "device": device_name,
             "current_state": device.state.value,
             "message": f"Gerät '{device_name}' manuell {'eingeschaltet' if target_on else 'ausgeschaltet'}"
+        }
+
+    @app.delete("/api/devices/{device_name}/manual")
+    async def release_manual(device_name: str):
+        """Manuelle Übersteuerung beenden und sofort wieder automatisch steuern."""
+        device, energy_controller = _require_device(device_name)
+        energy_controller.release_manual_override(device)
+
+        return {
+            "device": device_name,
+            "message": f"Gerät '{device_name}' wird wieder automatisch gesteuert"
         }
 
     @app.post("/api/devices")

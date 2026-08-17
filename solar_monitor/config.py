@@ -78,6 +78,8 @@ class DeviceControlConfig:
     enable_control: bool = field(default_factory=lambda: os.getenv("ENABLE_DEVICE_CONTROL", "True").lower() == "true")
     config_file: str = field(default_factory=lambda: os.getenv("DEVICE_CONFIG_FILE", "devices.json"))
     hysteresis_minutes: int = field(default_factory=lambda: int(os.getenv("DEVICE_HYSTERESIS_MINUTES", "5")))
+    manual_override_minutes: int = field(
+        default_factory=lambda: int(os.getenv("DEVICE_MANUAL_OVERRIDE_MINUTES", "30")))
     update_only_on_change: bool = field(
         default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
 

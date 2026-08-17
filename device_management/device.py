@@ -77,6 +77,9 @@ class Device:
     # Hysterese-Tracking für beide Richtungen
     last_switch_off: Optional[datetime] = None  # Letztes Ausschalten für Hysterese
 
+    # Zeitpunkt, bis zu dem die Automatik durch manuelles Schalten pausiert ist
+    manual_until: Optional[datetime] = None
+
     def __post_init__(self):
         """Validierung nach Initialisierung"""
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
@@ -247,6 +250,18 @@ class Device:
                     next_times.append(start)
 
         return min(next_times) if next_times else None
+
+    def is_manual(self, current_time: datetime) -> bool:
+        """
+        Prüft ob die Automatik gerade durch manuelles Schalten pausiert ist.
+
+        Args:
+            current_time: Aktuelle Zeit
+
+        Returns:
+            True wenn das Gerät manuell übersteuert wird
+        """
+        return self.manual_until is not None and current_time < self.manual_until
 
     def can_run_today(self) -> bool:
         """Prüft ob Gerät heute noch laufen darf (Maximallaufzeit)"""

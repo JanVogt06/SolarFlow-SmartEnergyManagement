@@ -59,6 +59,43 @@ export class DevicesController {
         if (this.hueDeviceSelect) {
             this.hueDeviceSelect.addEventListener('change', () => this.onHueDeviceChange());
         }
+
+        // Delegiert, weil die Karten bei jedem Update neu gerendert werden
+        if (this.container) {
+            this.container.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action]');
+                if (button) {
+                    this.handleDeviceAction(button.dataset.action, button.dataset.device);
+                }
+            });
+        }
+    }
+
+    async handleDeviceAction(action, deviceName) {
+        const actions = {
+            toggle: () => this.api.toggleDevice(deviceName),
+            auto: () => this.api.releaseManual(deviceName),
+            delete: () => this.api.deleteDevice(deviceName)
+        };
+
+        if (!actions[action]) return;
+        if (action === 'delete' && !confirm(`Gerät "${deviceName}" wirklich entfernen?`)) return;
+
+        try {
+            const response = await actions[action]();
+            this.showNotification(response.message, 'success');
+            await this.refresh();
+        } catch (error) {
+            this.showNotification(error.message || 'Aktion fehlgeschlagen', 'error');
+        }
+    }
+
+    async refresh() {
+        try {
+            this.update(await this.api.getDevices());
+        } catch (error) {
+            console.error('Could not refresh devices:', error);
+        }
     }
 
     onHueDeviceChange() {
@@ -256,8 +293,8 @@ export class DevicesController {
                         <h3 class="device-name text-gradient">${device.name}</h3>
                         <p class="device-description">${device.description || ''}</p>
                     </div>
-                    <span class="device-status ${device.state}">
-                        ${this.getStatusText(device.state)}
+                    <span class="device-status ${device.manual_remaining ? 'manual' : device.state}">
+                        ${this.getStatusText(device)}
                     </span>
                 </div>
 
@@ -311,12 +348,39 @@ export class DevicesController {
                     </div>
                 ` : ''}
 
+                ${device.manual_remaining ? `
+                    <div class="device-manual">
+                        <i data-lucide="hand"></i>
+                        <span>Automatik pausiert für ${this.formatDuration(device.manual_remaining)}</span>
+                    </div>
+                ` : ''}
+
                 ${device.hysteresis_remaining ? `
                     <div class="device-hysteresis">
                         <i data-lucide="timer"></i>
-                        <span>Wartet noch ${this.formatHysteresis(device.hysteresis_remaining)}</span>
+                        <span>Wartet noch ${this.formatDuration(device.hysteresis_remaining)}</span>
                     </div>
                 ` : ''}
+
+                <div class="device-actions">
+                    <button class="btn btn-secondary btn-small" data-action="toggle"
+                            data-device="${device.name}"
+                            ${device.state === 'unreachable' ? 'disabled' : ''}>
+                        <i data-lucide="power"></i>
+                        ${device.state === 'on' ? 'Ausschalten' : 'Einschalten'}
+                    </button>
+                    ${device.manual_remaining ? `
+                        <button class="btn btn-secondary btn-small" data-action="auto"
+                                data-device="${device.name}">
+                            <i data-lucide="refresh-cw"></i>
+                            Automatik
+                        </button>
+                    ` : ''}
+                    <button class="btn-icon device-delete" data-action="delete"
+                            data-device="${device.name}" title="Gerät entfernen">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
             </div>
         `).join('');
 
@@ -326,14 +390,16 @@ export class DevicesController {
         }
     }
 
-    getStatusText(status) {
+    getStatusText(device) {
+        if (device.state === 'unreachable') return 'NICHT ERREICHBAR';
+        if (device.manual_remaining) return device.state === 'on' ? 'MANUELL EIN' : 'MANUELL AUS';
+
         const statusMap = {
             'on': 'EIN',
             'off': 'AUS',
-            'blocked': 'BLOCKIERT',
-            'unreachable': 'NICHT ERREICHBAR'
+            'blocked': 'BLOCKIERT'
         };
-        return statusMap[status] || status.toUpperCase();
+        return statusMap[device.state] || device.state.toUpperCase();
     }
 
     formatRuntime(minutes) {
@@ -343,7 +409,7 @@ export class DevicesController {
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     }
 
-    formatHysteresis(seconds) {
+    formatDuration(seconds) {
         if (!seconds || seconds <= 0) return '';
         const mins = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);

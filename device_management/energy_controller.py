@@ -38,6 +38,9 @@ class EnergyController:
         # Hysterese-Zeitspanne (verhindert zu häufiges Schalten)
         self.hysteresis_time: timedelta = timedelta(minutes=5)
 
+        # Dauer, für die manuelles Schalten die Automatik pausiert
+        self.manual_override_time: timedelta = timedelta(minutes=30)
+
         # Tracking für kürzlich geschaltete Geräte (verhindert falsche Sync-Erkennung
         # während der Bridge-Latenz). Format: {device_name: (zeit, ziel_status)}
         # ziel_status: True = ON, False = OFF
@@ -65,15 +68,15 @@ class EnergyController:
             current_time = datetime.now()
 
         changes: Dict[str, str] = {}
+        self._release_expired_overrides(current_time)
 
-        # Sortiere Geräte nach Priorität (niedrigere Zahl = höhere Priorität)
-        devices = self.device_manager.get_devices_by_priority()
-
-        # Berechne aktuellen Verbrauch der gesteuerten Geräte
-        current_consumption = self.device_manager.get_total_consumption()
+        # Manuell übersteuerte und nicht erreichbare Geräte steuert die Automatik nicht
+        devices = [d for d in self.device_manager.get_devices_by_priority()
+                   if not d.is_manual(current_time) and d.state != DeviceState.UNREACHABLE]
 
         # Die verfügbare Leistung für neue Geräte ist der aktuelle Überschuss
         # plus die Leistung, die wir durch Abschalten von Geräten freigeben könnten
+        current_consumption = self._controllable_consumption(devices)
         total_available = surplus_power + current_consumption
 
         self.logger.info(f"Energie-Update: Überschuss={surplus_power:.0f}W, "
@@ -94,7 +97,7 @@ class EnergyController:
                         if action:
                             changes[device.name] = action
                             surplus_power += device.power_consumption
-                            total_available = surplus_power + self.device_manager.get_total_consumption()
+                            total_available = surplus_power + self._controllable_consumption(devices)
                     continue
 
                 # Berechne den ECHTEN effektiven Überschuss
@@ -118,15 +121,14 @@ class EnergyController:
                             changes[device.name] = action
                             # Aktualisiere verfügbare Leistung nach Abschaltung
                             surplus_power += device.power_consumption
-                            total_available = surplus_power + self.device_manager.get_total_consumption()
+                            total_available = surplus_power + self._controllable_consumption(devices)
 
         # Schritt 2: Prüfe ob höher priorisierte Geräte eingeschaltet werden können
         # indem niedriger priorisierte ausgeschaltet werden
         changes.update(self._handle_priority_preemption(devices, total_available, current_time, battery_soc))
 
         # Aktualisiere total_available nach möglichen Änderungen
-        current_consumption = self.device_manager.get_total_consumption()
-        total_available = surplus_power + current_consumption
+        total_available = surplus_power + self._controllable_consumption(devices)
 
         # Schritt 3: Prüfe welche Geräte eingeschaltet werden können
         available_for_new = total_available
@@ -140,6 +142,78 @@ class EnergyController:
                     available_for_new -= device.power_consumption
 
         return changes
+
+    @staticmethod
+    def _controllable_consumption(devices: List[Device]) -> float:
+        """
+        Summiert den Verbrauch der Geräte, die die Automatik abschalten könnte.
+
+        Args:
+            devices: Von der Automatik steuerbare Geräte
+
+        Returns:
+            Verbrauch in Watt
+        """
+        return sum(d.power_consumption for d in devices if d.state == DeviceState.ON)
+
+    def start_manual_override(self, device: Device,
+                              current_time: Optional[datetime] = None) -> None:
+        """
+        Nimmt ein Gerät für die konfigurierte Dauer aus der Automatik.
+
+        Args:
+            device: Manuell geschaltetes Gerät
+            current_time: Aktuelle Zeit (optional)
+        """
+        minutes = self.manual_override_time.total_seconds() / 60
+        if minutes <= 0:
+            return
+
+        device.manual_until = (current_time or datetime.now()) + self.manual_override_time
+        self.logger.info(f"'{device.name}' bleibt {minutes:.0f} Minuten manuell gesteuert")
+
+    def switch_manually(self, device: Device, on: bool,
+                        current_time: Optional[datetime] = None) -> bool:
+        """
+        Schaltet ein Gerät manuell und pausiert dafür die Automatik.
+
+        Args:
+            device: Zu schaltendes Gerät
+            on: Zielzustand
+            current_time: Aktuelle Zeit (optional)
+
+        Returns:
+            True wenn die Hardware den Befehl angenommen hat
+        """
+        current_time = current_time or datetime.now()
+        action = (self._switch_on(device, current_time) if on
+                  else self._switch_off(device, current_time, "manuell geschaltet"))
+
+        if action is None:
+            return False
+
+        self.start_manual_override(device, current_time)
+        return True
+
+    def release_manual_override(self, device: Device) -> None:
+        """
+        Gibt ein manuell übersteuertes Gerät sofort wieder an die Automatik zurück.
+
+        Args:
+            device: Betroffenes Gerät
+        """
+        if device.manual_until is None:
+            return
+
+        device.manual_until = None
+        self.logger.info(f"'{device.name}' wird wieder automatisch gesteuert")
+
+    def _release_expired_overrides(self, current_time: datetime) -> None:
+        """Beendet abgelaufene manuelle Übersteuerungen."""
+        for device in self.device_manager.snapshot_devices():
+            if device.manual_until and current_time >= device.manual_until:
+                device.manual_until = None
+                self.logger.info(f"Manuelle Übersteuerung für '{device.name}' abgelaufen")
 
     def sync_states(self, current_time: Optional[datetime] = None) -> None:
         """
@@ -239,10 +313,12 @@ class EnergyController:
         if hw_on:
             if not was_unreachable:
                 self.logger.info(f"Gerät '{device.name}' wurde extern eingeschaltet")
+                self.start_manual_override(device, current_time)
             device.state = DeviceState.ON
         else:
             if not was_unreachable:
                 self.logger.info(f"Gerät '{device.name}' wurde extern ausgeschaltet")
+                self.start_manual_override(device, current_time)
                 self._accumulate_runtime(device, current_time)
                 device.last_switch_off = current_time
             device.state = DeviceState.OFF
