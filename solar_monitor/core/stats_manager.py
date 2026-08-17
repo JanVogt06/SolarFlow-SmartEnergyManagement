@@ -27,7 +27,6 @@ class StatsManager:
         self.stats_logger = stats_logger
         self.logger = logging.getLogger(__name__)
 
-        # Tagesstatistiken mit Config initialisieren
         self.daily_stats = DailyStats()
         self.daily_stats.set_config(config)
         self.last_stats_display: Optional[float] = None
@@ -39,16 +38,13 @@ class StatsManager:
         Args:
             data: Aktuelle Solardaten
         """
-        # Prüfe auf Tageswechsel
         if data.timestamp:
             current_date = data.timestamp.date()
             if self.daily_stats.date != current_date:
                 self._handle_date_change(current_date, data)
 
-        # Tagesstatistiken aktualisieren
         self.daily_stats.update(data, self.config.timing.update_interval)
 
-        # Periodische Anzeige
         if self._should_display_stats():
             self.display.show_daily_stats(self.daily_stats)
             self.last_stats_display = time.time()
@@ -61,12 +57,10 @@ class StatsManager:
             new_date: Neues Datum
             data: Aktuelle Solardaten
         """
-        # Speichere gestrige Statistiken
         if self.daily_stats.runtime_hours > 0:
             self.stats_logger.log(self.daily_stats)
             self.logger.info(f"Tagesstatistik für {self.daily_stats.date} gespeichert")
 
-        # Reset für neuen Tag
         self.daily_stats.reset()
         self.daily_stats.date = new_date
         self.daily_stats.first_update = data.timestamp

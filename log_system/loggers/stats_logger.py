@@ -32,10 +32,8 @@ class StatsLogger:
             True bei Erfolg
         """
         try:
-            # Erstelle Log-Entry
             entry = StatsLogEntry(daily_stats)
 
-            # Delegiere an LogManager
             return self.log_manager.log(entry)
 
         except Exception as e:

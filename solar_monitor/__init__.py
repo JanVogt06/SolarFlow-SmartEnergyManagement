@@ -9,7 +9,6 @@ from .monitor import SolarMonitor
 from .daily_stats import DailyStats
 from .settings import SettingsStore
 
-# Core-Module für erweiterte Nutzung
 from .core import (
     DataProcessor,
     StatsManager,
@@ -19,7 +18,6 @@ from .core import (
 __author__ = "Jan Vogt"
 
 __all__ = [
-    # Haupt-Klassen
     "Config",
     "SolarData",
     "FroniusAPI",
@@ -27,7 +25,6 @@ __all__ = [
     "DailyStats",
     "SettingsStore",
 
-    # Core-Module
     "DataProcessor",
     "StatsManager",
     "DeviceController",

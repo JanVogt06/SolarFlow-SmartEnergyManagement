@@ -39,7 +39,6 @@ class BaseWriter(LogWriter):
                 'metadata': metadata or {}
             })
 
-            # Auto-flush wenn Buffer voll
             if len(self._buffer) >= self._buffer_size:
                 return self.flush()
 
@@ -58,7 +57,6 @@ class BaseWriter(LogWriter):
         Returns:
             True bei Erfolg
         """
-        # Subklassen müssen diese Methode implementieren
         self._buffer.clear()
         return True
 

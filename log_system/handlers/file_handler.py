@@ -22,10 +22,8 @@ class FileHandler(FileManager):
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-        # Basis-Verzeichnisse
         self.base_dir = Path(config.directories.data_log_dir)
 
-        # Mapping von log_type zu Konfiguration
         self.type_config = {
             'solar': {
                 'sub_dir': config.directories.solar_data_dir,
@@ -49,13 +47,8 @@ class FileHandler(FileManager):
             }
         }
 
-        # Cache für aktuelle Pfade — Schlüssel: (log_type, datums_string).
-        # Der Datumsbestandteil sorgt dafür, dass beim Tageswechsel
-        # automatisch ein neuer Pfad gewählt wird, statt weiter in die
-        # Datei vom Vortag zu schreiben.
         self._current_paths: Dict[tuple, Path] = {}
 
-        # Session-Zeitstempel für session-basierte Dateien
         self._session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def get_current_path(self, log_type: str) -> Path:
@@ -68,7 +61,6 @@ class FileHandler(FileManager):
         Returns:
             Pfad zur Log-Datei
         """
-        # Generiere Cache-Key inkl. aktuellem Datum (oder Session-Timestamp)
         config = self.type_config.get(log_type)
         if not config:
             raise ValueError(f"Unbekannter log_type: {log_type}")
@@ -80,26 +72,20 @@ class FileHandler(FileManager):
 
         cache_key = (log_type, time_key)
 
-        # Prüfe Cache
         if cache_key in self._current_paths:
             return self._current_paths[cache_key]
 
-        # Verzeichnis
         log_dir = self.base_dir / config['sub_dir']
         log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Dateiname
         base_name = config['base_name'].replace('.csv', '')
         filename = f"{base_name}_{time_key}.csv"
         path = log_dir / filename
 
-        # Beim Tageswechsel alte Cache-Einträge für diesen log_type entfernen,
-        # damit der CSV-Writer für die neue Datei wieder Header schreibt.
         stale_keys = [k for k in self._current_paths if k[0] == log_type and k != cache_key]
         for k in stale_keys:
             del self._current_paths[k]
 
-        # Cache aktualisieren
         self._current_paths[cache_key] = path
 
         return path

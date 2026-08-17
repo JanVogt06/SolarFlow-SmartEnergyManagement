@@ -8,12 +8,10 @@ export class DevicesController {
         this.totalConsumptionEl = document.getElementById('total-consumption');
         this.devices = [];
 
-        // Modal elements
         this.modal = document.getElementById('add-device-modal');
         this.form = document.getElementById('add-device-form');
         this.timeRangesContainer = document.getElementById('time-ranges-container');
 
-        // Hue elements
         this.hueSection = document.getElementById('hue-section');
         this.hueDeviceSelect = document.getElementById('device-hue-device');
         this.deviceNameInput = document.getElementById('device-name');
@@ -25,19 +23,16 @@ export class DevicesController {
     }
 
     initializeEventListeners() {
-        // Add device button
         const addDeviceBtn = document.getElementById('add-device-btn');
         if (addDeviceBtn) {
             addDeviceBtn.addEventListener('click', () => this.openModal());
         }
 
-        // Close modal buttons
         const closeBtn = document.getElementById('close-add-device-modal');
         const cancelBtn = document.getElementById('cancel-add-device');
         if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeModal());
 
-        // Close on overlay click
         if (this.modal) {
             const overlay = this.modal.querySelector('.modal-overlay');
             if (overlay) {
@@ -45,19 +40,16 @@ export class DevicesController {
             }
         }
 
-        // Save device button
         const saveBtn = document.getElementById('save-device');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveDevice());
         }
 
-        // Add time range button
         const addTimeRangeBtn = document.getElementById('add-time-range');
         if (addTimeRangeBtn) {
             addTimeRangeBtn.addEventListener('click', () => this.addTimeRange());
         }
 
-        // Hue device selection - sync name field
         if (this.hueDeviceSelect) {
             this.hueDeviceSelect.addEventListener('change', () => this.onHueDeviceChange());
         }
@@ -104,12 +96,10 @@ export class DevicesController {
         const selectedHueDevice = this.hueDeviceSelect.value;
 
         if (selectedHueDevice) {
-            // Hue-Gerät ausgewählt: Name übernehmen und readonly setzen
             this.deviceNameInput.value = selectedHueDevice;
             this.deviceNameInput.readOnly = true;
             this.deviceNameInput.classList.add('readonly');
         } else {
-            // Kein Hue-Gerät: Name editierbar machen
             this.deviceNameInput.readOnly = false;
             this.deviceNameInput.classList.remove('readonly');
         }
@@ -121,12 +111,10 @@ export class DevicesController {
             this.hueEnabled = hueConfig.enabled;
             this.hueDevices = hueConfig.devices || [];
 
-            // Update UI
             if (this.hueSection) {
                 this.hueSection.style.display = this.hueEnabled ? 'block' : 'none';
             }
 
-            // Populate Hue device dropdown
             this.populateHueDevices();
         } catch (error) {
             console.warn('Could not load Hue config:', error);
@@ -137,12 +125,10 @@ export class DevicesController {
     populateHueDevices() {
         if (!this.hueDeviceSelect) return;
 
-        // Clear existing options (except first)
         while (this.hueDeviceSelect.options.length > 1) {
             this.hueDeviceSelect.remove(1);
         }
 
-        // Add Hue devices
         this.hueDevices.forEach(device => {
             const option = document.createElement('option');
             option.value = device;
@@ -155,7 +141,6 @@ export class DevicesController {
         if (this.modal) {
             this.modal.classList.add('active');
             this.resetForm();
-            // Refresh Hue config when opening modal
             this.loadHueConfig();
             if (window.lucide) {
                 lucide.createIcons();
@@ -176,7 +161,6 @@ export class DevicesController {
         if (this.timeRangesContainer) {
             this.timeRangesContainer.innerHTML = '';
         }
-        // Reset name field to editable
         if (this.deviceNameInput) {
             this.deviceNameInput.readOnly = false;
             this.deviceNameInput.classList.remove('readonly');
@@ -197,7 +181,6 @@ export class DevicesController {
             </button>
         `;
 
-        // Add remove listener
         const removeBtn = timeRangeRow.querySelector('.remove-time-range');
         removeBtn.addEventListener('click', () => timeRangeRow.remove());
 
@@ -226,13 +209,11 @@ export class DevicesController {
     async saveDevice() {
         if (!this.form) return;
 
-        // Validate form
         if (!this.form.checkValidity()) {
             this.form.reportValidity();
             return;
         }
 
-        // Get form data
         const formData = new FormData(this.form);
         const device = {
             name: formData.get('name'),
@@ -246,7 +227,6 @@ export class DevicesController {
             allowed_time_ranges: this.getTimeRanges()
         };
 
-        // Validate thresholds
         if (device.switch_off_threshold > device.switch_on_threshold) {
             showNotification('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein', 'error');
             return;
@@ -257,7 +237,6 @@ export class DevicesController {
             if (response) {
                 showNotification(`Gerät "${device.name}" wurde erfolgreich hinzugefügt`, 'success');
                 this.closeModal();
-                // Refresh devices list
                 const devicesData = await this.api.getDevices();
                 this.update(devicesData);
             }
@@ -270,7 +249,6 @@ export class DevicesController {
     update(devicesData) {
         if (!devicesData || !devicesData.devices) return;
 
-        // Überprüfe, ob alle Geräte einen Status haben
         devicesData.devices.forEach(device => {
             if (!device.state) {
                 console.warn(`Gerät ${device.name} hat keinen Status.`);
@@ -386,7 +364,6 @@ export class DevicesController {
             </div>
         `).join('');
 
-        // Re-initialize icons
         if (window.lucide) {
             lucide.createIcons();
         }

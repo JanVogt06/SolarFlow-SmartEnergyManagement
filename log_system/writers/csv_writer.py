@@ -25,10 +25,8 @@ class CSVWriter(BaseWriter):
         self.delimiter = config.csv.delimiter
         self.encoding = config.csv.encoding
 
-        # Track welche Dateien bereits Header haben
         self._files_with_headers: Set[Path] = set()
 
-        # Cache für dynamische Header (Device Status)
         self._dynamic_headers: Dict[str, List[str]] = {}
 
     def write(self, data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> bool:
@@ -46,7 +44,6 @@ class CSVWriter(BaseWriter):
             self.logger.error("Keine log_type in Metadaten")
             return False
 
-        # Füge zu Buffer hinzu
         return super().write(data, metadata)
 
     def flush(self) -> bool:
@@ -59,7 +56,6 @@ class CSVWriter(BaseWriter):
         if not self._buffer:
             return True
 
-        # Gruppiere Buffer nach log_type
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for entry in self._buffer:
             log_type = entry['metadata'].get('log_type')
@@ -67,13 +63,11 @@ class CSVWriter(BaseWriter):
                 grouped[log_type] = []
             grouped[log_type].append(entry)
 
-        # Schreibe jede Gruppe
         success = True
         for log_type, entries in grouped.items():
             if not self._write_group(log_type, entries):
                 success = False
 
-        # Buffer leeren
         self._buffer.clear()
         return success
 
@@ -89,26 +83,17 @@ class CSVWriter(BaseWriter):
             True bei Erfolg
         """
         try:
-            # Hole aktuellen Pfad
             filepath = self.file_manager.get_current_path(log_type)
 
-            # Stelle sicher dass Verzeichnis existiert
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
-            # Prüfe ob Header geschrieben werden muss
             file_exists = filepath.exists()
             write_header = filepath not in self._files_with_headers and not file_exists
 
-            # Hole Feldnamen
             fieldnames = self._get_fieldnames(log_type, entries[0]['data'])
 
-            # Öffne Datei
             mode = 'w' if write_header else 'a'
             with open(filepath, mode, newline='', encoding=self.encoding) as f:
-                # extrasaction='ignore': wenn ein Eintrag mehr Felder enthält
-                # als der Header (z.B. nach Hinzufügen eines Geräts zur
-                # Laufzeit), führt das nicht zum Crash, sondern überzählige
-                # Felder werden in dieser Zeile weggelassen.
                 writer = csv.DictWriter(
                     f,
                     fieldnames=fieldnames,
@@ -116,9 +101,7 @@ class CSVWriter(BaseWriter):
                     extrasaction='ignore'
                 )
 
-                # Schreibe Header wenn nötig
                 if write_header:
-                    # Spezielle Header für device_status
                     if log_type == 'device_status':
                         self._write_device_status_header(f, entries[0]['data'])
                     else:
@@ -126,11 +109,9 @@ class CSVWriter(BaseWriter):
 
                     self._files_with_headers.add(filepath)
 
-                    # Session-Info wenn konfiguriert (außer für device_status)
                     if self.config.csv.include_info_row and log_type != 'device_status':
                         self._write_session_info(f, log_type)
 
-                # Schreibe Daten
                 for entry in entries:
                     writer.writerow(entry['data'])
 
@@ -151,29 +132,23 @@ class CSVWriter(BaseWriter):
         Returns:
             Liste von Feldnamen
         """
-        # Für Device Status: Spezielle Reihenfolge passend zu den Headers
         if log_type == 'device_status':
-            # Erstelle die gleiche Reihenfolge wie in _write_device_status_header
             fieldnames = ['timestamp']
 
-            # Sammle alle Geräte-Keys in sortierter Reihenfolge
             device_keys = []
             for key in sorted(sample_data.keys()):
                 if key.endswith('_state'):
                     device_base = key.replace('_state', '')
                     device_keys.append(device_base)
 
-            # Füge Geräte-Felder in der richtigen Reihenfolge hinzu
             for device_key in device_keys:
                 fieldnames.append(f'{device_key}_state')
                 fieldnames.append(f'{device_key}_runtime')
 
-            # Füge Zusammenfassungs-Felder hinzu
             fieldnames.extend(['total_on', 'total_consumption', 'surplus_power', 'used_surplus'])
 
             return fieldnames
 
-        # Sonst: Feste Reihenfolge
         field_orders = {
             'solar': [
                 'timestamp', 'pv_power', 'grid_power', 'battery_power',
@@ -209,20 +184,16 @@ class CSVWriter(BaseWriter):
             file_handle: Offene Datei
             sample_data: Beispiel-Daten für Header-Generierung
         """
-        # Erstelle lesbare Header basierend auf den Daten-Keys
         headers = []
 
-        # Timestamp immer zuerst
         headers.append("Zeitstempel" if self.config.csv.use_german_headers else "Timestamp")
 
-        # Sammle alle Geräte-Keys
         device_keys = []
         for key in sorted(sample_data.keys()):
             if key.endswith('_state'):
                 device_name = key.replace('_state', '').replace('_', ' ').title()
                 device_keys.append((device_name, key.replace('_state', '')))
 
-        # Füge Geräte-Header hinzu
         for device_name, device_key in device_keys:
             if self.config.csv.use_german_headers:
                 headers.extend([
@@ -235,7 +206,6 @@ class CSVWriter(BaseWriter):
                     f"{device_name} Runtime (min)"
                 ])
 
-        # Zusammenfassungs-Header
         if self.config.csv.use_german_headers:
             headers.extend([
                 "Gesamt Ein",
@@ -251,7 +221,6 @@ class CSVWriter(BaseWriter):
                 "Used Surplus (W)"
             ])
 
-        # Schreibe Header
         writer = csv.writer(file_handle, delimiter=self.delimiter)
         writer.writerow(headers)
 
@@ -274,7 +243,6 @@ class CSVWriter(BaseWriter):
         for line in info_lines:
             writer.writerow([line])
 
-        # Leerzeile nach Info
         writer.writerow([])
 
     def write_header(self, headers: List[str], metadata: Optional[Dict[str, Any]] = None) -> bool:

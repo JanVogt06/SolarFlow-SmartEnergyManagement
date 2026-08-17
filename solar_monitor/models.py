@@ -23,7 +23,6 @@ class SolarData:
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
-    # === Netz-Properties ===
     @property
     def is_feeding_in(self) -> bool:
         """Prüft ob ins Netz eingespeist wird"""
@@ -39,7 +38,6 @@ class SolarData:
         """Gibt den Netzbezug zurück (positiv)"""
         return self.grid_power if self.grid_power > 0 else 0
 
-    # === Batterie-Properties ===
     @property
     def battery_charging(self) -> bool:
         """Prüft ob die Batterie lädt"""
@@ -60,7 +58,6 @@ class SolarData:
         """Prüft ob eine Batterie vorhanden ist"""
         return self.battery_soc is not None
 
-    # === Berechnete Werte ===
     @property
     def self_consumption(self) -> float:
         """Berechnet den Eigenverbrauch (Hausverbrauch - Netzbezug)"""

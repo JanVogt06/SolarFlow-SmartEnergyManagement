@@ -44,7 +44,6 @@ class StatsDisplay(BaseDisplay):
         """Zeigt Energie-Sektion."""
         self.header.display_section("Energie heute")
 
-        # Basis-Energiewerte
         energy_data = {
             "PV-Produktion:": (stats.pv_energy, "kWh"),
             "Verbrauch:": (stats.consumption_energy, "kWh"),
@@ -56,13 +55,11 @@ class StatsDisplay(BaseDisplay):
         for label, (value, unit) in energy_data.items():
             self.print_value_line(label, value, unit, decimals=2)
 
-        # Detaillierter Netzbezug
         if stats.grid_energy_day > 0 or stats.grid_energy_night > 0:
             self.separator.empty_line()
             print(f"  → Tagtarif: {stats.grid_energy_day:>8.2f} kWh")
             print(f"  → Nachttarif: {stats.grid_energy_night:>8.2f} kWh")
 
-        # Batterie wenn vorhanden
         if stats.battery_charge_energy > 0 or stats.battery_discharge_energy > 0:
             self.separator.empty_line()
             self.print_value_line("Batterie geladen:", stats.battery_charge_energy, "kWh", decimals=2)
@@ -74,7 +71,6 @@ class StatsDisplay(BaseDisplay):
 
         currency = self.config.costs.currency_symbol
 
-        # Kosten mit Farben
         cost_items = [
             ("Stromkosten (Netzbezug):", stats.cost_grid_consumption, Colors.RED),
             ("Einspeisevergütung:", stats.revenue_feed_in, Colors.GREEN),
@@ -86,16 +82,13 @@ class StatsDisplay(BaseDisplay):
 
         self.separator.subsection()
 
-        # Gesamtnutzen
         benefit_color = Colors.GREEN if stats.total_benefit > 0 else Colors.RED
         self.print_value_line("GESAMTNUTZEN:", stats.total_benefit, currency,
                               color=benefit_color, decimals=2)
 
-        # Vergleichswert
         self.separator.empty_line()
         self.print_value_line("Kosten ohne Solar:", stats.cost_without_solar, currency, decimals=2)
 
-        # ROI als Progress Bar
         if stats.cost_without_solar > 0:
             roi = (stats.total_benefit / stats.cost_without_solar) * 100
             self.progress.display(roi, 100, "Einsparungsquote", True,
@@ -105,18 +98,15 @@ class StatsDisplay(BaseDisplay):
         """Zeigt Leistungs-Sektion."""
         self.header.display_section("Maximale Leistung")
 
-        # PV-Leistung mit Farbe
         pv_color = self.color_manager.get_threshold_color(stats.pv_power_max, 'pv_power')
         self.print_value_line("PV-Leistung:", stats.pv_power_max, "W", color=pv_color)
 
-        # Andere Leistungswerte
         self.print_value_line("Verbrauch:", stats.consumption_power_max, "W")
 
         if stats.surplus_power_max > 0:
             surplus_color = self.color_manager.get_threshold_color(stats.surplus_power_max, 'surplus')
             self.print_value_line("Überschuss:", stats.surplus_power_max, "W", color=surplus_color)
 
-        # Batterie Min/Max
         if stats.battery_soc_min is not None and stats.battery_soc_max is not None:
             self.separator.empty_line()
             self._display_battery_stats(stats)
@@ -125,7 +115,6 @@ class StatsDisplay(BaseDisplay):
         """Zeigt Batterie-Statistiken."""
         print("Batterie-Ladestand:")
 
-        # Min/Max als kleine Progress Bars
         if stats.battery_soc_min is not None:
             self.progress.display(stats.battery_soc_min, 100, "  Min", True,
                                   self.color_manager.get_threshold_color(stats.battery_soc_min, 'battery_soc'))
@@ -138,17 +127,14 @@ class StatsDisplay(BaseDisplay):
         """Zeigt Kennzahlen."""
         self.header.display_section("Kennzahlen")
 
-        # Autarkiegrad
         autarky_color = self.color_manager.get_threshold_color(stats.autarky_avg, 'autarky')
         self.print_value_line("Ø Autarkiegrad:", stats.autarky_avg, "%",
                               color=autarky_color, decimals=1)
 
-        # Energie-Autarkie
         energy_color = self.color_manager.get_threshold_color(stats.self_sufficiency_rate, 'autarky')
         self.print_value_line("Energie-Autarkie:", stats.self_sufficiency_rate, "%",
                               color=energy_color, decimals=1)
 
-        # Laufzeit
         self.separator.empty_line()
         runtime_str = self.formatter.format_time(stats.runtime_hours)
         print(f"Laufzeit: {runtime_str}")
@@ -165,7 +151,6 @@ class StatsDisplay(BaseDisplay):
 
         self.header.display("WOCHENÜBERSICHT")
 
-        # Tabellen-Header
         headers = ["Datum", "PV (kWh)", "Verbrauch", "Autarkie %", "Nutzen (€)"]
         rows = []
 
@@ -181,7 +166,6 @@ class StatsDisplay(BaseDisplay):
 
         self.table.display(headers, rows, alignments=['l', 'r', 'r', 'r', 'r'])
 
-        # Gesamtsummen
         self.separator.subsection()
         total_pv = sum(s.pv_energy for s in stats_list[-7:])
         total_benefit = sum(s.total_benefit for s in stats_list[-7:])

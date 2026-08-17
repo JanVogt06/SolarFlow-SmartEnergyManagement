@@ -3,7 +3,6 @@ Konstanten für das Display-System.
 """
 
 
-# ANSI Farb-Codes
 class Colors:
     """ANSI Farbcodes"""
     GREEN = '\033[92m'
@@ -18,7 +17,6 @@ class Colors:
     DIM = '\033[2m'
 
 
-# Display Layout
 class Layout:
     """Layout-Konstanten"""
     SEPARATOR_WIDTH = 60
@@ -28,6 +26,5 @@ class Layout:
     VALUE_WIDTH = 10
     UNIT_WIDTH = 5
 
-    # Tabellen
     TABLE_PADDING = 2
     MIN_COLUMN_WIDTH = 8

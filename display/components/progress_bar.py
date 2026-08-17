@@ -18,7 +18,6 @@ class ProgressBar:
         self.width = width
         self.color_manager = color_manager
 
-        # Zeichen für Progress Bar
         self.filled_char = "█"
         self.empty_char = "░"
         self.partial_chars = ["▏", "▎", "▍", "▌", "▋", "▊", "▉"]
@@ -37,31 +36,24 @@ class ProgressBar:
             show_percentage: Ob Prozentangabe angezeigt werden soll
             color: Optionale Farbe
         """
-        # Berechne Prozentsatz
         percentage = min(max(value / max_value * 100, 0), 100)
 
-        # Berechne gefüllte Blöcke
         filled_width = percentage / 100 * self.width
         filled_blocks = int(filled_width)
         partial_block = filled_width - filled_blocks
 
-        # Erstelle Bar
         bar = self.filled_char * filled_blocks
 
-        # Füge partiellen Block hinzu wenn nötig
         if partial_block > 0 and filled_blocks < self.width:
             partial_index = int(partial_block * len(self.partial_chars))
             bar += self.partial_chars[min(partial_index, len(self.partial_chars) - 1)]
             filled_blocks += 1
 
-        # Fülle mit leeren Blöcken auf
         bar += self.empty_char * (self.width - filled_blocks)
 
-        # Färbe Bar wenn gewünscht
         if self.color_manager and color:
             bar = self.color_manager.colorize(bar, color)
 
-        # Ausgabe
         if label:
             output = f"{label}: [{bar}]"
         else:
@@ -80,7 +72,6 @@ class ProgressBar:
             soc: State of Charge in Prozent
             label: Beschriftung
         """
-        # Bestimme Farbe basierend auf SOC
         if self.color_manager:
             color = self.color_manager.get_threshold_color(soc, 'battery_soc')
         else:
@@ -98,7 +89,6 @@ class ProgressBar:
             max_power: Maximale Leistung
             label: Beschriftung
         """
-        # Bestimme Farbe basierend auf Leistung
         if self.color_manager:
             color = self.color_manager.get_threshold_color(current, 'pv_power')
         else:

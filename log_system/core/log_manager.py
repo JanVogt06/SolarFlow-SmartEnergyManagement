@@ -21,12 +21,10 @@ class LogManager:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-        # Registries für Komponenten
         self.formatters: Dict[str, LogFormatter] = {}
         self.writers: Dict[str, LogWriter] = {}
         self.handlers: Dict[str, LogHandler] = {}
 
-        # Mapping von LogType zu Komponenten
         self.type_mapping: Dict[LogType, Dict[str, Any]] = {
             LogType.SOLAR: {
                 'formatter': 'solar',
@@ -89,23 +87,19 @@ class LogManager:
             True bei Erfolg
         """
         try:
-            # Hole Mapping für diesen LogType
             mapping = self.type_mapping.get(entry.log_type)
             if not mapping:
                 self.logger.error(f"Kein Mapping für LogType {entry.log_type}")
                 return False
 
-            # Hole Formatter
             formatter_name = mapping['formatter']
             formatter = self.formatters.get(formatter_name)
             if not formatter:
                 self.logger.error(f"Formatter '{formatter_name}' nicht gefunden")
                 return False
 
-            # Formatiere Daten
             formatted_data = formatter.format(entry.data)
 
-            # Schreibe mit allen konfigurierten Writers
             success = True
             for writer_name in mapping['writers']:
                 writer = self.writers.get(writer_name)
@@ -113,11 +107,9 @@ class LogManager:
                     self.logger.warning(f"Writer '{writer_name}' nicht gefunden")
                     continue
 
-                # Prüfe ob Writer für diesen LogType aktiviert ist
                 if not self._is_writer_enabled(writer_name, entry.log_type):
                     continue
 
-                # Schreibe Daten
                 metadata = {
                     'log_type': entry.log_type.value,
                     'timestamp': entry.timestamp,
@@ -145,7 +137,6 @@ class LogManager:
         Returns:
             True wenn aktiviert
         """
-        # CSV-Writer Checks
         if writer_name == 'csv':
             if log_type == LogType.SOLAR:
                 return self.config.logging.enable_data_logging
@@ -154,7 +145,6 @@ class LogManager:
             elif log_type in [LogType.DEVICE_EVENT, LogType.DEVICE_STATUS]:
                 return self.config.logging.enable_device_logging
 
-        # Database-Writer Check
         elif writer_name == 'database':
             return self.config.database.enable_database
 
@@ -170,10 +160,8 @@ class LogManager:
 
     def close_all(self) -> None:
         """Schließt alle Handler und Writer."""
-        # Erst alle Writer flushen
         self.flush_all()
 
-        # Dann Handler schließen
         for name, handler in self.handlers.items():
             try:
                 handler.close()

@@ -96,9 +96,7 @@ def create_app(monitor: Any) -> FastAPI:
         description="Smart Energy Management System API"
     )
 
-    # CORS Middleware: nur lokale Origins erlauben.
-    # Mit "*" könnte jede beliebige Webseite (im Browser des Nutzers) ohne Auth
-    # POST/DELETE-Calls auf /api/devices ausführen → CSRF-Risiko.
+    # Nur lokale Origins: mit "*" könnte jede Webseite ungefragt Geräte schalten
     api_port = getattr(getattr(monitor, 'config', None), 'api', None)
     api_port = api_port.port if api_port else 8000
     cors_origins = [
@@ -125,7 +123,6 @@ def create_app(monitor: Any) -> FastAPI:
         if index_file.exists():
             _logger.debug(f"index.html gefunden: {index_file}")
 
-            # Mount die einzelnen Verzeichnisse unter ihren eigenen Pfaden
             styles_path = frontend_path / "styles"
             scripts_path = frontend_path / "scripts"
             assets_path = frontend_path / "assets"
@@ -151,7 +148,6 @@ def create_app(monitor: Any) -> FastAPI:
     else:
         _logger.warning(f"Frontend-Verzeichnis nicht gefunden: {frontend_path}")
 
-    # === API Endpoints ===
 
     @app.get("/api/status")
     def get_status():
@@ -229,10 +225,8 @@ def create_app(monitor: Any) -> FastAPI:
     @app.get("/api/hue")
     def get_hue_config():
         """Hue-Konfiguration und verfügbare Geräte"""
-        # Hole Config vom Monitor
         config = monitor.config
 
-        # Prüfe ob Hue aktiviert ist
         hue_enabled = config.devices.enable_hue if hasattr(config, 'devices') else False
 
         if not hue_enabled:
@@ -242,7 +236,6 @@ def create_app(monitor: Any) -> FastAPI:
                 "bridge_ip": None
             }
 
-        # Hole Hue-Geräte vom Device Interface
         device_controller = monitor.device_controller
         hue_devices = []
 
@@ -265,7 +258,6 @@ def create_app(monitor: Any) -> FastAPI:
         if not device_manager:
             return {"devices": [], "enabled": False}
 
-        # Hole EnergyController für Hysterese-Info
         energy_controller = monitor.get_energy_controller()
         hysteresis_seconds = 300  # Default: 5 Minuten
         if energy_controller:
@@ -274,7 +266,6 @@ def create_app(monitor: Any) -> FastAPI:
         now = datetime.now()
         devices = []
         for device in device_manager.get_devices_by_priority():
-            # Berechne verbleibende Hysterese-Zeit
             hysteresis_remaining = None
             if device.state.value == "off" and device.last_switch_off:
                 time_since_off = (now - device.last_switch_off).total_seconds()
@@ -364,7 +355,6 @@ def create_app(monitor: Any) -> FastAPI:
         if not device_manager:
             raise HTTPException(status_code=503, detail="Gerätesteuerung nicht aktiv")
 
-        # Prüfe ob Gerät bereits existiert
         if device_manager.get_device(device_data.name):
             raise HTTPException(
                 status_code=409,
@@ -372,10 +362,8 @@ def create_app(monitor: Any) -> FastAPI:
             )
 
         try:
-            # Importiere Device-Klasse
             from device_management.device import Device
 
-            # Konvertiere Zeitbereiche
             time_ranges = []
             for time_range in device_data.allowed_time_ranges:
                 if len(time_range) == 2:
@@ -389,7 +377,6 @@ def create_app(monitor: Any) -> FastAPI:
                             detail=f"Ungültiges Zeitformat: {e}"
                         )
 
-            # Erstelle neues Gerät
             new_device = Device(
                 name=device_data.name,
                 description=device_data.description,

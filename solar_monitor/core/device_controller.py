@@ -33,7 +33,6 @@ class DeviceController:
         self.energy_controller: Optional[EnergyController] = None
         self.device_interface: Optional[ISmartDeviceInterface] = None
 
-        # Tracking
         self.last_device_update: Optional[float] = None
         self.last_surplus_power: Optional[float] = None
 
@@ -49,7 +48,6 @@ class DeviceController:
         """
         config_file = Path(self.config.devices.config_file)
 
-        # DeviceManager erstellen - behandelt leere Dateien graceful
         try:
             self.device_manager = DeviceManager(config_file)
         except Exception as e:
@@ -57,18 +55,15 @@ class DeviceController:
                 f"Gerätekonfiguration konnte nicht geladen werden: {e} - "
                 f"Starte mit leerer Geräteliste."
             )
-            # DeviceManager ohne Datei erstellen (leere Liste)
             self.device_manager = DeviceManager(config_file=None)
             self.device_manager.config_file = config_file
 
-        # Device Interface initialisieren (Hue Bridge etc.)
         try:
             self.device_interface = self._create_device_interface()
         except Exception as e:
             self.logger.error(f"Fehler bei Interface-Initialisierung: {e}")
             self.device_interface = NullDeviceInterface()
 
-        # Energy Controller mit Interface erstellen
         try:
             self.energy_controller = EnergyController(
                 self.device_manager,
@@ -83,11 +78,9 @@ class DeviceController:
         self.logger.info(f"Gefundene Geräte: {len(self.device_manager.devices)}")
         self.logger.info(f"Hardware-Interface: {self.device_interface.interface_type}")
 
-        # Liste Geräte auf
         if self.device_manager.devices:
             self._list_devices()
 
-        # Stelle sauberen Startzustand her
         self._ensure_clean_start_state()
 
     def _apply_controller_settings(self) -> None:
@@ -132,7 +125,6 @@ class DeviceController:
         Args:
             wait_for_link: Beim ersten Verbinden auf den Bridge-Knopf warten
         """
-        # HUE Interface
         if self.config.devices.enable_hue and self.config.devices.hue_bridge_ip:
             self.logger.info("Initialisiere Hue-Integration...")
             try:
@@ -144,7 +136,6 @@ class DeviceController:
                 if hue_interface.connect():
                     self.logger.info("Hue Bridge erfolgreich verbunden!")
 
-                    # Zeige gefundene Hue-Geräte
                     hue_devices = hue_interface.list_devices()
                     if hue_devices:
                         self.logger.info(f"Gefundene Hue-Geräte ({len(hue_devices)}):")
@@ -161,14 +152,12 @@ class DeviceController:
             except Exception as e:
                 self.logger.error(f"Fehler bei Hue-Initialisierung: {e}")
 
-        # Fallback: Null Interface (nur virtuelle Steuerung)
         self.logger.info("Verwende virtuelle Gerätesteuerung (ohne Hardware)")
         return NullDeviceInterface()
 
     def _list_devices(self) -> None:
         """Listet alle konfigurierten Geräte auf"""
         for device in self.device_manager.get_devices_by_priority():
-            # Prüfe ob Gerät im Hardware-Interface verfügbar ist
             hw_status = ""
             if self.device_interface.interface_type != "null":
                 if self.device_interface.is_device_available(device.name):
@@ -208,7 +197,6 @@ class DeviceController:
                     self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
                 device.state = DeviceState.OFF
 
-            # Laufzeit-Zähler bleibt erhalten
             device.last_state_change = datetime.now()
 
     def update(self, data: SolarData) -> None:
@@ -222,16 +210,13 @@ class DeviceController:
             return
 
         # Hardware-Abgleich läuft in jedem Zyklus, damit externe Schaltvorgänge
-        # und nicht erreichbare Geräte ohne Verzögerung sichtbar werden.
         self.energy_controller.sync_states(data.timestamp)
 
         if not self._should_update_devices(data):
             return
 
-        # Batterie-Ladestand (Default 100% wenn keine Batterie)
         battery_soc = data.battery_soc if data.battery_soc is not None else 100.0
 
-        # Führe Update durch mit Batterie-Informationen
         changes = self.energy_controller.update(
             surplus_power=data.surplus_power,
             current_time=data.timestamp,
@@ -239,11 +224,9 @@ class DeviceController:
             battery_soc=battery_soc
         )
 
-        # Verarbeite Änderungen
         if changes:
             self._process_device_changes(changes, data)
 
-        # Merke Werte für nächsten Vergleich
         self.last_surplus_power = data.surplus_power
         self.last_device_update = time.time()
 
@@ -252,17 +235,14 @@ class DeviceController:
         if not self.config.devices.update_only_on_change:
             return True
 
-        # Berechne Änderung des Überschusses
         if self.last_surplus_power is None:
             return True
 
         change = abs(data.surplus_power - self.last_surplus_power)
 
-        # Update bei signifikanter Änderung (>50W)
         if change >= 50:
             return True
 
-        # Oder alle 60 Sekunden
         if self.last_device_update:
             time_since_update = time.time() - self.last_device_update
             return time_since_update >= 60
@@ -274,7 +254,6 @@ class DeviceController:
         for device_name, action in changes.items():
             self.logger.info(f"Gerät '{device_name}' {action}")
 
-        # Logge Änderungen
         if self.config.logging.device_log_events:
             self.device_logger.log_changes(changes, data.surplus_power, self.device_manager)
 
@@ -293,11 +272,9 @@ class DeviceController:
 
         self.logger.info("Schalte alle Geräte aus...")
 
-        # Alle aktiven Geräte ausschalten
         for device in self.device_manager.get_active_devices():
             old_state = device.state
 
-            # Versuche Hardware auszuschalten
             if self.device_interface and self.device_interface.connected:
                 try:
                     success = self.device_interface.switch_off(device.name)
@@ -308,7 +285,6 @@ class DeviceController:
                 except Exception as e:
                     self.logger.error(f"Hardware-Fehler beim Shutdown: {e}")
 
-            # Laufzeit berechnen bevor Status geändert wird
             if device.last_state_change:
                 runtime = int((datetime.now() - device.last_state_change).total_seconds() / 60)
                 device.runtime_today += runtime
@@ -319,18 +295,15 @@ class DeviceController:
             device.last_state_change = datetime.now()
             self.logger.info(f"Gerät '{device.name}' ausgeschaltet (Programmende)")
 
-            # Event loggen
             if self.config.logging.device_log_events:
                 self.device_logger.log_event(
                     device, "ausgeschaltet", "Programmende",
                     self.last_surplus_power or 0, old_state
                 )
 
-        # Device Interface trennen
         if self.device_interface and self.device_interface.connected:
             self.device_interface.disconnect()
 
-        # Tageszusammenfassung erstellen
         if self.config.logging.device_log_daily_summary:
             self.device_logger.create_daily_summary(
                 self.device_manager.get_devices_by_priority(),
@@ -340,7 +313,6 @@ class DeviceController:
     def reset_daily_stats(self) -> None:
         """Setzt die täglichen Gerätestatistiken zurück"""
         if self.energy_controller:
-            # Erstelle Zusammenfassung vor Reset
             if self.config.logging.device_log_daily_summary and self.device_manager:
                 self.device_logger.create_daily_summary(
                     self.device_manager.get_devices_by_priority(),

@@ -35,12 +35,10 @@ class LoggingConfig:
     log_level: int = field(default_factory=_resolve_log_level)
     log_file: str = field(default_factory=lambda: os.getenv("LOG_FILE", "solar_monitor.log"))
 
-    # Feature-Flags
     enable_data_logging: bool = field(default_factory=lambda: os.getenv("ENABLE_DATA_LOGGING", "True").lower() == "true")
     enable_daily_stats_logging: bool = field(default_factory=lambda: os.getenv("ENABLE_DAILY_STATS_LOGGING", "True").lower() == "true")
     enable_device_logging: bool = field(default_factory=lambda: os.getenv("ENABLE_DEVICE_LOGGING", "True").lower() == "true")
 
-    # Logging-Details
     device_log_events: bool = field(default_factory=lambda: os.getenv("DEVICE_LOG_EVENTS", "True").lower() == "true")
     device_log_status: bool = field(default_factory=lambda: os.getenv("DEVICE_LOG_STATUS", "True").lower() == "true")
     device_log_daily_summary: bool = field(default_factory=lambda: os.getenv("DEVICE_LOG_DAILY_SUMMARY", "True").lower() == "true")
@@ -54,7 +52,6 @@ class DirectoryConfig:
     daily_stats_dir: str = field(default_factory=lambda: os.getenv("DAILY_STATS_DIR", "Dailystats"))
     device_log_dir: str = field(default_factory=lambda: os.getenv("DEVICE_LOG_DIR", "Devicelogs"))
 
-    # Dateinamen
     data_log_base_name: str = field(default_factory=lambda: os.getenv("DATA_LOG_BASE_NAME", "solar_data"))
     daily_stats_base_name: str = field(default_factory=lambda: os.getenv("DAILY_STATS_BASE_NAME", "daily_stats"))
     device_events_base_name: str = field(default_factory=lambda: os.getenv("DEVICE_EVENTS_BASE_NAME", "device_events"))
@@ -82,13 +79,11 @@ class DeviceControlConfig:
     update_only_on_change: bool = field(
         default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
 
-    # Batterie-Schwellwerte für die Gerätesteuerung
     min_battery_soc_on: float = field(
         default_factory=lambda: float(os.getenv("DEVICE_MIN_BATTERY_SOC_ON", "95")))
     min_battery_soc_off: float = field(
         default_factory=lambda: float(os.getenv("DEVICE_MIN_BATTERY_SOC_OFF", "20")))
 
-    # HUE INTEGRATION
     enable_hue: bool = field(default_factory=lambda: os.getenv("ENABLE_HUE", "False").lower() == "true")
     hue_bridge_ip: str = field(default_factory=lambda: os.getenv("HUE_BRIDGE_IP", "192.168.178.26"))
     hue_connection_timeout: int = field(default_factory=lambda: int(os.getenv("HUE_CONNECTION_TIMEOUT", "10")))
@@ -110,11 +105,9 @@ class CostConfig:
     electricity_price_night: float = field(default_factory=lambda: float(os.getenv("ELECTRICITY_PRICE_NIGHT", "0.30")))
     feed_in_tariff: float = field(default_factory=lambda: float(os.getenv("FEED_IN_TARIFF", "0.082")))
 
-    # Zeitbasierte Tarife
     night_tariff_start: str = field(default_factory=lambda: os.getenv("NIGHT_TARIFF_START", "22:00"))
     night_tariff_end: str = field(default_factory=lambda: os.getenv("NIGHT_TARIFF_END", "06:00"))
 
-    # Währung
     currency_symbol: str = field(default_factory=lambda: os.getenv("CURRENCY_SYMBOL", "€"))
     currency_format: str = field(default_factory=lambda: os.getenv("CURRENCY_FORMAT", "de-DE"))
 
@@ -193,24 +186,20 @@ class Config:
             'surplus': self.thresholds.surplus
         }
 
-    # ========== Validierung ==========
 
     def validate(self) -> bool:
         """Validiert die Konfiguration"""
         errors = []
 
-        # Timing-Validierung
         if self.timing.update_interval < 1:
             errors.append("update_interval muss mindestens 1 Sekunde sein")
 
         if self.timing.daily_stats_interval < 60:
             errors.append("daily_stats_interval sollte mindestens 60 Sekunden sein")
 
-        # Connection-Validierung
         if self.connection.request_timeout < 1:
             errors.append("request_timeout muss mindestens 1 Sekunde sein")
 
-        # CSV-Validierung
         if self.csv.delimiter not in [",", ";", "\t", "|"]:
             errors.append("csv.delimiter muss eines von ',', ';', '\\t', '|' sein")
 
@@ -220,15 +209,12 @@ class Config:
         if self.csv.encoding not in ["utf-8", "latin-1", "cp1252", "iso-8859-1"]:
             errors.append("csv.encoding muss ein gültiges Encoding sein")
 
-        # Battery-Validierung
         if self.battery.idle_threshold < 0:
             errors.append("battery.idle_threshold muss positiv sein")
 
-        # API-Validierung
         if self.api.port < 1 or self.api.port > 65535:
             errors.append("api.port muss zwischen 1 und 65535 liegen")
 
-        # Schwellwert-Validierung
         for key, thresholds in self.thresholds.__dict__.items():
             if isinstance(thresholds, dict) and 'high' in thresholds and 'medium' in thresholds:
                 if thresholds['high'] <= thresholds['medium']:
@@ -274,7 +260,6 @@ class Config:
             with open(filepath, 'r') as f:
                 data = json.load(f)
 
-            # Lade die Werte in die entsprechenden Gruppen
             for group_name, group_data in data.items():
                 if hasattr(config, group_name):
                     group = getattr(config, group_name)

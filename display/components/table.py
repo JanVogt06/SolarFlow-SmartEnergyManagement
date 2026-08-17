@@ -31,19 +31,15 @@ class Table:
         if not headers or not rows:
             return
 
-        # Bestimme Spaltenbreiten wenn nicht angegeben
         if column_widths is None:
             column_widths = self._calculate_column_widths(headers, rows)
 
-        # Standard-Ausrichtungen
         if alignments is None:
             alignments = ['l'] * len(headers)
 
-        # Header ausgeben
         self._print_header_row(headers, column_widths, alignments)
         self._print_separator_row(column_widths)
 
-        # Datenzeilen ausgeben
         for row in rows:
             self._print_data_row(row, column_widths, alignments)
 
@@ -95,7 +91,6 @@ class Table:
             for i, cell in enumerate(row[:len(widths)]):
                 widths[i] = max(widths[i], len(str(cell)))
 
-        # Mindestbreite und Padding
         return [max(w + Layout.TABLE_PADDING, Layout.MIN_COLUMN_WIDTH)
                 for w in widths]
 
@@ -124,7 +119,6 @@ class Table:
         for i, (cell, width, align) in enumerate(zip(row, widths, alignments)):
             cell_str = str(cell)
 
-            # Zahlen rechtsbündig wenn nicht anders angegeben
             if align == 'r' or (align == 'l' and isinstance(cell, (int, float))):
                 parts.append(f"{cell_str:>{width}}")
             elif align == 'c':

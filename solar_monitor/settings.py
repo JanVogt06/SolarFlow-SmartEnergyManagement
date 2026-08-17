@@ -17,7 +17,6 @@ class SettingsStore:
     gespeicherte Einstellungen bleiben weiterhin über die Umgebung steuerbar.
     """
 
-    # Einstellungsname -> Pfad in der Config
     FIELDS: Dict[str, str] = {
         'fronius_ip': 'connection.fronius_ip',
         'update_interval': 'timing.update_interval',

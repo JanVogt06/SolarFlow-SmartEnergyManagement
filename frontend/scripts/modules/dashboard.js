@@ -26,27 +26,21 @@ export class DashboardController {
     update(data) {
         if (!data) return;
 
-        // Update power values with animation
         this.updatePowerValue('pvPower', data.pv_power, 'W');
         this.updatePowerValue('loadPower', data.load_power, 'W');
 
-        // Handle grid power (positive = consuming, negative = feeding)
         this.updateGridStatus(data.grid_power);
 
-        // Handle battery if available
         this.updateBatteryStatus(data);
 
-        // Update metrics
         this.updateMetrics(data);
 
-        // Animate values
         this.animateChanges();
     }
 
     updateStats(stats) {
         if (!stats) return;
 
-        // Update cost savings with fallback
         if (stats.cost_saved !== undefined && stats.cost_saved !== null) {
             this.updateValue('costSaved', `${stats.cost_saved.toFixed(2)}€`);
         } else {
@@ -59,7 +53,6 @@ export class DashboardController {
             this.updateValue('totalBenefit', 'Gesamt: 0.00€');
         }
 
-        // Update daily energy with fallback
         if (stats.pv_energy !== undefined && stats.pv_energy !== null) {
             this.updateValue('dailyEnergy', `${stats.pv_energy.toFixed(1)} kWh`);
         } else {
@@ -91,11 +84,9 @@ export class DashboardController {
         const isFeeding = gridPower < 0;
         const absolutePower = Math.abs(Math.round(gridPower));
 
-        // Update card classes
         card.classList.toggle('feeding', isFeeding);
         card.classList.toggle('consuming', !isFeeding);
 
-        // Update label and value
         label.textContent = isFeeding ? 'Einspeisung' : 'Netzbezug';
         power.textContent = `${absolutePower} W`;
     }
@@ -111,10 +102,8 @@ export class DashboardController {
             const socValue = Math.round(data.battery_soc);
             soc.textContent = `${socValue}%`;
 
-            // Update battery icon based on SOC
             this.updateBatteryIcon(socValue);
 
-            // Add warning class for low battery
             card.classList.toggle('low-battery', socValue < 20);
             card.classList.toggle('full-battery', socValue > 95);
         } else {
@@ -129,13 +118,11 @@ export class DashboardController {
         const iconElement = card.querySelector('.flow-icon svg');
         if (!iconElement) return;
 
-        // Update icon based on SOC level
         let iconName = 'battery';
         if (soc <= 20) iconName = 'battery-low';
         else if (soc >= 80) iconName = 'battery-full';
         else iconName = 'battery-medium';
 
-        // Update lucide icon
         iconElement.setAttribute('data-lucide', iconName);
         if (window.lucide) {
             lucide.createIcons();
@@ -143,12 +130,10 @@ export class DashboardController {
     }
 
     updateMetrics(data) {
-        // Autarky rate with color coding
         const autarky = Math.round(data.autarky_rate);
         this.updateValue('autarkyRate', `${autarky}%`);
         this.updateAutarkyColor(autarky);
 
-        // Surplus power
         const surplus = Math.round(data.surplus_power);
         this.updateValue('surplusPower', `${surplus} W`);
         this.updateSurplusStatus(surplus);
@@ -201,7 +186,6 @@ export class DashboardController {
     }
 
     animateChanges() {
-        // Add subtle animations to changed values
         Object.values(this.elements).forEach(element => {
             if (element && element.classList.contains('updating')) {
                 element.style.transform = 'scale(1.05)';

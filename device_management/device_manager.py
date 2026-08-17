@@ -25,21 +25,17 @@ class DeviceManager:
         """
         self.logger = logging.getLogger(__name__)
         self.devices: List[Device] = []
-        # Default: devices.json im Projekt-Root (eine Ebene über device_management/)
         self.config_file = config_file or Path(__file__).resolve().parent.parent / "devices.json"
 
-        # Re-entrant Lock schützt self.devices vor parallelen API/Monitor-Zugriffen.
-        # RLock erlaubt verschachtelte Aufrufe (z.B. add_device → get_device).
+        # RLock, weil sich Methoden gegenseitig aufrufen (add_device → get_device)
         self._lock = threading.RLock()
 
-        # Lade Geräte wenn Konfiguration existiert
         if self.config_file.exists():
             self.load_devices()
 
     def add_device(self, device: Device) -> None:
         """Fügt ein Gerät hinzu"""
         with self._lock:
-            # Prüfe auf doppelte Namen
             if any(d.name == device.name for d in self.devices):
                 raise ValueError(f"Gerät mit Namen '{device.name}' existiert bereits")
 
@@ -100,7 +96,6 @@ class DeviceManager:
         """
         errors = []
 
-        # Pflichtfelder
         required_fields = ['name', 'power_consumption', 'priority',
                            'switch_on_threshold', 'switch_off_threshold']
 
@@ -108,12 +103,10 @@ class DeviceManager:
             if field not in device_dict:
                 errors.append(f"Pflichtfeld '{field}' fehlt")
 
-        # Name validieren
         if 'name' in device_dict:
             if not isinstance(device_dict['name'], str) or not device_dict['name'].strip():
                 errors.append("Name muss ein nicht-leerer String sein")
 
-        # Numerische Werte validieren
         numeric_fields = {
             'power_consumption': (0, float('inf'), "Leistungsaufnahme"),
             'priority': (1, 10, "Priorität"),
@@ -132,7 +125,6 @@ class DeviceManager:
                 except (ValueError, TypeError):
                     errors.append(f"{desc} muss eine Zahl sein")
 
-        # Schwellwerte-Logik prüfen
         if ('switch_on_threshold' in device_dict and 'switch_off_threshold' in device_dict):
             try:
                 on_threshold = float(device_dict['switch_on_threshold'])
@@ -142,7 +134,6 @@ class DeviceManager:
             except (ValueError, TypeError):
                 pass  # Fehler wurde schon oben erfasst
 
-        # VERBESSERTE Zeitbereichs-Validierung
         if 'allowed_time_ranges' in device_dict:
             time_errors = self._validate_time_ranges_config(device_dict['allowed_time_ranges'])
             errors.extend(time_errors)
@@ -161,21 +152,18 @@ class DeviceManager:
         """
         errors = []
 
-        # Prüfe Grundstruktur
         if not isinstance(time_ranges, list):
             return ["allowed_time_ranges muss eine Liste sein"]
 
         valid_ranges = []
 
         for i, time_range in enumerate(time_ranges):
-            # Prüfe Format
             if not isinstance(time_range, list) or len(time_range) != 2:
                 errors.append(f"Zeitbereich {i + 1} muss eine Liste mit 2 Zeiten sein [start, ende]")
                 continue
 
             start_str, end_str = time_range
 
-            # Validiere Zeitformat
             try:
                 start_time = time.fromisoformat(start_str)
             except (ValueError, TypeError, AttributeError):
@@ -194,7 +182,6 @@ class DeviceManager:
                 )
                 continue
 
-            # Warne bei identischen Start- und Endzeiten (außer wenn beide 00:00)
             if start_time == end_time and start_time != time(0, 0):
                 errors.append(
                     f"Zeitbereich {i + 1}: Start und Ende sind identisch ({start_str}). "
@@ -203,11 +190,9 @@ class DeviceManager:
 
             valid_ranges.append((start_time, end_time, i))
 
-        # Prüfe auf Überlappungen wenn mindestens 2 gültige Bereiche
         if len(valid_ranges) >= 2:
             overlap_warnings = self._check_time_overlaps(valid_ranges)
             if overlap_warnings:
-                # Überlappungen sind Warnungen, keine Fehler
                 for warning in overlap_warnings:
                     self.logger.warning(warning)
 
@@ -225,28 +210,23 @@ class DeviceManager:
         """
         warnings = []
 
-        # Konvertiere zu Minuten-Intervallen
         intervals = []
         for start, end, idx in valid_ranges:
             start_min = start.hour * 60 + start.minute
             end_min = end.hour * 60 + end.minute
 
             if start <= end:
-                # Normaler Bereich
                 intervals.append([(start_min, end_min, idx)])
             else:
-                # Über Mitternacht - teile in zwei Bereiche
                 intervals.append([
                     (start_min, 24 * 60, idx),
                     (0, end_min, idx)
                 ])
 
-        # Prüfe alle Kombinationen
         for i in range(len(intervals)):
             for j in range(i + 1, len(intervals)):
                 for int1 in intervals[i]:
                     for int2 in intervals[j]:
-                        # Verwende die statische Methode aus Device
                         if Device._check_interval_overlap(int1[:2], int2[:2]):
                             idx1, idx2 = int1[2], int2[2]
                             warnings.append(
@@ -313,7 +293,6 @@ class DeviceManager:
                     self.devices.clear()
                 return
 
-            # Validiere alle Geräte vor dem Laden
             all_errors = []
             valid_devices = []
 
@@ -325,7 +304,6 @@ class DeviceManager:
                 else:
                     valid_devices.append((i, device_dict))
 
-            # Zeige alle Fehler auf einmal
             if all_errors:
                 error_msg = "Fehler in der Gerätekonfiguration:" + "".join(all_errors)
                 self.logger.error(error_msg)
@@ -339,10 +317,8 @@ class DeviceManager:
                 else:
                     raise ValueError("Keine gültigen Geräte in der Konfiguration")
 
-            # Erstelle alle Devices erst lokal, dann unter Lock atomar austauschen
             new_devices: List[Device] = []
             for device_dict in devices_data:
-                # Konvertiere Zeit-Strings
                 time_ranges = []
                 for start_str, end_str in device_dict.get('allowed_time_ranges', []):
                     try:
@@ -357,7 +333,6 @@ class DeviceManager:
 
                     time_ranges.append((start, end))
 
-                # Cast int für IntEnum-Sicherheit (akzeptiert auch float aus JSON)
                 priority_int = int(device_dict['priority'])
 
                 device = Device(
@@ -373,14 +348,12 @@ class DeviceManager:
                 )
                 new_devices.append(device)
 
-            # Atomarer Austausch unter Lock
             with self._lock:
                 self.devices.clear()
                 self.devices.extend(new_devices)
 
             self.logger.info(f"Erfolgreich geladen: {len(new_devices)} Geräte")
 
-            # Zeige Übersicht
             for device in self.get_devices_by_priority():
                 self.logger.debug(
                     f"  {device.name}: {device.power_consumption}W, "

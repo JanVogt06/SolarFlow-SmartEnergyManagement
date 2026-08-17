@@ -22,17 +22,14 @@ class DatabaseWriter(BaseWriter):
         self.db_path = Path(config.database.database_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Größerer Buffer für Datenbank
         self._buffer_size = 100
 
-        # Initialisiere Datenbank
         self._init_database()
 
     def _init_database(self) -> None:
         """Erstellt die Tabellen falls sie nicht existieren"""
         try:
             with self._get_connection() as conn:
-                # Solar-Daten Tabelle
                 conn.execute("""
                              CREATE TABLE IF NOT EXISTS solar_data
                              (
@@ -52,13 +49,11 @@ class DatabaseWriter(BaseWriter):
                              )
                              """)
 
-                # Index für Zeitabfragen
                 conn.execute("""
                              CREATE INDEX IF NOT EXISTS idx_solar_timestamp
                                  ON solar_data (timestamp)
                              """)
 
-                # Tagesstatistiken Tabelle
                 conn.execute("""
                              CREATE TABLE IF NOT EXISTS daily_stats
                              (
@@ -92,7 +87,6 @@ class DatabaseWriter(BaseWriter):
                              )
                              """)
 
-                # Geräte-Events Tabelle
                 conn.execute("""
                              CREATE TABLE IF NOT EXISTS device_events
                              (
@@ -111,7 +105,6 @@ class DatabaseWriter(BaseWriter):
                              )
                              """)
 
-                # Geräte-Status Tabelle
                 conn.execute("""
                              CREATE TABLE IF NOT EXISTS device_status
                              (
@@ -126,7 +119,6 @@ class DatabaseWriter(BaseWriter):
                              )
                              """)
 
-                # Index für Zeitabfragen
                 conn.execute("""
                              CREATE INDEX IF NOT EXISTS idx_device_status_timestamp
                                  ON device_status (timestamp)
@@ -154,7 +146,6 @@ class DatabaseWriter(BaseWriter):
         if not self._buffer:
             return True
 
-        # Gruppiere nach log_type
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for entry in self._buffer:
             log_type = entry['metadata'].get('log_type')
@@ -162,7 +153,6 @@ class DatabaseWriter(BaseWriter):
                 grouped[log_type] = []
             grouped[log_type].append(entry['data'])
 
-        # Schreibe jede Gruppe
         success = True
         try:
             with self._get_connection() as conn:
@@ -179,7 +169,6 @@ class DatabaseWriter(BaseWriter):
             self.logger.error(f"Fehler beim Datenbank-Flush: {e}")
             success = False
 
-        # Buffer leeren
         self._buffer.clear()
         return success
 
@@ -223,7 +212,6 @@ class DatabaseWriter(BaseWriter):
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
               """
 
-        # Konvertiere Daten
         values = []
         for data in data_list:
             values.append((
@@ -250,13 +238,11 @@ class DatabaseWriter(BaseWriter):
         for data in data_list:
             date_str = data.get('date')
 
-            # Prüfe ob Eintrag für dieses Datum bereits existiert
             existing = conn.execute(
                 "SELECT * FROM daily_stats WHERE date = ?", (date_str,)
             ).fetchone()
 
             if existing:
-                # UPDATE: Addiere Energiewerte, aktualisiere Max-Werte
                 sql = """
                       UPDATE daily_stats
                       SET runtime_hours            = runtime_hours + ?,
@@ -319,7 +305,6 @@ class DatabaseWriter(BaseWriter):
                 conn.execute(sql, values)
 
             else:
-                # INSERT: Neuer Eintrag
                 sql = """
                       INSERT INTO daily_stats (date, runtime_hours, pv_energy, consumption_energy, \
                                                self_consumption_energy, feed_in_energy, grid_energy, \
@@ -403,10 +388,8 @@ class DatabaseWriter(BaseWriter):
 
         values = []
         for data in data_list:
-            # Sammle Gerätezustände als JSON
             device_states = {}
 
-            # Extrahiere Geräte-spezifische Daten
             for key, value in data.items():
                 if '_state' in key or '_runtime' in key:
                     device_states[key] = value
@@ -431,7 +414,6 @@ class DatabaseWriter(BaseWriter):
         if value is None or value == '-':
             return None
 
-        # Entferne Tausender-Trennzeichen und ersetze Komma
         if isinstance(value, str):
             value = value.replace('.', '').replace(',', '.')
 

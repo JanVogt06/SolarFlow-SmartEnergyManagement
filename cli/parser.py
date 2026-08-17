@@ -20,7 +20,6 @@ def create_parser() -> argparse.ArgumentParser:
         epilog=_get_epilog_text()
     )
 
-    # Füge alle Argument-Gruppen hinzu
     _add_arguments_from_config(parser, ARGUMENT_GROUPS)
 
     return parser
@@ -70,13 +69,10 @@ def _add_arguments_from_config(parser: argparse.ArgumentParser,
         group = parser.add_argument_group(group_config['description'])
 
         for arg_config in group_config['arguments']:
-            # Kopiere Dictionary um Original nicht zu verändern
             arg = arg_config.copy()
 
-            # Entferne custom fields
             arg_name = arg.pop('name')
             arg.pop('config_path', None)
             arg.pop('config_value', None)
 
-            # Füge Argument hinzu
             group.add_argument(arg_name, **arg)

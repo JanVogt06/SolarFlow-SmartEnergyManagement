@@ -23,7 +23,6 @@ class ColorManager:
         """
         self.enable_colors = enable_colors
 
-        # Threshold-basierte Farbregeln mit korrektem Type
         self.color_rules: Dict[str, ColorRule] = {
             'battery_soc': {
                 'high': 80,
@@ -76,11 +75,9 @@ class ColorManager:
         if not self.enable_colors:
             return ""
 
-        # Wenn es bereits ein Farbcode ist
         if color.startswith('\033'):
             return color
 
-        # Versuche aus Colors-Klasse zu holen
         return getattr(Colors, color.upper(), "")
 
     def colorize(self, text: str, color: Optional[str] = None) -> str:
@@ -120,7 +117,6 @@ class ColorManager:
         rule = self.color_rules[threshold_key]
         colors = rule['colors']
 
-        # Jetzt weiß mypy, dass rule['high'] und rule['medium'] floats sind
         if value >= rule['high']:
             return colors['high']
         elif value >= rule['medium']:

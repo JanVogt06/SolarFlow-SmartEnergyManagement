@@ -22,7 +22,6 @@ class DeviceLogger:
         self.log_manager = log_manager
         self.logger = logging.getLogger(__name__)
 
-        # Cache für letzte Zustände
         self.last_device_states: Dict[str, Any] = {}
 
     def log_event(self, device: Any, action: str, reason: str,
@@ -41,13 +40,10 @@ class DeviceLogger:
             True bei Erfolg
         """
         try:
-            # Erstelle Log-Entry
             entry = DeviceEventEntry(device, action, reason, surplus_power, old_state)
 
-            # Aktualisiere Cache
             self.last_device_states[device.name] = device.state
 
-            # Delegiere an LogManager
             return self.log_manager.log(entry)
 
         except Exception as e:
@@ -66,10 +62,8 @@ class DeviceLogger:
             True bei Erfolg
         """
         try:
-            # Erstelle Log-Entry
             entry = DeviceStatusEntry(devices, surplus_power)
 
-            # Delegiere an LogManager
             return self.log_manager.log(entry)
 
         except Exception as e:
@@ -89,19 +83,14 @@ class DeviceLogger:
         for device_name, action in changes.items():
             device = device_manager.get_device(device_name)
             if device:
-                # Bestimme alten Status
                 old_state = self.last_device_states.get(device_name)
 
-                # Falls kein Cache-Eintrag vorhanden, verwende DeviceState.OFF
                 if old_state is None:
-                    # Importiere DeviceState direkt
                     from device_management import DeviceState
                     old_state = DeviceState.OFF
 
-                # Bestimme Grund basierend auf Aktion
                 reason = self._determine_reason(device, action)
 
-                # Event loggen
                 self.log_event(device, action, reason, surplus_power, old_state)
 
     def _determine_reason(self, device: Any, action: str) -> str:
@@ -152,7 +141,6 @@ class DeviceLogger:
 
                 for device in sorted(devices,
                                      key=lambda d: d.priority.value if hasattr(d.priority, 'value') else d.priority):
-                    # Verwende get_current_runtime() um auch laufende Sessions zu berücksichtigen
                     current_runtime = device.get_current_runtime(current_time)
                     energy = current_runtime * device.power_consumption / 60000
                     total_energy += energy
@@ -166,7 +154,6 @@ class DeviceLogger:
                     f.write(f"  Leistung: {device.power_consumption}W\n")
                     f.write(f"  Laufzeit heute: {current_runtime} Minuten")
 
-                    # Zeige aktuelle Session-Dauer wenn Gerät läuft
                     if device.state.value == 'on' and device.last_state_change:
                         session_minutes = int((current_time - device.last_state_change).total_seconds() / 60)
                         f.write(f" (davon aktuelle Session: {session_minutes} Minuten)")

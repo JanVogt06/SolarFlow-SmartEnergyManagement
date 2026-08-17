@@ -67,7 +67,6 @@ class SolarFlowApp {
             });
         }
 
-        // Copy button functionality
         copyBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 const textToCopy = btn.dataset.copy;
@@ -83,7 +82,6 @@ class SolarFlowApp {
             });
         });
 
-        // Close modal on overlay click
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target.classList.contains('modal-overlay')) {

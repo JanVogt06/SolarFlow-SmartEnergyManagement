@@ -20,7 +20,6 @@ class DataProcessor:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-        # Statistiken
         self.stats: Dict[str, Any] = {
             'updates': 0,
             'errors': 0,
@@ -54,7 +53,6 @@ class DataProcessor:
         Returns:
             True wenn Daten plausibel
         """
-        # Basis-Validierung
         if data.pv_power < 0:
             self.logger.warning("PV-Leistung negativ")
             return False
@@ -63,7 +61,6 @@ class DataProcessor:
             self.logger.warning("Verbrauch negativ")
             return False
 
-        # Plausibilitätsprüfungen
         max_pv_power = 20000  # 20kW Max
         if data.pv_power > max_pv_power:
             self.logger.warning(f"PV-Leistung unplausibel hoch: {data.pv_power}W")

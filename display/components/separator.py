@@ -39,12 +39,10 @@ class Separator:
         width = width or self.width
         title = f" {title} "
 
-        # Berechne Padding
         padding = width - len(title)
         left_pad = padding // 2
         right_pad = padding - left_pad
 
-        # Erstelle Linie
         line = Layout.SEPARATOR_CHAR * left_pad + title + Layout.SEPARATOR_CHAR * right_pad
         print(line)
 

@@ -21,10 +21,8 @@ export class StatisticsController {
     update(stats) {
         if (!stats) return;
 
-        // Update date with animation
         this.updateDate();
 
-        // Update all statistics with stagger animation
         this.updateStat('pvEnergy', `${stats.pv_energy.toFixed(1)} kWh`, 0);
         this.updateStat('consumption', `${stats.consumption_energy.toFixed(1)} kWh`, 100);
         this.updateStat('selfConsumption', `${stats.self_consumption_energy.toFixed(1)} kWh`, 200);
@@ -32,7 +30,6 @@ export class StatisticsController {
         this.updateStat('feedIn', `${stats.feed_in_energy.toFixed(1)} kWh`, 400);
         this.updateStat('autarkyAvg', `${stats.autarky_avg.toFixed(1)} %`, 500);
 
-        // Update cost summary with special animation
         this.updateCostSummary(stats);
     }
 
@@ -70,7 +67,6 @@ export class StatisticsController {
             this.animateCounter(totalBenefitEl, stats.total_benefit, '€', 2);
         }
 
-        // Add glow effect to cost summary card
         const costCard = document.querySelector('.cost-summary-card');
         if (costCard) {
             costCard.classList.add('pulse-glow');
@@ -104,7 +100,6 @@ export class StatisticsController {
     }
 
     onActivate() {
-        // Called when statistics tab is activated
         if (this.api) {
             this.api.getStats().then(stats => this.update(stats));
         }

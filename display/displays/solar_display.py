@@ -46,14 +46,11 @@ class SolarDisplay(BaseDisplay):
 
     def _display_power_section(self, data: Any) -> None:
         """Zeigt die Leistungswerte."""
-        # PV-Erzeugung mit Farbe
         pv_color = self.color_manager.get_threshold_color(data.pv_power, 'pv_power')
         self.table.display_colored_row("PV-Erzeugung:", data.pv_power, "W", pv_color)
 
-        # Hausverbrauch
         self.table.display_colored_row("Hausverbrauch:", data.load_power, "W")
 
-        # Gesamtproduktion wenn Batterie vorhanden
         if data.has_battery:
             total_color = self.color_manager.get_threshold_color(data.total_production, 'pv_power')
             self.table.display_colored_row("Gesamtproduktion:", data.total_production, "W", total_color)
@@ -71,7 +68,6 @@ class SolarDisplay(BaseDisplay):
         """Zeigt Batterie-Informationen."""
         self.separator.empty_line()
 
-        # Batterie-Status
         if abs(data.battery_power) < self.config.battery.idle_threshold:
             status = "Standby"
             power = abs(data.battery_power)
@@ -87,19 +83,16 @@ class SolarDisplay(BaseDisplay):
 
         self.table.display_colored_row(f"Batterie ({status}):", power, "W", color)
 
-        # Batterie-SOC mit Progress Bar
         if data.battery_soc is not None:
             self.progress.display_battery(data.battery_soc)
 
     def _display_calculated_section(self, data: Any) -> None:
         """Zeigt berechnete Werte."""
-        # Eigenverbrauch und Autarkie
         autarky_color = self.color_manager.get_threshold_color(data.autarky_rate, 'autarky')
 
         self.table.display_colored_row("Eigenverbrauch:", data.self_consumption, "W", autarky_color)
         self.table.display_colored_row("Autarkiegrad:", data.autarky_rate, "%", autarky_color)
 
-        # Überschuss wenn relevant
         if data.surplus_power >= self.config.display.surplus_display_threshold:
             surplus_color = self._get_surplus_color(data.surplus_power)
             self.table.display_colored_row("Verfügbarer Überschuss:", data.surplus_power, "W", surplus_color)
@@ -124,7 +117,6 @@ class SolarDisplay(BaseDisplay):
         """
         self._display_header(data)
 
-        # Zeige Leistungen als Progress Bars
         max_power = max(data.pv_power, data.load_power, 5000)  # 5kW minimum
 
         self.progress.display_power(data.pv_power, max_power, "PV-Erzeugung")
@@ -136,7 +128,6 @@ class SolarDisplay(BaseDisplay):
 
         self.separator.subsection()
 
-        # Kennzahlen
         autarky_color = self.color_manager.get_threshold_color(data.autarky_rate, 'autarky')
         print(f"Autarkie: {self.color_manager.colorize(f'{data.autarky_rate:.1f}%', autarky_color)}")
 

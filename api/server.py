@@ -24,10 +24,8 @@ class APIServer:
         self.config = config
         self.logger = logging.getLogger(__name__)
 
-        # FastAPI App erstellen
         self.app = create_app(monitor)
 
-        # Server Thread
         self.server_thread: Optional[threading.Thread] = None
         self.server: Optional[uvicorn.Server] = None
 
@@ -35,7 +33,6 @@ class APIServer:
         """Startet den API Server im Hintergrund"""
         self.logger.info(f"Starte API Server auf http://{host}:{port}")
 
-        # Uvicorn Config
         config = uvicorn.Config(
             app=self.app,
             host=host,
@@ -46,7 +43,6 @@ class APIServer:
 
         self.server = uvicorn.Server(config)
 
-        # Starte in Thread
         self.server_thread = threading.Thread(
             target=self.server.run,
             daemon=True

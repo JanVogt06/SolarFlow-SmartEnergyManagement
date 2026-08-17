@@ -6,26 +6,19 @@ import sys
 import time
 from pathlib import Path
 
-# Füge das Projekt-Verzeichnis zum Python-Path hinzu
 sys.path.insert(0, str(Path(__file__).parent))
 
-# WICHTIG: Dependency Check VOR allen anderen Imports!
 from cli import parse_arguments, check_dependencies, apply_args_to_config
 
-# Parse Argumente zuerst
 args = parse_arguments()
 
-# Bestimme ob API aktiviert ist (Standard: ja, außer --no-api ist gesetzt)
 api_enabled = not getattr(args, 'no_api', False)
 
-# Dependencies prüfen (inkl. API deps wenn API aktiviert)
 if not check_dependencies(args.skip_check, with_api=api_enabled):
     sys.exit(1)
 
-# Erst jetzt die anderen Imports (nachdem Dependencies geprüft wurden)
 from solar_monitor import SolarMonitor, Config, SettingsStore
 
-# API Import nur wenn benötigt
 APIServer = None  # Standardwert falls Import fehlschlägt
 if api_enabled:
     try:
@@ -43,30 +36,24 @@ def main():
     settings.load()
     apply_args_to_config(config, args)
 
-    # API-Status explizit aus args übernehmen (falls --no-api gesetzt wurde)
     if hasattr(args, 'no_api') and args.no_api:
         config.api.enabled = False
 
-    # API-Host und Port aus args übernehmen wenn gesetzt
     if hasattr(args, 'api_host') and args.api_host:
         config.api.host = args.api_host
     if hasattr(args, 'api_port') and args.api_port:
         config.api.port = args.api_port
 
-    # api_server vor try-Block initialisieren
     api_server = None
 
     try:
-        # Monitor erstellen
         monitor = SolarMonitor(config, settings)
 
-        # API Server starten wenn aktiviert
         if config.api.enabled and api_enabled and APIServer is not None:
             try:
                 api_server = APIServer(monitor, config)
                 api_server.start(host=config.api.host, port=config.api.port)
 
-                # Warte kurz bis API läuft
                 time.sleep(1)
 
                 dashboard_url = f"http://localhost:{config.api.port}/"
@@ -82,7 +69,6 @@ def main():
                 api_server = None
                 config.api.enabled = False
 
-        # Einfache Anzeige, wenn gewünscht
         if hasattr(args, 'simple') and args.simple:
             print("Simple Mode aktiviert - Einzeilige Ausgabe")
             try:
@@ -95,7 +81,6 @@ def main():
                 print("\nSimple Mode beendet.")
                 return
 
-        # Normal starten
         monitor.start()
 
     except KeyboardInterrupt:
@@ -105,7 +90,6 @@ def main():
         print(f"\nFehler: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
-        # API Server stoppen wenn vorhanden
         if api_server:
             try:
                 api_server.stop()

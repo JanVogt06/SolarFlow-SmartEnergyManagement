@@ -91,12 +91,10 @@ class DeviceStatusFormatter(BaseFormatter):
         devices = data['devices']
         surplus_power = data['surplus_power']
 
-        # Basis-Daten
         result = {
             'timestamp': self.format_timestamp(datetime.now())
         }
 
-        # Daten für jedes Gerät
         total_on = 0
         total_consumption = 0.0
 
@@ -111,7 +109,6 @@ class DeviceStatusFormatter(BaseFormatter):
                 total_on += 1
                 total_consumption += device.power_consumption
 
-        # Zusammenfassung
         used_surplus = min(total_consumption, max(0, surplus_power))
 
         result.update({
@@ -130,6 +127,4 @@ class DeviceStatusFormatter(BaseFormatter):
         Returns:
             Liste mit Header-Spalten
         """
-        # Dynamische Header basierend auf Geräten
-        # Muss zur Laufzeit mit tatsächlichen Geräten gefüllt werden
         return []  # Wird vom Writer dynamisch erstellt

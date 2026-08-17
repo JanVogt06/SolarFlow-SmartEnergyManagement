@@ -7,7 +7,6 @@ import subprocess
 import importlib.util
 from typing import Dict, List, Tuple
 
-# Erforderliche Dependencies
 REQUIRED_DEPENDENCIES: Dict[str, str] = {
     'requests': 'requests>=2.31.0',
     'rich': 'rich>=13.7.0',
@@ -34,23 +33,18 @@ def check_dependencies(skip_check: bool = False, with_api: bool = False) -> bool
     if skip_check:
         return True
 
-    # Sammle fehlende Dependencies
     missing_deps = _find_missing_dependencies()
 
-    # Prüfe API-Dependencies wenn --api gesetzt
     if with_api:
         for module_name, pip_package in OPTIONAL_DEPENDENCIES.items():
             if not _check_single_dependency(module_name, pip_package):
                 missing_deps.append((module_name, pip_package))
 
-    # Wenn alle Dependencies installiert sind
     if not missing_deps:
         return True
 
-    # Zeige fehlende Dependencies
     _display_missing_dependencies(missing_deps)
 
-    # Frage nach automatischer Installation
     if _ask_for_installation():
         return _install_missing_dependencies(missing_deps)
     else:
@@ -134,10 +128,8 @@ def _install_missing_dependencies(missing_deps: List[Tuple[str, str]]) -> bool:
         _display_failed_installations(failed_installs)
         return False
 
-    # Alle Installationen erfolgreich
     print("\nAlle Pakete erfolgreich installiert!")
 
-    # Cache invalidieren für neue Imports
     import importlib
     importlib.invalidate_caches()
 

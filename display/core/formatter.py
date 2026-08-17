@@ -35,7 +35,6 @@ class Formatter:
         if value is None:
             return "-"
 
-        # Auto-Dezimalstellen basierend auf Größe
         if decimals is None:
             if isinstance(value, int) or value >= 1000:
                 decimals = 0
@@ -50,13 +49,11 @@ class Formatter:
             else:
                 formatted = f"{value:.{decimals}f}"
 
-            # Tausender-Trennzeichen
             if abs(value) >= 1000:
                 parts = formatted.split('.')
                 parts[0] = self._add_thousands_separator(parts[0])
                 formatted = '.'.join(parts)
 
-            # Dezimaltrennzeichen anpassen
             if self.decimal_separator == ',':
                 formatted = formatted.replace('.', ',')
 
@@ -183,11 +180,9 @@ class Formatter:
         Returns:
             String mit Tausender-Trennzeichen
         """
-        # Behandle negatives Vorzeichen
         if number_str.startswith('-'):
             return '-' + self._add_thousands_separator(number_str[1:])
 
-        # Füge Punkte als Tausender-Trennzeichen hinzu
         result = ""
         for i, digit in enumerate(reversed(number_str)):
             if i > 0 and i % 3 == 0:

@@ -36,20 +36,16 @@ class SolarMonitor:
         self.settings = settings or SettingsStore(self.config)
         self.config.validate()
 
-        # API initialisieren
         self.api = FroniusAPI(
             self.config.connection.fronius_ip,
             self.config.connection.request_timeout
         )
 
-        # Display initialisieren
         self.display = DisplayManager(self.config)
 
-        # Logging-System initialisieren
         self.logging_coordinator = LoggingCoordinator(self.config)
         self.logging_coordinator.setup_system_logging()
 
-        # Core-Komponenten initialisieren
         self.data_processor = DataProcessor(self.config)
         self.stats_manager = StatsManager(
             self.config,
@@ -66,9 +62,6 @@ class SolarMonitor:
         self.running = False
         self.start_time: Optional[float] = None
 
-        # Cache für letzten validen Datensatz (für API-Konsumenten wie Frontend).
-        # Verhindert dass jeder /api/current-Aufruf einen separaten Request an
-        # den Wechselrichter auslöst.
         self._latest_data: Optional[SolarData] = None
         self._latest_data_lock = threading.Lock()
 
@@ -80,7 +73,6 @@ class SolarMonitor:
             f"Intervall={self.config.timing.update_interval}s"
         )
 
-        # Teste Verbindung
         self.logger.info("Teste Verbindung zum Wechselrichter...")
         if self.api.test_connection():
             self.logger.info("Verbindung erfolgreich!")
@@ -100,13 +92,10 @@ class SolarMonitor:
         """Stoppt den Monitor"""
         self.running = False
 
-        # Live-Display aufräumen wenn aktiv
         if self.config.display.use_live_display and self.display._live_mode_active:
             self.display.cleanup_live_display()
-            # Kurze Pause damit Terminal sich erholt
             time.sleep(0.1)
 
-        # Statistiken ausgeben
         if self.start_time:
             runtime = time.time() - self.start_time
             stats = self.data_processor.get_statistics()
@@ -116,30 +105,22 @@ class SolarMonitor:
                 f"Fehler: {stats['errors']}"
             )
 
-        # Abschluss-Statistiken anzeigen
         self.stats_manager.show_final_stats()
 
-        # Tagesstatistiken speichern
         self.stats_manager.save_current_stats()
 
-        # Geräte herunterfahren
         self.device_controller.shutdown()
 
-        # Logging-System schließen
         self.logging_coordinator.close()
 
     def run(self) -> None:
         """Hauptschleife des Monitors"""
-        # Vorbereitung für Live-Display
         if self.config.display.use_live_display:
-            # Konfiguriere Logging auf stderr
             self._configure_stderr_logging()
 
-            # Gebe Zeit für initiale Log-Ausgaben
             self.logging_coordinator.log_startup_info(self.device_controller.is_active())
             time.sleep(0.5)  # Kurze Pause für Log-Ausgaben
 
-            # Versuche Live Display zu initialisieren
             if self.display.live:
                 try:
                     self.display.live.initialize()
@@ -147,15 +128,12 @@ class SolarMonitor:
                     self.logger.error(f"Live Display konnte nicht initialisiert werden: {e}")
                     self.logger.info("Wechsle zu Standard-Anzeige")
                     self.config.display.use_live_display = False
-                    # Logging zurück auf stdout
                     self._restore_stdout_logging()
             else:
-                # Live Display nicht verfügbar
                 self.logger.info("Live Display nicht verfügbar, verwende Standard-Anzeige")
                 self.config.display.use_live_display = False
                 self._restore_stdout_logging()
         else:
-            # Standard Log-Ausgabe
             self.logging_coordinator.log_startup_info(self.device_controller.is_active())
 
         consecutive_errors = 0
@@ -172,25 +150,20 @@ class SolarMonitor:
                     self.logger.error("Zu viele aufeinanderfolgende Fehler, beende Monitor")
                     break
 
-                # Warte bis zum nächsten Update
                 time.sleep(self.config.timing.update_interval)
 
         except KeyboardInterrupt:
-            # Sauberes Beenden bei Ctrl+C
             self.logger.debug("KeyboardInterrupt empfangen")
         finally:
             self.stop()
 
     def _configure_stderr_logging(self):
         """Konfiguriert Logging auf stderr für Live-Display"""
-        # Alle StreamHandler auf stderr umleiten
         root_logger = logging.getLogger()
         for handler in root_logger.handlers[:]:  # Kopie der Liste
             if isinstance(handler, logging.StreamHandler):
-                # Entferne alte Handler
                 root_logger.removeHandler(handler)
 
-        # Neuer Handler nur für stderr
         stderr_handler = logging.StreamHandler(sys.stderr)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         stderr_handler.setFormatter(formatter)
@@ -201,18 +174,15 @@ class SolarMonitor:
         """Stellt Standard-Logging auf stdout wieder her"""
         root_logger = logging.getLogger()
 
-        # Entferne alle Handler
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
 
-        # Standard-Handler für stdout
         stdout_handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         stdout_handler.setFormatter(formatter)
         stdout_handler.setLevel(self.config.logging.log_level)
         root_logger.addHandler(stdout_handler)
 
-        # File Handler wieder hinzufügen wenn konfiguriert
         if self.config.logging.log_file:
             try:
                 file_handler = logging.FileHandler(self.config.logging.log_file)
@@ -234,14 +204,11 @@ class SolarMonitor:
             Aktualisierte Anzahl aufeinanderfolgender Fehler
         """
         try:
-            # Daten abrufen
             data = self.api.get_power_flow_data()
 
-            # Daten verarbeiten
             if self.data_processor.process_data(data):
                 consecutive_errors = 0
 
-                # Daten validieren
                 if data and self.data_processor.validate_data(data):
                     self._handle_valid_data(data)
 
@@ -266,31 +233,22 @@ class SolarMonitor:
         Args:
             data: Validierte Solar-Daten
         """
-        # Cache für API-Konsumenten aktualisieren
         with self._latest_data_lock:
             self._latest_data = data
 
-        # Gerätesteuerung aktualisieren
         self.device_controller.update(data)
 
-        # Anzeige-Logik
         if self.config.display.use_live_display:
-            # Versuche Live Display
             self.display.show_live_data(data, self.device_controller.device_manager)
         else:
-            # Standard-Anzeige ohne Live-Updates
             self.display.show_solar_data(data, self.device_controller.device_manager)
 
-        # Daten loggen
         self.logging_coordinator.log_solar_data(data)
 
-        # Gerätestatus loggen
         self.device_controller.log_status(data.surplus_power)
 
-        # Tagesstatistiken aktualisieren
         self.stats_manager.update(data)
 
-        # Prüfe auf Datumswechsel für Geräte-Reset
         if data.timestamp and self.stats_manager.check_date_change(data.timestamp.date()):
             self.device_controller.reset_daily_stats()
 

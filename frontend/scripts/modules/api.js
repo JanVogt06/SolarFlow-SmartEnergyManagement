@@ -51,7 +51,6 @@ export class ApiClient {
         return `HTTP ${response.status}: ${response.statusText}`;
     }
 
-    // API Endpoints
     async getCurrentData() {
         return this.request('/api/current');
     }

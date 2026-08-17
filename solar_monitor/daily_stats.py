@@ -15,7 +15,6 @@ class DailyStats:
 
     date: date = field(default_factory=date.today)
 
-    # Energiewerte in kWh
     pv_energy: float = 0.0  # Gesamte PV-Produktion
     consumption_energy: float = 0.0  # Gesamtverbrauch
     feed_in_energy: float = 0.0  # Eingespeiste Energie
@@ -24,43 +23,33 @@ class DailyStats:
     battery_discharge_energy: float = 0.0  # Batterie entladen
     self_consumption_energy: float = 0.0  # Eigenverbrauch
 
-    # NEUE Felder für zeitbasierte Energie (für Tarifberechnung)
     grid_energy_day: float = 0.0  # Netzbezug Tagtarif
     grid_energy_night: float = 0.0  # Netzbezug Nachttarif
 
-    # Max Leistungswerte in W
     pv_power_max: float = 0.0
     consumption_power_max: float = 0.0
     feed_in_power_max: float = 0.0
     grid_power_max: float = 0.0
     surplus_power_max: float = 0.0
 
-    # Batterie
     battery_soc_min: Optional[float] = None
     battery_soc_max: Optional[float] = None
 
-    # Durchschnitte
     autarky_avg: float = 0.0
 
-    # === NEUE KOSTENFELDER ===
-    # Kosten in EUR
     cost_grid_consumption: float = 0.0  # Kosten für Netzbezug
     cost_saved: float = 0.0  # Eingesparte Kosten durch Eigenverbrauch
     revenue_feed_in: float = 0.0  # Einnahmen durch Einspeisung
     total_benefit: float = 0.0  # Gesamtnutzen (Ersparnis + Einnahmen)
 
-    # Kosten ohne Solar (Vergleichswert)
     cost_without_solar: float = 0.0  # Was hätte der Strom ohne PV gekostet
 
-    # Zähler für Durchschnittsberechnung
     _sample_count: int = 0
     _autarky_sum: float = 0.0
 
-    # Zeitstempel
     first_update: Optional[datetime] = None
     last_update: Optional[datetime] = None
 
-    # Konfiguration für Kostenberechnung
     _config: Optional[Any] = None
 
     def set_config(self, config: Any) -> None:
@@ -89,7 +78,6 @@ class DailyStats:
         night_start = time.fromisoformat(self._config.costs.night_tariff_start)
         night_end = time.fromisoformat(self._config.costs.night_tariff_end)
 
-        # Über Mitternacht
         if night_start > night_end:
             return current_time >= night_start or current_time < night_end
         else:
@@ -103,27 +91,22 @@ class DailyStats:
             data: Aktuelle Solardaten
             interval_seconds: Update-Intervall in Sekunden
         """
-        # Timestamps
         if self.first_update is None:
             self.first_update = data.timestamp
         self.last_update = data.timestamp
 
-        # Prüfe ob neuer Tag
         if data.timestamp and data.timestamp.date() != self.date:
             self.reset()
             self.date = data.timestamp.date()
             self.first_update = data.timestamp
 
-        # Energie = Leistung * Zeit (in kWh)
         hours = interval_seconds / 3600.0
 
-        # Energiewerte akkumulieren
         self.pv_energy += data.pv_power * hours / 1000
         self.consumption_energy += data.load_power * hours / 1000
         self.feed_in_energy += data.feed_in_power * hours / 1000
         self.self_consumption_energy += data.self_consumption * hours / 1000
 
-        # Netzbezug nach Tarif aufteilen
         grid_energy_interval = data.grid_consumption * hours / 1000
         if data.timestamp and self._is_night_tariff(data.timestamp):
             self.grid_energy_night += grid_energy_interval
@@ -131,20 +114,17 @@ class DailyStats:
             self.grid_energy_day += grid_energy_interval
         self.grid_energy += grid_energy_interval
 
-        # Batterie-Energie
         if data.battery_charging:
             self.battery_charge_energy += data.battery_charge_power * hours / 1000
         else:
             self.battery_discharge_energy += data.battery_discharge_power * hours / 1000
 
-        # Max Werte aktualisieren
         self.pv_power_max = max(self.pv_power_max, data.pv_power)
         self.consumption_power_max = max(self.consumption_power_max, data.load_power)
         self.feed_in_power_max = max(self.feed_in_power_max, data.feed_in_power)
         self.grid_power_max = max(self.grid_power_max, data.grid_consumption)
         self.surplus_power_max = max(self.surplus_power_max, data.surplus_power)
 
-        # Batterie Min/Max
         if data.battery_soc is not None:
             if self.battery_soc_min is None:
                 self.battery_soc_min = data.battery_soc
@@ -156,12 +136,10 @@ class DailyStats:
             else:
                 self.battery_soc_max = max(self.battery_soc_max, data.battery_soc)
 
-        # Durchschnitt Autarkie
         self._sample_count += 1
         self._autarky_sum += data.autarky_rate
         self.autarky_avg = self._autarky_sum / self._sample_count
 
-        # KOSTENBERECHNUNG
         self._calculate_costs()
 
     def _calculate_costs(self) -> None:
@@ -169,30 +147,23 @@ class DailyStats:
         if not self._config:
             return
 
-        # Kosten für Netzbezug (mit Tag/Nacht-Tarif)
         cost_day = self.grid_energy_day * self._config.costs.electricity_price
         cost_night = self.grid_energy_night * self._config.costs.electricity_price_night
         self.cost_grid_consumption = cost_day + cost_night
 
-        # Einnahmen durch Einspeisung
         self.revenue_feed_in = self.feed_in_energy * self._config.costs.feed_in_tariff
 
-        # Was hätte der gesamte Verbrauch ohne Solar gekostet?
-        # Annahme: 70% Tag, 30% Nacht bei normalem Verbrauch
         avg_price = 0.7 * self._config.costs.electricity_price + 0.3 * self._config.costs.electricity_price_night
         self.cost_without_solar = self.consumption_energy * avg_price
 
-        # Eingesparte Kosten = Was hätte es gekostet - Was hat es gekostet
         self.cost_saved = self.cost_without_solar - self.cost_grid_consumption
 
-        # Gesamtnutzen = Ersparnis + Einspeisung
         self.total_benefit = self.cost_saved + self.revenue_feed_in
 
     def reset(self) -> None:
         """Setzt alle Statistiken zurück"""
         self.date = date.today()
 
-        # Energiewerte
         self.pv_energy = 0.0
         self.consumption_energy = 0.0
         self.feed_in_energy = 0.0
@@ -203,30 +174,25 @@ class DailyStats:
         self.battery_discharge_energy = 0.0
         self.self_consumption_energy = 0.0
 
-        # Max Werte
         self.pv_power_max = 0.0
         self.consumption_power_max = 0.0
         self.feed_in_power_max = 0.0
         self.grid_power_max = 0.0
         self.surplus_power_max = 0.0
 
-        # Batterie
         self.battery_soc_min = None
         self.battery_soc_max = None
 
-        # Durchschnitte
         self.autarky_avg = 0.0
         self._sample_count = 0
         self._autarky_sum = 0.0
 
-        # Kosten
         self.cost_grid_consumption = 0.0
         self.cost_saved = 0.0
         self.revenue_feed_in = 0.0
         self.total_benefit = 0.0
         self.cost_without_solar = 0.0
 
-        # Zeitstempel
         self.first_update = None
         self.last_update = None
 

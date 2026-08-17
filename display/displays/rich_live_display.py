@@ -24,12 +24,10 @@ class RichLiveDisplay:
             config: Konfigurationsobjekt
         """
         self.config = config
-        # Console für stdout
         self.console = Console()
         self.live = None
         self.logger = logging.getLogger(__name__)
 
-        # Start-Nachricht
         self._initial_display = Panel(
             "[cyan]Solar Monitor wird gestartet...[/cyan]",
             title="[bold blue]SOLAR MONITOR[/bold blue]",
@@ -42,10 +40,8 @@ class RichLiveDisplay:
             return
 
         try:
-            # Clear screen einmal am Anfang
             os.system('clear' if os.name == 'posix' else 'cls')
 
-            # Erstelle Live-Objekt mit dem Initial-Display
             self.live = Live(
                 self._initial_display,
                 console=self.console,
@@ -53,7 +49,6 @@ class RichLiveDisplay:
                 vertical_overflow="ellipsis"
             )
 
-            # Starte das Live Display
             self.live.start()
             self.logger.debug("Rich Live Display initialisiert")
 
@@ -85,10 +80,8 @@ class RichLiveDisplay:
             return
 
         try:
-            # Erstelle das Display-Panel
             display_panel = self._create_display(data, device_manager)
 
-            # Update das Live Display mit dem neuen Panel
             self.live.update(display_panel)
 
         except Exception as e:
@@ -96,21 +89,16 @@ class RichLiveDisplay:
 
     def _create_display(self, data: Any, device_manager: Optional[Any]) -> Panel:
         """Erstellt das komplette Display als einzelnes Panel"""
-        # Zeitstempel
         timestamp = data.timestamp.strftime('%Y-%m-%d %H:%M:%S') if data.timestamp else "N/A"
 
-        # Erstelle die einzelnen Sektionen
         sections = []
 
-        # Solar-Daten
         solar_table = self._create_solar_table(data)
         sections.append(Panel(solar_table, title="⚡ Leistungsdaten", border_style="blue"))
 
-        # Statistiken
         stats_table = self._create_stats_table(data)
         sections.append(Panel(stats_table, title="📊 Kennzahlen", border_style="green"))
 
-        # Geräte wenn vorhanden
         if device_manager and device_manager.devices:
             device_content = self._create_device_content(data, device_manager)
             active_count = len(device_manager.get_active_devices())
@@ -120,10 +108,8 @@ class RichLiveDisplay:
                 border_style="yellow"
             ))
 
-        # Kombiniere alle Sektionen
         content = Group(*sections)
 
-        # Erstelle Haupt-Panel
         return Panel(
             content,
             title=f"[bold blue]SOLAR MONITOR[/bold blue] - [dim]{timestamp}[/dim]",
@@ -138,31 +124,24 @@ class RichLiveDisplay:
         table.add_column("Value", justify="right", style="white")
         table.add_column("Unit", style="dim")
 
-        # PV-Erzeugung
         pv_color = self._get_value_color(data.pv_power, 'pv_power')
         table.add_row("PV-Erzeugung:", f"[{pv_color}]{data.pv_power:.0f}[/{pv_color}]", "W")
 
-        # Hausverbrauch
         table.add_row("Hausverbrauch:", f"{data.load_power:.1f}", "W")
 
-        # Gesamtproduktion bei Batterie
         if data.has_battery:
             table.add_row("Gesamtproduktion:", f"{data.total_production:.0f}", "W")
 
-        # Separator
         table.add_row("", "", "")
 
-        # Netz
         if data.is_feeding_in:
             table.add_row("Einspeisung:", f"[green]{data.feed_in_power:.0f}[/green]", "W")
         else:
             table.add_row("Netzbezug:", f"[red]{data.grid_consumption:.0f}[/red]", "W")
 
-        # Batterie
         if data.has_battery:
             table.add_row("", "", "")
 
-            # Status
             if abs(data.battery_power) < self.config.battery.idle_threshold:
                 battery_label = "Batterie (Standby):"
                 battery_color = "dim"
@@ -176,7 +155,6 @@ class RichLiveDisplay:
             battery_power = abs(data.battery_power)
             table.add_row(battery_label, f"[{battery_color}]{battery_power:.1f}[/{battery_color}]", "W")
 
-            # SOC
             if data.battery_soc is not None:
                 soc_color = self._get_value_color(data.battery_soc, 'battery_soc')
                 soc_bar = self._create_simple_bar(data.battery_soc, 20)
@@ -191,14 +169,11 @@ class RichLiveDisplay:
         table.add_column("Value", justify="right", style="white")
         table.add_column("Unit", style="dim")
 
-        # Eigenverbrauch
         table.add_row("Eigenverbrauch:", f"{data.self_consumption:.1f}", "W")
 
-        # Autarkie
         autarky_color = self._get_value_color(data.autarky_rate, 'autarky')
         table.add_row("Autarkiegrad:", f"[{autarky_color}]{data.autarky_rate:.1f}[/{autarky_color}]", "%")
 
-        # Überschuss
         if data.surplus_power >= self.config.display.surplus_display_threshold:
             surplus_color = self._get_value_color(data.surplus_power, 'surplus')
             table.add_row("Verfügbarer Überschuss:", f"[{surplus_color}]{data.surplus_power:.0f}[/{surplus_color}]", "W")
@@ -207,7 +182,6 @@ class RichLiveDisplay:
 
     def _create_device_content(self, data: Any, device_manager: Any) -> Group:
         """Erstellt den Geräte-Inhalt"""
-        # Zusammenfassung
         controlled = device_manager.get_total_consumption()
 
         summary_lines = [
@@ -221,7 +195,6 @@ class RichLiveDisplay:
 
         summary_text = "\n".join(summary_lines)
 
-        # Geräte-Tabelle
         table = Table(show_header=True, box=None)
         table.add_column("Gerät", style="white")
         table.add_column("Prio", justify="center", style="dim")
@@ -230,7 +203,6 @@ class RichLiveDisplay:
         table.add_column("Laufzeit", justify="right", style="dim")
 
         for device in device_manager.get_devices_by_priority():
-            # Status
             if device.state.value == "on":
                 status = "[bold green]EIN[/bold green]"
             elif device.state.value == "blocked":
@@ -238,7 +210,6 @@ class RichLiveDisplay:
             else:
                 status = "[dim red]AUS[/dim red]"
 
-            # Laufzeit
             runtime = device.get_current_runtime(data.timestamp)
             hours = runtime // 60
             mins = runtime % 60
@@ -271,7 +242,6 @@ class RichLiveDisplay:
         medium = thresholds.get('medium', 0)
 
         if metric == 'battery_soc' or metric == 'autarky':
-            # Höher ist besser
             if value >= high:
                 return "green"
             elif value >= medium:
@@ -279,7 +249,6 @@ class RichLiveDisplay:
             else:
                 return "red"
         else:
-            # Standard farbcodierung
             if value >= high:
                 return "bold green"
             elif value >= medium:

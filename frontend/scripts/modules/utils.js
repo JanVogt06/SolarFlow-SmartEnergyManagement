@@ -11,7 +11,6 @@ export function updateConnectionStatus(isOnline) {
     }
 }
 
-// Zentrale Notification-Funktion (statt Duplikate in devices.js und settings.js)
 export function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -30,18 +29,15 @@ export function showNotification(message, type = 'info') {
 
     document.body.appendChild(notification);
 
-    // Update lucide icons if available
     if (window.lucide) {
         lucide.createIcons();
     }
 
-    // Fade in
     requestAnimationFrame(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateX(0)';
     });
 
-    // Auto remove after 3 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transform = 'translateX(100%)';

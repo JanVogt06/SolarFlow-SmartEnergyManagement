@@ -32,10 +32,8 @@ class SolarLogger:
             True bei Erfolg
         """
         try:
-            # Erstelle Log-Entry
             entry = SolarLogEntry(solar_data)
 
-            # Delegiere an LogManager
             return self.log_manager.log(entry)
 
         except Exception as e:

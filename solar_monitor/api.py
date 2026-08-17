@@ -27,7 +27,6 @@ class FroniusAPI:
         self.base_url: str = f"http://{ip_address}"
         self.logger = logging.getLogger(__name__)
 
-        # API-Endpunkt für Leistungsdaten
         self.power_flow_endpoint: str = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'
 
     def set_ip(self, ip_address: str) -> None:
@@ -90,7 +89,6 @@ class FroniusAPI:
         if not data:
             return None
 
-        # Validiere Response-Struktur
         if 'Body' not in data or 'Data' not in data['Body']:
             self.logger.error("Ungültige API-Response-Struktur")
             return None
@@ -98,13 +96,11 @@ class FroniusAPI:
         try:
             site_data = data['Body']['Data']['Site']
 
-            # Extrahiere Werte mit Null-Behandlung
             pv_power = self._safe_float(site_data.get('P_PV'))
             grid_power = self._safe_float(site_data.get('P_Grid'))
             battery_power = self._safe_float(site_data.get('P_Akku'))
             load_power = abs(self._safe_float(site_data.get('P_Load')))
 
-            # Batterie-SOC aus Inverter-Daten
             battery_soc = self._extract_battery_soc(data['Body']['Data'])
 
             return SolarData(
@@ -147,13 +143,11 @@ class FroniusAPI:
         Returns:
             Batterie-SOC in Prozent oder None
         """
-        # Versuche SOC aus Inverter-Daten zu extrahieren
         if 'Inverters' in data:
             for inverter in data['Inverters'].values():
                 if 'SOC' in inverter:
                     return self._safe_float(inverter['SOC'])
 
-        # Alternative: Versuche aus Storage-Daten
         if 'Storage' in data:
             for storage in data['Storage'].values():
                 if 'StateOfCharge_Relative' in storage:

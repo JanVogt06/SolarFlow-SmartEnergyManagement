@@ -43,7 +43,6 @@ class BaseFormatter(LogFormatter):
             else:
                 formatted = f"{value:+.{decimals}f}" if with_sign else f"{value:.{decimals}f}"
 
-            # Dezimaltrennzeichen anpassen
             if self.decimal_separator == ",":
                 formatted = formatted.replace(".", ",")
 
@@ -98,7 +97,6 @@ class BaseFormatter(LogFormatter):
             f"Encoding='{self.config.csv.encoding}'"
         ]
 
-        # Zusätzliche Infos
         for key, value in kwargs.items():
             info_lines.append(f"# {key}: {value}")
 

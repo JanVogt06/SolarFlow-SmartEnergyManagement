@@ -48,7 +48,6 @@ class DeviceDisplay(BaseDisplay):
 
         self.table.display_key_value(summary_data)
 
-        # Theoretischer Überschuss
         if controlled_consumption > 0:
             theoretical = data.surplus_power + controlled_consumption
             print(f"{'Theoretischer Überschuss:':<25} {theoretical:>10.0f} W (wenn alle Geräte aus)")
@@ -63,19 +62,15 @@ class DeviceDisplay(BaseDisplay):
             print("Keine Geräte konfiguriert")
             return
 
-        # Tabellen-Header
         headers = ["Gerät", "Priorität", "Leistung", "Status", "Laufzeit heute"]
         rows = []
 
         for device in devices:
-            # Status und Farbe
             status_text, status_color = self._get_device_status(device)
 
-            # Laufzeit
             total_runtime = device.get_current_runtime(data.timestamp)
             runtime_str = self._format_runtime(total_runtime)
 
-            # Zeile erstellen
             row = [
                 device.name,
                 str(device.priority.value),
@@ -85,11 +80,9 @@ class DeviceDisplay(BaseDisplay):
             ]
             rows.append(row)
 
-            # Zusatz-Info bei Blockierung
             if device.state.value == "blocked":
                 self._add_block_reason(device, data, rows)
 
-        # Tabelle anzeigen
         self.table.display(headers, rows, alignments=['l', 'r', 'r', 'l', 'r'])
 
     def _get_device_status(self, device: Any) -> Tuple[str, str]:
@@ -140,7 +133,6 @@ class DeviceDisplay(BaseDisplay):
         if not device_manager.devices:
             return
 
-        # Zeige nur aktive Geräte und Zusammenfassung
         if active_devices:
             device_names = ", ".join(d.name for d in active_devices)
             print(f"Aktive Geräte: {self.color_manager.success(device_names)}")
@@ -148,7 +140,6 @@ class DeviceDisplay(BaseDisplay):
         else:
             print("Keine Geräte aktiv")
 
-        # Zeige verfügbaren Überschuss
         remaining = surplus - total_power
         if remaining > 100:
             print(f"Verfügbar für weitere Geräte: {self.color_manager.info(f'{remaining:.0f}W')}")
@@ -163,8 +154,6 @@ class DeviceDisplay(BaseDisplay):
         """
         self.header.display_section("Geräte-Timeline (letzte 24h)")
 
-        # Hier könnte eine ASCII-Timeline implementiert werden
-        # Für jetzt nur eine einfache Liste
         for device in devices:
             if device.runtime_today > 0:
                 bar_width = min(int(device.runtime_today / 60), 24)

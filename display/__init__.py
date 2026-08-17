@@ -8,22 +8,18 @@ from .core import ColorManager, Formatter, Colors, Layout
 from .components import Header, Table, ProgressBar, Separator
 
 __all__ = [
-    # Haupt-Manager
     "DisplayManager",
 
-    # Display-Module
     "SolarDisplay",
     "DeviceDisplay",
     "StatsDisplay",
     "SimpleDisplay",
 
-    # Core-Komponenten
     "ColorManager",
     "Formatter",
     "Colors",
     "Layout",
 
-    # UI-Komponenten
     "Header",
     "Table",
     "ProgressBar",
