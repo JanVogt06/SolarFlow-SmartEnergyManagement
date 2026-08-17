@@ -3,7 +3,7 @@ Abstrakte Interfaces für Smart Device Integrationen.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 import logging
 
 
@@ -74,6 +74,31 @@ class ISmartDeviceInterface(ABC):
             True wenn an, False wenn aus, None bei Fehler
         """
         pass
+
+    def get_status(self, device_name: str) -> Optional[Tuple[bool, bool]]:
+        """
+        Holt Schaltzustand und Erreichbarkeit eines Geräts.
+
+        Args:
+            device_name: Name des Geräts
+
+        Returns:
+            Tupel (eingeschaltet, erreichbar) oder None wenn unbekannt
+        """
+        state = self.get_state(device_name)
+        return None if state is None else (state, True)
+
+    def refresh(self, force: bool = False) -> bool:
+        """
+        Liest den Zustand aller Geräte neu vom Hardware-System.
+
+        Args:
+            force: Ignoriert einen eventuellen Cache
+
+        Returns:
+            True wenn aktuelle Daten vorliegen
+        """
+        return True
 
     @abstractmethod
     def list_devices(self) -> List[str]:
