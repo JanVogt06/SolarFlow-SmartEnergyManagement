@@ -13,45 +13,32 @@ class SolarFlowApp {
         this.updateInterval = 5000;
         this.intervalId = null;
         this.isConnected = false;
-        this.connectionCheckCounter = 0;
-        this.helpModalShown = false;
 
         this.init();
     }
 
     async init() {
         try {
-            // Initialize Lucide Icons
             if (window.lucide) {
                 lucide.createIcons();
             }
 
-            // Initialize Tab Controller
             this.tabController = new TabController(this.onTabChange.bind(this));
 
-            // Initialize Controllers
             this.controllers.dashboard = new DashboardController(this.api);
             this.controllers.devices = new DevicesController(this.api);
             this.controllers.statistics = new StatisticsController(this.api);
             this.controllers.settings = new SettingsController(this.api, this.onSettingsChange.bind(this));
 
-            // Initialize Help Modal
             this.initHelpModal();
+            this.updateInterval = parseInt(localStorage.getItem('updateInterval')) || this.updateInterval;
 
-            // Load saved settings
-            this.loadSettings();
-
-            // Start data updates
             await this.startUpdates();
-
-            // Set up event listeners
             this.setupEventListeners();
-
-            console.log('SolarFlow App initialized successfully');
         } catch (error) {
             console.error('Failed to initialize app:', error);
             updateConnectionStatus(false);
-            this.showHelpModal();  // NEU: Zeige Hilfe bei Initialisierungsfehler
+            this.showHelpModal();
         }
     }
 
@@ -69,7 +56,6 @@ class SolarFlowApp {
         if (retryBtn) {
             retryBtn.addEventListener('click', () => {
                 this.hideHelpModal();
-                this.connectionCheckCounter = 0;
                 this.restartUpdates();
             });
         }
@@ -111,8 +97,6 @@ class SolarFlowApp {
         const modal = document.getElementById('connection-help-modal');
         if (modal) {
             modal.classList.add('active');
-            this.modalVisible = true;
-            // Re-initialize icons in modal
             setTimeout(() => lucide.createIcons(), 100);
         }
     }
@@ -125,7 +109,6 @@ class SolarFlowApp {
     }
 
     setupEventListeners() {
-        // Visibility change - pause/resume updates
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.pauseUpdates();
@@ -134,7 +117,6 @@ class SolarFlowApp {
             }
         });
 
-        // Network status
         window.addEventListener('online', () => this.resumeUpdates());
         window.addEventListener('offline', () => {
             this.isConnected = false;
@@ -145,81 +127,47 @@ class SolarFlowApp {
     }
 
     onTabChange(tabName) {
-        // Trigger specific controller updates when tab changes
         if (this.controllers[tabName] && this.controllers[tabName].onActivate) {
             this.controllers[tabName].onActivate();
         }
     }
 
     onSettingsChange(settings) {
-        // Update interval if changed
-        if (settings.updateInterval && settings.updateInterval !== this.updateInterval) {
-            this.updateInterval = settings.updateInterval;
-            this.restartUpdates();
-        }
-
-        // Update API URL if changed
-        if (settings.apiUrl) {
-            this.api.setBaseUrl(settings.apiUrl);
-            this.restartUpdates();
-        }
-
-        // Reset help modal flag when settings change
-        this.helpModalShown = false;
+        this.updateInterval = settings.updateInterval;
+        this.api.setBaseUrl(settings.apiUrl);
+        this.restartUpdates();
     }
 
     async updateAll() {
         try {
-            // Update timestamp
             this.updateTimestamp();
 
-            // Get current data
-            const currentData = await this.api.getCurrentData();
-            if (currentData) {
-                this.controllers.dashboard.update(currentData);
+            const [currentData, devicesData, statsData] = await Promise.all([
+                this.api.getCurrentData(),
+                this.api.getDevices(),
+                this.api.getStats()
+            ]);
 
-                // Verbindung ist gut
-                if (!this.isConnected) {
-                    this.isConnected = true;
-                    updateConnectionStatus(true);
-                    this.hideHelpModal();  // NEU: Verstecke Modal bei erfolgreicher Verbindung
-                }
-                this.connectionCheckCounter = 0;
-            }
+            this.controllers.dashboard.update(currentData);
+            this.controllers.devices.update(devicesData);
+            this.controllers.statistics.update(statsData);
+            this.controllers.dashboard.updateStats(statsData);
 
-            // Get devices data
-            const devicesData = await this.api.getDevices();
-            if (devicesData) {
-                this.controllers.devices.update(devicesData);
-            }
-
-            // Get statistics
-            const statsData = await this.api.getStats();
-            if (statsData) {
-                this.controllers.statistics.update(statsData);
-                // Update dashboard stats
-                this.controllers.dashboard.updateStats(statsData);
+            if (!this.isConnected) {
+                this.isConnected = true;
+                updateConnectionStatus(true);
+                this.hideHelpModal();
             }
         } catch (error) {
             console.error('Update error:', error);
-
-            // Nur als getrennt markieren nach mehreren Fehlversuchen
-            this.connectionCheckCounter++;
-            if (this.connectionCheckCounter >= 1 && this.isConnected) {
-                this.isConnected = false;
-                updateConnectionStatus(false);
-                this.showHelpModal();
-            } else if (this.connectionCheckCounter >= 1 && !this.isConnected && !this.helpModalShown) {
-                this.showHelpModal();
-            }
+            this.isConnected = false;
+            updateConnectionStatus(false);
+            this.showHelpModal();
         }
     }
 
     async startUpdates() {
-        // Initial update
         await this.updateAll();
-
-        // Set up interval
         this.intervalId = setInterval(() => this.updateAll(), this.updateInterval);
     }
 
@@ -248,26 +196,8 @@ class SolarFlowApp {
             element.textContent = now.toLocaleTimeString('de-DE');
         }
     }
-
-    loadSettings() {
-        const savedUrl = localStorage.getItem('apiUrl');
-        if (savedUrl) {
-            this.api.setBaseUrl(savedUrl);
-        }
-
-        const savedInterval = localStorage.getItem('updateInterval');
-        if (savedInterval) {
-            this.updateInterval = parseInt(savedInterval);
-        }
-    }
 }
 
-// Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new SolarFlowApp();
-});
-
-// Global error handler
-window.addEventListener('error', (e) => {
-    console.error('Global error:', e);
 });

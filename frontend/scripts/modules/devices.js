@@ -1,3 +1,5 @@
+import { showNotification } from './utils.js';
+
 export class DevicesController {
     constructor(api) {
         this.api = api;
@@ -83,10 +85,10 @@ export class DevicesController {
 
         try {
             const response = await actions[action]();
-            this.showNotification(response.message, 'success');
+            showNotification(response.message, 'success');
             await this.refresh();
         } catch (error) {
-            this.showNotification(error.message || 'Aktion fehlgeschlagen', 'error');
+            showNotification(error.message || 'Aktion fehlgeschlagen', 'error');
         }
     }
 
@@ -246,14 +248,14 @@ export class DevicesController {
 
         // Validate thresholds
         if (device.switch_off_threshold > device.switch_on_threshold) {
-            this.showNotification('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein', 'error');
+            showNotification('Ausschalt-Schwellwert darf nicht höher als Einschalt-Schwellwert sein', 'error');
             return;
         }
 
         try {
             const response = await this.api.createDevice(device);
             if (response) {
-                this.showNotification(`Gerät "${device.name}" wurde erfolgreich hinzugefügt`, 'success');
+                showNotification(`Gerät "${device.name}" wurde erfolgreich hinzugefügt`, 'success');
                 this.closeModal();
                 // Refresh devices list
                 const devicesData = await this.api.getDevices();
@@ -261,7 +263,7 @@ export class DevicesController {
             }
         } catch (error) {
             console.error('Error saving device:', error);
-            this.showNotification(error.message || 'Fehler beim Speichern des Geräts', 'error');
+            showNotification(error.message || 'Fehler beim Speichern des Geräts', 'error');
         }
     }
 
@@ -433,29 +435,7 @@ export class DevicesController {
         element.textContent = newValue;
     }
 
-    showNotification(message, type = 'info') {
-        // Notification system
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}"></i>
-            <span>${message}</span>
-        `;
-
-        document.body.appendChild(notification);
-
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
     onActivate() {
-        // Called when devices tab is activated
-        // Simply refresh if needed
+        this.refresh();
     }
 }
