@@ -10,7 +10,8 @@ solar_monitor.log
 # Builts
 build/
 
-# Lokale Konfigurationsdatei
+# Lokale Konfigurationsdateien
 devices.json
+settings.json
 
 .python_hue

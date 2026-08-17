@@ -17,10 +17,9 @@ if frontend_path.exists():
 
 # Weitere Daten-Dateien
 datas = frontend_files
-if os.path.exists('devices.json'):
-    datas.append(('devices.json', '.'))
-elif os.path.exists('devices.json.example'):
-    datas.append(('devices.json.example', '.'))
+for extra in ('devices.json', 'settings.json'):
+    if os.path.exists(extra):
+        datas.append((extra, '.'))
 
 a = Analysis(
     ['main.py'],
