@@ -1,6 +1,6 @@
 """Minimales Theme für Display-System."""
 
-from typing import Dict, Any, List
+from typing import Any, List
 
 
 class MinimalTheme:

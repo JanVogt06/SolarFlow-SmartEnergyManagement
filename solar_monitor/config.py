@@ -5,9 +5,8 @@ Konfigurationsmodul für den Fronius Solar Monitor.
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict
 from pathlib import Path
-from typing import Dict, Optional, Any
 
 
 @dataclass

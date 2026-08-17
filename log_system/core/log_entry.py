@@ -4,7 +4,7 @@ Datenmodelle für Log-Einträge.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List
 from enum import Enum
 
 

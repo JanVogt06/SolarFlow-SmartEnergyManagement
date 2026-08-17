@@ -5,7 +5,7 @@ Dependency Checker für den Smart Energy Manager.
 import sys
 import subprocess
 import importlib.util
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 
 # Erforderliche Dependencies
 REQUIRED_DEPENDENCIES: Dict[str, str] = {

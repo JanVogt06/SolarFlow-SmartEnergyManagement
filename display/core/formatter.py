@@ -4,7 +4,6 @@ Formatierungs-Utilities für das Display-System.
 
 from typing import Optional, Any, Union
 from datetime import datetime
-from .constants import Templates
 
 
 class Formatter:

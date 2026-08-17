@@ -4,7 +4,7 @@ Energie-Steuerung für den Smart Energy Manager.
 
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Tuple
 
 from .device import Device, DeviceState
 from .device_manager import DeviceManager

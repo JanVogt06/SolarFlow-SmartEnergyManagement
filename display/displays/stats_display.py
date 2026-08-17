@@ -1,6 +1,6 @@
 """Statistik-Display für Tagesauswertungen."""
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, List
 from ..core import BaseDisplay, Colors
 from ..components import Header, Table, Separator, ProgressBar
 

@@ -1,6 +1,6 @@
 """Solar-Daten Display."""
 
-from typing import Any, Optional
+from typing import Any
 from ..core import BaseDisplay, Colors
 from ..components import Header, Table, ProgressBar, Separator
 

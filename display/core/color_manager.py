@@ -2,7 +2,7 @@
 Farb-Management für das Display-System.
 """
 
-from typing import Optional, Dict, Any, TypedDict
+from typing import Optional, Dict, TypedDict
 from .constants import Colors
 
 class ColorRule(TypedDict):

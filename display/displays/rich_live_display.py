@@ -9,9 +9,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.console import Group
 from typing import Any, Optional
-from datetime import datetime
 import logging
-import sys
 import os
 
 

@@ -4,7 +4,6 @@ Database Writer für das Logging-System.
 
 import sqlite3
 from typing import Dict, Any, Optional, List
-from datetime import datetime
 from pathlib import Path
 from .base_writer import BaseWriter
 

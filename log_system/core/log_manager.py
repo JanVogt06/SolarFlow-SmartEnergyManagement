@@ -3,7 +3,7 @@ Zentraler Log-Manager für Koordination.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 from .interfaces import LogFormatter, LogWriter, LogHandler
 from .log_entry import LogEntry, LogType
 

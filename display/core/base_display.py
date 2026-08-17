@@ -2,9 +2,9 @@
 Basis-Klasse für alle Display-Komponenten.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Optional
-from .constants import Colors, Layout
+from .constants import Layout
 from .color_manager import ColorManager
 from .formatter import Formatter
 

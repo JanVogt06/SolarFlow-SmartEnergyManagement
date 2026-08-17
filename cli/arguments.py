@@ -3,7 +3,7 @@ Argument-Definitionen für den Smart Energy Manager CLI.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 ARGUMENT_GROUPS: Dict[str, Dict[str, Any]] = {
     'connection': {

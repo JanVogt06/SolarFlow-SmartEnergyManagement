@@ -5,7 +5,7 @@ File Handler für das Logging-System.
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 from ..core.interfaces import FileManager
 
 

@@ -5,7 +5,6 @@ Abstrakte Interfaces für das Logging-System.
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional
 from pathlib import Path
-from datetime import datetime
 
 
 class LogFormatter(ABC):

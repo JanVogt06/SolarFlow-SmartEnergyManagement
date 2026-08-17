@@ -1,7 +1,7 @@
 """Progress Bar Komponente für Display-System."""
 
 from typing import Optional
-from ..core import ColorManager, Colors
+from ..core import ColorManager
 
 
 class ProgressBar:
@@ -104,8 +104,6 @@ class ProgressBar:
         else:
             color = None
 
-        # Zeige absolute Werte
-        percentage = (current / max_power * 100) if max_power > 0 else 0
         self.display(current, max_power, f"{label} ({current:.0f}W)", False, color)
 
     def display_horizontal_compare(self, value1: float, value2: float,

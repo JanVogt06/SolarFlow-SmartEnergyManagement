@@ -1,7 +1,6 @@
 """Geräte-Display für Smart Energy Manager."""
 
 from typing import Any, List, Tuple
-from datetime import datetime
 from ..core import BaseDisplay, Colors
 from ..components import Header, Table, Separator
 

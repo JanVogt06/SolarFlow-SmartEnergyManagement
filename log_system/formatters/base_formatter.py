@@ -2,7 +2,7 @@
 Basis-Formatter für das Logging-System.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from datetime import datetime
 from ..core.interfaces import LogFormatter
 

@@ -4,7 +4,7 @@ Fronius API-Kommunikationsmodul.
 
 import json
 import logging
-from typing import Dict, Optional, Any, Union
+from typing import Dict, Optional, Any
 
 import requests
 

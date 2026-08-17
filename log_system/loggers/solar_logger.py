@@ -3,7 +3,7 @@ Solar Logger - Orchestriert das Logging von Solar-Daten.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from ..core.log_manager import LogManager
 from ..core.log_entry import SolarLogEntry
 

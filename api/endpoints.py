@@ -3,11 +3,12 @@ FastAPI Endpoints
 """
 
 import logging
+import sys
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List
 from datetime import datetime, time
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
@@ -114,19 +115,8 @@ def create_app(monitor: Any) -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Frontend static files
-    import sys
-    from pathlib import Path
-
-    # Bestimme Basis-Pfad
-    if getattr(sys, 'frozen', False):
-        # Wenn als exe ausgeführt
-        base_path = Path(sys._MEIPASS)
-    else:
-        # Normal Python Ausführung
-        # Von api/endpoints.py zwei Ebenen hoch zum Projekt-Root
-        base_path = Path(__file__).parent.parent
-
+    # Als PyInstaller-Bundle liegt das Frontend im entpackten Temp-Verzeichnis
+    base_path = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
     frontend_path = base_path / "frontend"
 
     _logger.debug(f"Suche Frontend in: {frontend_path} (existiert: {frontend_path.exists()})")
