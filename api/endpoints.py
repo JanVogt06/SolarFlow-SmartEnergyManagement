@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from typing import Any, Optional, List, Dict
 from datetime import datetime, time
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, field_validator, ValidationInfo
 
 
@@ -119,11 +119,10 @@ def create_app(monitor: Any) -> FastAPI:
                 app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
                 _logger.debug(f"Mounted: /assets -> {assets_path}")
 
-            @app.get("/", response_class=HTMLResponse)
-            async def serve_frontend():
+            @app.get("/", response_class=FileResponse)
+            def serve_frontend():
                 """Serve Frontend index.html"""
-                with open(index_file, 'r', encoding='utf-8') as f:
-                    return f.read()
+                return FileResponse(index_file, media_type="text/html")
         else:
             _logger.warning(f"index.html nicht gefunden in {frontend_path}")
     else:
@@ -132,7 +131,7 @@ def create_app(monitor: Any) -> FastAPI:
     # === API Endpoints ===
 
     @app.get("/api/status")
-    async def get_status():
+    def get_status():
         """System Status"""
         return {
             "status": "online",
@@ -141,7 +140,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.get("/api/current")
-    async def get_current_data():
+    def get_current_data():
         """Aktuelle Solar-Daten"""
         data = monitor.get_current_data()
 
@@ -164,7 +163,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.get("/api/stats")
-    async def get_daily_stats():
+    def get_daily_stats():
         """Tagesstatistiken"""
         stats = monitor.get_daily_stats()
 
@@ -181,7 +180,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.get("/api/hue")
-    async def get_hue_config():
+    def get_hue_config():
         """Hue-Konfiguration und verfügbare Geräte"""
         # Hole Config vom Monitor
         config = monitor.config
@@ -212,7 +211,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.get("/api/devices")
-    async def get_devices():
+    def get_devices():
         """Geräte-Status"""
         device_manager = monitor.get_device_manager()
 
@@ -274,7 +273,7 @@ def create_app(monitor: Any) -> FastAPI:
         return device, energy_controller
 
     @app.post("/api/devices/{device_name}/toggle")
-    async def toggle_device(device_name: str):
+    def toggle_device(device_name: str):
         """Gerät manuell schalten und für die Übersteuerungsdauer aus der Automatik nehmen."""
         from device_management.device import DeviceState
 
@@ -300,7 +299,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.delete("/api/devices/{device_name}/manual")
-    async def release_manual(device_name: str):
+    def release_manual(device_name: str):
         """Manuelle Übersteuerung beenden und sofort wieder automatisch steuern."""
         device, energy_controller = _require_device(device_name)
         energy_controller.release_manual_override(device)
@@ -311,7 +310,7 @@ def create_app(monitor: Any) -> FastAPI:
         }
 
     @app.post("/api/devices")
-    async def create_device(device_data: DeviceCreate):
+    def create_device(device_data: DeviceCreate):
         """Neues Gerät erstellen"""
         device_manager = monitor.get_device_manager()
 
@@ -381,7 +380,7 @@ def create_app(monitor: Any) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Fehler beim Erstellen: {str(e)}")
 
     @app.delete("/api/devices/{device_name}")
-    async def delete_device(device_name: str):
+    def delete_device(device_name: str):
         """Gerät löschen"""
         device_manager = monitor.get_device_manager()
 
