@@ -112,6 +112,17 @@ def create_app(monitor: Any) -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def revalidate_frontend(request, call_next):
+        """Erzwingt für Frontend-Dateien eine Rückfrage, damit nach einem Update
+        nicht die alte Version aus dem Browser-Cache geladen wird."""
+        response = await call_next(request)
+
+        if request.url.path == "/" or request.url.path.startswith(("/scripts", "/styles")):
+            response.headers["Cache-Control"] = "no-cache"
+
+        return response
+
     # Als PyInstaller-Bundle liegt das Frontend im entpackten Temp-Verzeichnis
     base_path = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent.parent
     frontend_path = base_path / "frontend"
