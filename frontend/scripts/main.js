@@ -23,6 +23,8 @@ class SolarFlowApp {
                 lucide.createIcons();
             }
 
+            await this.api.dropUnreachableOverride();
+
             this.tabController = new TabController(this.onTabChange.bind(this));
 
             this.controllers.dashboard = new DashboardController(this.api);

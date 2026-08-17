@@ -6,7 +6,25 @@ export class ApiClient {
 
     setBaseUrl(url) {
         this.baseUrl = url;
-        localStorage.setItem('apiUrl', url);
+
+        // Nur echte Abweichungen merken, damit die App nach einem Serverwechsel nicht hängt
+        if (url === window.location.origin) {
+            localStorage.removeItem('apiUrl');
+        } else {
+            localStorage.setItem('apiUrl', url);
+        }
+    }
+
+    async dropUnreachableOverride() {
+        const stored = localStorage.getItem('apiUrl');
+        if (!stored || stored === window.location.origin) return;
+
+        try {
+            await fetch(`${stored}/api/status`, { signal: AbortSignal.timeout(3000) });
+        } catch {
+            console.warn(`Gespeicherte Server URL ${stored} nicht erreichbar - nutze ${window.location.origin}`);
+            this.setBaseUrl(window.location.origin);
+        }
     }
 
     async request(endpoint, options = {}) {

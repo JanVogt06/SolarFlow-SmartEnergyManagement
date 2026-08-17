@@ -120,7 +120,7 @@ export class SettingsController {
 
             // Erst testen, dann speichern - sonst blockiert eine falsche URL die ganze App
             await this.testConnection(client.apiUrl);
-            localStorage.setItem('apiUrl', client.apiUrl);
+            this.api.setBaseUrl(client.apiUrl);
             localStorage.setItem('updateInterval', client.updateInterval);
 
             const response = await this.api.updateSettings(this.readServerSettings());
