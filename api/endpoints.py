@@ -62,7 +62,6 @@ class DeviceCreate(BaseModel):
     min_runtime: int = 0
     max_runtime_per_day: int = 0
     allowed_time_ranges: List[List[str]] = []
-    hue_device_name: Optional[str] = None  # Name des Hue-Geräts (wenn abweichend)
 
     @field_validator('name')
     @classmethod

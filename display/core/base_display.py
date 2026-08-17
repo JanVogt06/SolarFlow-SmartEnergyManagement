@@ -40,31 +40,6 @@ class BaseDisplay(ABC):
         """Druckt eine Unter-Trennlinie."""
         self.print_separator(Layout.SUB_SEPARATOR_CHAR)
 
-    def print_header(self, title: str, subtitle: Optional[str] = None) -> None:
-        """
-        Druckt einen formatierten Header.
-
-        Args:
-            title: Haupttitel
-            subtitle: Optionaler Untertitel
-        """
-        self.print_separator()
-        if subtitle:
-            print(f"{title:<20} {subtitle}")
-        else:
-            print(title)
-        self.print_separator()
-
-    def print_section(self, title: str) -> None:
-        """
-        Druckt einen Abschnitts-Header.
-
-        Args:
-            title: Abschnittstitel
-        """
-        print(f"\n{title}:")
-        self.print_sub_separator()
-
     def print_value_line(self, label: str, value: Any, unit: str,
                          color: Optional[str] = None,
                          decimals: Optional[int] = None) -> None:
@@ -83,10 +58,6 @@ class BaseDisplay(ABC):
             f"{formatted_value} {unit}", color
         )
         print(f"{label:<{Layout.LABEL_WIDTH}} {colored_value}")
-
-    def print_empty_line(self) -> None:
-        """Druckt eine Leerzeile."""
-        print()
 
     def display(self, data: Any, **kwargs: Any) -> None:
         """

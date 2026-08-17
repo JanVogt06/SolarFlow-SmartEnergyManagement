@@ -4,7 +4,7 @@ import { StatisticsController } from './modules/statistic.js';
 import { SettingsController } from './modules/settings.js';
 import { TabController } from './modules/tabs.js';
 import { ApiClient } from './modules/api.js';
-import { initUtils, updateConnectionStatus } from './modules/utils.js';
+import { updateConnectionStatus } from './modules/utils.js';
 
 class SolarFlowApp {
     constructor() {
@@ -25,9 +25,6 @@ class SolarFlowApp {
             if (window.lucide) {
                 lucide.createIcons();
             }
-
-            // Initialize utilities
-            initUtils();
 
             // Initialize Tab Controller
             this.tabController = new TabController(this.onTabChange.bind(this));

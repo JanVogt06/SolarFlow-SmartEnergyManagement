@@ -215,42 +215,6 @@ class Device:
 
         return False
 
-    def get_next_allowed_time(self, current_time: datetime) -> Optional[time]:
-        """
-        Gibt die nächste Zeit zurück, zu der das Gerät laufen darf.
-
-        Args:
-            current_time: Aktuelle Zeit
-
-        Returns:
-            Nächste erlaubte Startzeit oder None wenn keine Beschränkung
-        """
-        if not self.allowed_time_ranges or self.is_time_allowed(current_time):
-            return None
-
-        current = current_time.time()
-        next_times = []
-
-        for start, end in self.allowed_time_ranges:
-            # Normaler Bereich
-            if start <= end:
-                if current < start:
-                    next_times.append(start)
-            # Über Mitternacht
-            else:
-                # Wenn wir nach dem Ende aber vor dem Start sind
-                if end < current < start:
-                    next_times.append(start)
-                # Wenn wir nach Mitternacht aber vor dem Ende sind
-                elif current < end:
-                    # Gerät dürfte eigentlich laufen
-                    continue
-                # Sonst ist der nächste Start morgen
-                else:
-                    next_times.append(start)
-
-        return min(next_times) if next_times else None
-
     def is_manual(self, current_time: datetime) -> bool:
         """
         Prüft ob die Automatik gerade durch manuelles Schalten pausiert ist.
@@ -293,19 +257,6 @@ class Device:
             total_runtime += current_session
 
         return total_runtime
-
-    def get_runtime_until_max(self) -> Optional[int]:
-        """
-        Berechnet wie lange das Gerät noch laufen kann bis zur Maximallaufzeit.
-
-        Returns:
-            Minuten bis zur Maximallaufzeit oder None wenn unbegrenzt
-        """
-        if self.max_runtime_per_day == 0:
-            return None
-
-        remaining = self.get_remaining_runtime()
-        return remaining if remaining < 999999 else None
 
     def format_time_ranges(self) -> str:
         """

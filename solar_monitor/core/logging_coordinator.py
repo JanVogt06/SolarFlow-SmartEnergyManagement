@@ -99,18 +99,6 @@ class LoggingCoordinator:
             return self.solar_logger.log(data)
         return True
 
-    def log_daily_stats(self, stats: Any) -> bool:
-        """
-        Loggt Tagesstatistiken.
-
-        Args:
-            stats: DailyStats-Objekt
-
-        Returns:
-            True bei Erfolg
-        """
-        return self.stats_logger.log(stats)
-
     def close(self) -> None:
         """Schließt das Logging-System sauber"""
         self.log_manager.close_all()

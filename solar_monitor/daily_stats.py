@@ -4,7 +4,7 @@ Tagesstatistiken für die Solaranlage mit Kostenberechnung
 
 from dataclasses import dataclass, field
 from datetime import datetime, date, time
-from typing import Optional, Any, Dict
+from typing import Optional, Any
 
 from .models import SolarData
 
@@ -187,23 +187,6 @@ class DailyStats:
 
         # Gesamtnutzen = Ersparnis + Einspeisung
         self.total_benefit = self.cost_saved + self.revenue_feed_in
-
-    def get_cost_summary(self) -> Dict[str, float]:
-        """
-        Gibt eine Zusammenfassung der Kosten zurück.
-
-        Returns:
-            Dictionary mit Kostenzusammenfassung
-        """
-        return {
-            'grid_cost': self.cost_grid_consumption,
-            'feed_in_revenue': self.revenue_feed_in,
-            'saved': self.cost_saved,
-            'total_benefit': self.total_benefit,
-            'without_solar': self.cost_without_solar,
-            'roi_percentage': (self.total_benefit / self.cost_without_solar * 100)
-            if self.cost_without_solar > 0 else 0
-        }
 
     def reset(self) -> None:
         """Setzt alle Statistiken zurück"""

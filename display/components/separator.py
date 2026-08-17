@@ -28,24 +28,6 @@ class Separator:
         width = width or self.width
         print(char * width)
 
-    def double_line(self, width: Optional[int] = None) -> None:
-        """
-        Druckt eine doppelte Trennlinie.
-
-        Args:
-            width: Breite der Linie
-        """
-        self.line("═", width)
-
-    def dashed_line(self, width: Optional[int] = None) -> None:
-        """
-        Druckt eine gestrichelte Linie.
-
-        Args:
-            width: Breite der Linie
-        """
-        self.line("-", width)
-
     def section(self, title: str, width: Optional[int] = None) -> None:
         """
         Druckt eine Trennlinie mit zentriertem Titel.
@@ -84,30 +66,3 @@ class Separator:
         """
         for _ in range(count):
             print()
-
-    def box_top(self, width: Optional[int] = None) -> None:
-        """Druckt oberen Rand einer Box."""
-        width = width or self.width
-        print("┌" + "─" * (width - 2) + "┐")
-
-    def box_bottom(self, width: Optional[int] = None) -> None:
-        """Druckt unteren Rand einer Box."""
-        width = width or self.width
-        print("└" + "─" * (width - 2) + "┘")
-
-    def box_line(self, content: str, width: Optional[int] = None) -> None:
-        """
-        Druckt eine Zeile innerhalb einer Box.
-
-        Args:
-            content: Inhalt der Zeile
-            width: Gesamtbreite der Box
-        """
-        width = width or self.width
-        # Begrenze Inhalt auf verfügbare Breite
-        max_content_width = width - 4  # 2 für "│ " und " │"
-        if len(content) > max_content_width:
-            content = content[:max_content_width - 3] + "..."
-
-        padding = width - len(content) - 4
-        print(f"│ {content}{' ' * padding} │")

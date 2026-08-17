@@ -1,7 +1,3 @@
-export function initUtils() {
-    // Momentan nichts zu initialisieren
-}
-
 export function updateConnectionStatus(isOnline) {
     const statusEl = document.getElementById('connection-status');
     if (!statusEl) return;
@@ -13,18 +9,6 @@ export function updateConnectionStatus(isOnline) {
     if (statusText) {
         statusText.textContent = isOnline ? 'Verbunden' : 'Getrennt';
     }
-}
-
-export function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
 }
 
 // Zentrale Notification-Funktion (statt Duplikate in devices.js und settings.js)

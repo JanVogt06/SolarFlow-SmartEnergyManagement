@@ -49,23 +49,6 @@ def apply_args_to_config(config: Any, args: argparse.Namespace) -> None:
                     print(f"Warnung: Konnte {arg_config['config_path']} nicht setzen: {e}")
 
 
-def _get_nested_attr(obj: Any, path: str) -> Any:
-    """
-    Holt ein verschachteltes Attribut über einen Punkt-getrennten Pfad.
-
-    Args:
-        obj: Objekt
-        path: Punkt-getrennter Pfad (z.B. "connection.fronius_ip")
-
-    Returns:
-        Attributwert
-    """
-    attrs = path.split('.')
-    for attr in attrs:
-        obj = getattr(obj, attr)
-    return obj
-
-
 def _set_nested_attr(obj: Any, path: str, value: Any) -> None:
     """
     Setzt ein verschachteltes Attribut über einen Punkt-getrennten Pfad.

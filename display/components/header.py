@@ -33,15 +33,6 @@ class Header:
             print(title)
         self._print_separator(separator_char)
 
-    def display_simple(self, title: str) -> None:
-        """
-        Zeigt einen einfachen Header ohne Trennlinien.
-
-        Args:
-            title: Anzuzeigender Titel
-        """
-        print(f"\n{title}:")
-
     def display_section(self, title: str,
                         separator_char: str = Layout.SUB_SEPARATOR_CHAR) -> None:
         """

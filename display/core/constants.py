@@ -31,31 +31,3 @@ class Layout:
     # Tabellen
     TABLE_PADDING = 2
     MIN_COLUMN_WIDTH = 8
-
-
-# Schwellwerte für Farbcodierung
-class Thresholds:
-    """Standard-Schwellwerte"""
-    # Diese werden normalerweise aus Config überschrieben
-    BATTERY_HIGH = 80
-    BATTERY_MEDIUM = 30
-
-    AUTARKY_HIGH = 75
-    AUTARKY_MEDIUM = 50
-
-    PV_POWER_HIGH = 3000
-    PV_POWER_MEDIUM = 1000
-
-    SURPLUS_HIGH = 2000
-    SURPLUS_MEDIUM = 500
-
-
-# Formatierungs-Templates
-class Templates:
-    """String-Templates"""
-    HEADER = "{title:<20} {subtitle}"
-    VALUE_LINE = "{label:<{width}} {value:>{vwidth}} {unit}"
-    PERCENTAGE = "{value:>5.1f}%"
-    POWER = "{value:>6.0f}W"
-    ENERGY = "{value:>7.2f} kWh"
-    CURRENCY = "{value:>8.2f} {symbol}"

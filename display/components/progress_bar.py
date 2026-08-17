@@ -106,22 +106,3 @@ class ProgressBar:
 
         self.display(current, max_power, f"{label} ({current:.0f}W)", False, color)
 
-    def display_horizontal_compare(self, value1: float, value2: float,
-                                   label1: str = "Wert 1",
-                                   label2: str = "Wert 2") -> None:
-        """
-        Zeigt zwei Werte als horizontale Balken zum Vergleich.
-
-        Args:
-            value1: Erster Wert
-            value2: Zweiter Wert
-            label1: Beschriftung für ersten Wert
-            label2: Beschriftung für zweiten Wert
-        """
-        max_value = max(value1, value2, 1)  # Verhindere Division durch 0
-
-        # Erste Bar
-        self.display(value1, max_value, label1, False)
-
-        # Zweite Bar
-        self.display(value2, max_value, label2, False)

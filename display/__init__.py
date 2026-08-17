@@ -6,7 +6,6 @@ from .display_manager import DisplayManager
 from .displays import SolarDisplay, DeviceDisplay, StatsDisplay, SimpleDisplay
 from .core import ColorManager, Formatter, Colors, Layout
 from .components import Header, Table, ProgressBar, Separator
-from .themes import DefaultTheme, MinimalTheme
 
 __all__ = [
     # Haupt-Manager
@@ -28,9 +27,5 @@ __all__ = [
     "Header",
     "Table",
     "ProgressBar",
-    "Separator",
-
-    # Themes
-    "DefaultTheme",
-    "MinimalTheme"
+    "Separator"
 ]

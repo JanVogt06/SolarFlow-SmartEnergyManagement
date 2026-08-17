@@ -63,18 +63,6 @@ class ColorManager:
             }
         }
 
-    def update_thresholds(self, thresholds: Dict[str, Dict[str, float]]) -> None:
-        """
-        Aktualisiert die Schwellwerte aus der Config.
-
-        Args:
-            thresholds: Dictionary mit Schwellwerten
-        """
-        for key, values in thresholds.items():
-            if key in self.color_rules:
-                self.color_rules[key]['high'] = values.get('high', self.color_rules[key]['high'])
-                self.color_rules[key]['medium'] = values.get('medium', self.color_rules[key]['medium'])
-
     def get_color(self, color: str) -> str:
         """
         Gibt einen Farbcode zurück.
@@ -155,9 +143,3 @@ class ColorManager:
     def info(self, text: str) -> str:
         """Formatiert Info-Text (blau)."""
         return self.colorize(text, Colors.BLUE)
-
-    def bold(self, text: str) -> str:
-        """Macht Text fett."""
-        if not self.enable_colors:
-            return text
-        return f"{Colors.BOLD}{text}{Colors.RESET}"
