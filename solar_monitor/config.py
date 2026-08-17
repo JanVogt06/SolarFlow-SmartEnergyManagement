@@ -83,6 +83,12 @@ class DeviceControlConfig:
     update_only_on_change: bool = field(
         default_factory=lambda: os.getenv("DEVICE_UPDATE_ONLY_ON_CHANGE", "True").lower() == "true")
 
+    # Batterie-Schwellwerte für die Gerätesteuerung
+    min_battery_soc_on: float = field(
+        default_factory=lambda: float(os.getenv("DEVICE_MIN_BATTERY_SOC_ON", "95")))
+    min_battery_soc_off: float = field(
+        default_factory=lambda: float(os.getenv("DEVICE_MIN_BATTERY_SOC_OFF", "20")))
+
     # HUE INTEGRATION
     enable_hue: bool = field(default_factory=lambda: os.getenv("ENABLE_HUE", "False").lower() == "true")
     hue_bridge_ip: str = field(default_factory=lambda: os.getenv("HUE_BRIDGE_IP", "192.168.178.26"))

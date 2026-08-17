@@ -1,23 +1,41 @@
+import { showNotification } from './utils.js';
+
+// Einstellungsname der API -> Eingabefeld im Formular
+const SERVER_FIELDS = {
+    fronius_ip: { id: 'fronius-ip', type: 'text' },
+    update_interval: { id: 'poll-interval', type: 'number' },
+    enable_hue: { id: 'enable-hue', type: 'checkbox' },
+    hue_bridge_ip: { id: 'hue-bridge-ip', type: 'text' },
+    electricity_price: { id: 'electricity-price', type: 'number' },
+    electricity_price_night: { id: 'electricity-price-night', type: 'number' },
+    feed_in_tariff: { id: 'feed-in-tariff', type: 'number' },
+    hysteresis_minutes: { id: 'hysteresis-minutes', type: 'number' },
+    manual_override_minutes: { id: 'manual-override-minutes', type: 'number' },
+    min_battery_soc_on: { id: 'battery-soc-on', type: 'number' },
+    min_battery_soc_off: { id: 'battery-soc-off', type: 'number' }
+};
+
 export class SettingsController {
     constructor(api, onSettingsChange) {
         this.api = api;
         this.onSettingsChange = onSettingsChange;
-        this.elements = this.cacheElements();
-        this.init();
-    }
 
-    cacheElements() {
-        return {
+        this.elements = {
             apiUrl: document.getElementById('api-url'),
             updateInterval: document.getElementById('update-interval'),
             saveButton: document.getElementById('save-settings')
         };
+        this.serverInputs = Object.fromEntries(
+            Object.entries(SERVER_FIELDS).map(([name, field]) => [name, document.getElementById(field.id)])
+        );
+
+        this.init();
     }
 
     init() {
-        this.loadSettings();
+        this.loadClientSettings();
+        this.loadServerSettings();
         this.setupEventListeners();
-        this.applySettingsAnimation();
     }
 
     setupEventListeners() {
@@ -25,97 +43,120 @@ export class SettingsController {
             this.elements.saveButton.addEventListener('click', () => this.saveSettings());
         }
 
-        // Add input validation
         if (this.elements.apiUrl) {
-            this.elements.apiUrl.addEventListener('input', () => {
-                this.validateApiUrl();
-            });
+            this.elements.apiUrl.addEventListener('input', () => this.validateApiUrl());
         }
     }
 
-    loadSettings() {
+    loadClientSettings() {
         // Standard ist die Adresse, unter der das Dashboard selbst geladen wurde
-        const apiUrl = localStorage.getItem('apiUrl') || window.location.origin;
-        const updateInterval = localStorage.getItem('updateInterval') || '5000';
-
         if (this.elements.apiUrl) {
-            this.elements.apiUrl.value = apiUrl;
+            this.elements.apiUrl.value = localStorage.getItem('apiUrl') || window.location.origin;
+        }
+        if (this.elements.updateInterval) {
+            this.elements.updateInterval.value = localStorage.getItem('updateInterval') || '5000';
+        }
+    }
+
+    async loadServerSettings() {
+        try {
+            this.applyServerSettings(await this.api.getSettings());
+        } catch (error) {
+            console.warn('Server-Einstellungen konnten nicht geladen werden:', error);
+        }
+    }
+
+    applyServerSettings(settings) {
+        if (!settings) return;
+
+        for (const [name, field] of Object.entries(SERVER_FIELDS)) {
+            const input = this.serverInputs[name];
+            const value = settings[name];
+            if (!input || value === undefined || value === null) continue;
+
+            if (field.type === 'checkbox') {
+                input.checked = Boolean(value);
+            } else {
+                input.value = value;
+            }
+        }
+    }
+
+    readServerSettings() {
+        const payload = {};
+
+        for (const [name, field] of Object.entries(SERVER_FIELDS)) {
+            const input = this.serverInputs[name];
+            if (!input) continue;
+
+            if (field.type === 'checkbox') {
+                payload[name] = input.checked;
+            } else if (field.type === 'number') {
+                if (input.value !== '') payload[name] = parseFloat(input.value);
+            } else if (input.value.trim()) {
+                payload[name] = input.value.trim();
+            }
         }
 
-        if (this.elements.updateInterval) {
-            this.elements.updateInterval.value = updateInterval;
-        }
+        return payload;
+    }
+
+    readClientSettings() {
+        return {
+            apiUrl: this.elements.apiUrl.value.trim(),
+            updateInterval: parseInt(this.elements.updateInterval.value)
+        };
     }
 
     async saveSettings() {
         const button = this.elements.saveButton;
-
-        // Add loading state
-        button.classList.add('loading');
+        button.disabled = true;
         button.innerHTML = '<i data-lucide="loader"></i> Speichere...';
         lucide.createIcons();
 
         try {
-            const settings = {
-                apiUrl: this.elements.apiUrl.value,
-                updateInterval: parseInt(this.elements.updateInterval.value)
-            };
-
-            // Validate settings
-            if (!this.validateSettings(settings)) {
-                throw new Error('Ungültige Einstellungen');
-            }
+            const client = this.readClientSettings();
+            this.validateClientSettings(client);
 
             // Erst testen, dann speichern - sonst blockiert eine falsche URL die ganze App
-            await this.testConnection(settings.apiUrl);
+            await this.testConnection(client.apiUrl);
+            localStorage.setItem('apiUrl', client.apiUrl);
+            localStorage.setItem('updateInterval', client.updateInterval);
 
-            localStorage.setItem('apiUrl', settings.apiUrl);
-            localStorage.setItem('updateInterval', settings.updateInterval);
+            const response = await this.api.updateSettings(this.readServerSettings());
+            this.applyServerSettings(response.settings);
 
-            // Notify parent
             if (this.onSettingsChange) {
-                this.onSettingsChange(settings);
+                this.onSettingsChange(client);
             }
 
-            // Success feedback
-            this.showSuccess();
-
+            showNotification('Einstellungen gespeichert', 'success');
         } catch (error) {
-            this.showError(error.message);
+            showNotification(error.message || 'Fehler beim Speichern', 'error');
         } finally {
-            // Reset button
-            setTimeout(() => {
-                button.classList.remove('loading');
-                button.innerHTML = '<i data-lucide="save"></i> Speichern';
-                lucide.createIcons();
-            }, 1000);
+            button.disabled = false;
+            button.innerHTML = '<i data-lucide="save"></i> Speichern';
+            lucide.createIcons();
         }
     }
 
-    validateSettings(settings) {
-        // Validate API URL
+    validateClientSettings(settings) {
         try {
             new URL(settings.apiUrl);
         } catch {
-            this.showFieldError('apiUrl', 'Ungültige URL');
-            return false;
+            throw new Error('Server URL ist keine gültige Adresse');
         }
 
-        // Validate interval
-        if (settings.updateInterval < 1000 || settings.updateInterval > 60000) {
-            this.showFieldError('updateInterval', 'Intervall muss zwischen 1-60 Sekunden liegen');
-            return false;
+        if (!(settings.updateInterval >= 1000 && settings.updateInterval <= 60000)) {
+            throw new Error('Aktualisierung muss zwischen 1 und 60 Sekunden liegen');
         }
-
-        return true;
     }
 
     validateApiUrl() {
         const input = this.elements.apiUrl;
-        const value = input.value;
 
         try {
-            new URL(value);
+            new URL(input.value);
             input.classList.remove('error');
             input.classList.add('valid');
         } catch {
@@ -140,69 +181,7 @@ export class SettingsController {
         }
     }
 
-    showSuccess() {
-        this.showNotification('Einstellungen erfolgreich gespeichert', 'success');
-
-        // Add success animation to cards
-        document.querySelectorAll('.settings-card').forEach(card => {
-            card.classList.add('success-pulse');
-            setTimeout(() => card.classList.remove('success-pulse'), 1000);
-        });
-    }
-
-    showError(message) {
-        this.showNotification(message || 'Fehler beim Speichern', 'error');
-    }
-
-    showFieldError(fieldId, message) {
-        const field = this.elements[fieldId];
-        if (!field) return;
-
-        field.classList.add('error');
-
-        // Show error message
-        const errorEl = document.createElement('div');
-        errorEl.className = 'field-error';
-        errorEl.textContent = message;
-        field.parentElement.appendChild(errorEl);
-
-        setTimeout(() => {
-            errorEl.remove();
-        }, 3000);
-    }
-
-    showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-
-        const icon = type === 'success' ? 'check-circle' :
-                     type === 'error' ? 'alert-circle' : 'info';
-
-        notification.innerHTML = `
-            <i data-lucide="${icon}"></i>
-            <span>${message}</span>
-        `;
-
-        document.body.appendChild(notification);
-        lucide.createIcons();
-
-        // Auto remove
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
-    applySettingsAnimation() {
-        // Apply stagger animation to settings cards
-        const cards = document.querySelectorAll('.settings-card');
-        cards.forEach((card, index) => {
-            card.style.transitionDelay = `${index * 0.1}s`;
-        });
-    }
-
     onActivate() {
-        // Called when settings tab is activated
-        this.applySettingsAnimation();
+        this.loadServerSettings();
     }
 }

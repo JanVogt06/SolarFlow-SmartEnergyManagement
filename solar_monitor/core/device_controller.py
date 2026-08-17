@@ -74,13 +74,7 @@ class DeviceController:
                 self.device_manager,
                 self.device_interface
             )
-
-            self.energy_controller.hysteresis_time = timedelta(
-                minutes=self.config.devices.hysteresis_minutes
-            )
-            self.energy_controller.manual_override_time = timedelta(
-                minutes=self.config.devices.manual_override_minutes
-            )
+            self._apply_controller_settings()
         except Exception as e:
             self.logger.error(f"Fehler bei EnergyController-Initialisierung: {e}")
             self.energy_controller = None
@@ -96,15 +90,57 @@ class DeviceController:
         # Stelle sauberen Startzustand her
         self._ensure_clean_start_state()
 
-    def _create_device_interface(self) -> ISmartDeviceInterface:
-        """Erstellt das passende Device Interface basierend auf Konfiguration"""
+    def _apply_controller_settings(self) -> None:
+        """Überträgt die Konfigurationswerte auf den EnergyController."""
+        self.energy_controller.hysteresis_time = timedelta(
+            minutes=self.config.devices.hysteresis_minutes
+        )
+        self.energy_controller.manual_override_time = timedelta(
+            minutes=self.config.devices.manual_override_minutes
+        )
+        self.energy_controller.min_battery_soc_on = self.config.devices.min_battery_soc_on
+        self.energy_controller.min_battery_soc_off = self.config.devices.min_battery_soc_off
+
+    def apply_config(self) -> None:
+        """Übernimmt zur Laufzeit geänderte Einstellungen."""
+        if not self.energy_controller:
+            return
+
+        self._apply_controller_settings()
+        self._rebuild_interface_if_needed()
+
+    def _rebuild_interface_if_needed(self) -> None:
+        """Baut das Hardware-Interface neu auf, wenn sich die Hue-Einstellungen geändert haben."""
+        wants_hue = bool(self.config.devices.enable_hue and self.config.devices.hue_bridge_ip)
+        is_hue = self.device_interface.interface_type == "hue"
+        same_bridge = getattr(self.device_interface, 'bridge_ip', None) == self.config.devices.hue_bridge_ip
+
+        if wants_hue == is_hue and (not is_hue or same_bridge):
+            return
+
+        self.logger.info("Hue-Einstellungen geändert - Hardware-Interface wird neu aufgebaut")
+        if self.device_interface.connected:
+            self.device_interface.disconnect()
+
+        self.device_interface = self._create_device_interface(wait_for_link=False)
+        self.energy_controller.set_device_interface(self.device_interface)
+
+    def _create_device_interface(self, wait_for_link: bool = True) -> ISmartDeviceInterface:
+        """
+        Erstellt das passende Device Interface basierend auf Konfiguration.
+
+        Args:
+            wait_for_link: Beim ersten Verbinden auf den Bridge-Knopf warten
+        """
         # HUE Interface
         if self.config.devices.enable_hue and self.config.devices.hue_bridge_ip:
             self.logger.info("Initialisiere Hue-Integration...")
             try:
                 from device_management.hue_interface import HueInterface
 
-                hue_interface = HueInterface(self.config.devices.hue_bridge_ip)
+                hue_interface = HueInterface(
+                    self.config.devices.hue_bridge_ip, wait_for_link=wait_for_link
+                )
                 if hue_interface.connect():
                     self.logger.info("Hue Bridge erfolgreich verbunden!")
 

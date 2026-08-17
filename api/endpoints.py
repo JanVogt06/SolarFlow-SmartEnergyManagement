@@ -10,10 +10,44 @@ from pathlib import Path
 from typing import Any, Optional, List, Dict
 from datetime import datetime, time
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 
 
 _logger = logging.getLogger(__name__)
+
+
+class SettingsUpdate(BaseModel):
+    """Schema für Änderungen an den Server-Einstellungen"""
+    fronius_ip: Optional[str] = None
+    hue_bridge_ip: Optional[str] = None
+    enable_hue: Optional[bool] = None
+    update_interval: Optional[int] = Field(None, ge=1, le=3600)
+    electricity_price: Optional[float] = Field(None, ge=0, le=10)
+    electricity_price_night: Optional[float] = Field(None, ge=0, le=10)
+    feed_in_tariff: Optional[float] = Field(None, ge=0, le=10)
+    hysteresis_minutes: Optional[int] = Field(None, ge=0, le=1440)
+    manual_override_minutes: Optional[int] = Field(None, ge=0, le=1440)
+    min_battery_soc_on: Optional[float] = Field(None, ge=0, le=100)
+    min_battery_soc_off: Optional[float] = Field(None, ge=0, le=100)
+
+    @field_validator('fronius_ip', 'hue_bridge_ip')
+    @classmethod
+    def host_is_plausible(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        host = v.strip()
+        if not host or '/' in host or ' ' in host:
+            raise ValueError('Adresse muss ein Hostname oder eine IP ohne Protokoll sein')
+        return host
+
+    @field_validator('min_battery_soc_off')
+    @classmethod
+    def battery_thresholds_valid(cls, v: Optional[float], info: ValidationInfo) -> Optional[float]:
+        soc_on = info.data.get('min_battery_soc_on')
+        if v is not None and soc_on is not None and v > soc_on:
+            raise ValueError('Ausschalt-Ladestand darf nicht höher als Einschalt-Ladestand sein')
+        return v
 
 
 class DeviceCreate(BaseModel):
@@ -177,6 +211,30 @@ def create_app(monitor: Any) -> FastAPI:
             "autarky_avg": stats.autarky_avg,
             "cost_saved": stats.cost_saved,
             "total_benefit": stats.total_benefit
+        }
+
+    @app.get("/api/settings")
+    def get_settings():
+        """Aktuelle Server-Einstellungen"""
+        return monitor.settings.current()
+
+    @app.put("/api/settings")
+    def update_settings(update: SettingsUpdate):
+        """Server-Einstellungen ändern, sofort anwenden und dauerhaft speichern"""
+        changes = update.model_dump(exclude_none=True)
+        if not changes:
+            raise HTTPException(status_code=400, detail="Keine Änderungen übergeben")
+
+        if not monitor.apply_settings(changes):
+            raise HTTPException(
+                status_code=500,
+                detail="Einstellungen konnten nicht gespeichert werden — Datei nicht beschreibbar"
+            )
+
+        return {
+            "success": True,
+            "message": "Einstellungen gespeichert",
+            "settings": monitor.settings.current()
         }
 
     @app.get("/api/hue")

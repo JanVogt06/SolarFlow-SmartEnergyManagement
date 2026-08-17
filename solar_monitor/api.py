@@ -30,6 +30,20 @@ class FroniusAPI:
         # API-Endpunkt für Leistungsdaten
         self.power_flow_endpoint: str = '/solar_api/v1/GetPowerFlowRealtimeData.fcgi'
 
+    def set_ip(self, ip_address: str) -> None:
+        """
+        Wechselt die Adresse des Wechselrichters.
+
+        Args:
+            ip_address: Neue IP-Adresse
+        """
+        if ip_address == self.ip_address:
+            return
+
+        self.ip_address = ip_address
+        self.base_url = f"http://{ip_address}"
+        self.logger.info(f"Fronius-Adresse geändert: {ip_address}")
+
     def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
         Führt einen HTTP-Request aus und gibt JSON zurück.

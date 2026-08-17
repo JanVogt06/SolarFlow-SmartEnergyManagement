@@ -7,6 +7,7 @@ from .models import SolarData
 from .api import FroniusAPI
 from .monitor import SolarMonitor
 from .daily_stats import DailyStats
+from .settings import SettingsStore
 
 # Core-Module für erweiterte Nutzung
 from .core import (
@@ -24,6 +25,7 @@ __all__ = [
     "FroniusAPI",
     "SolarMonitor",
     "DailyStats",
+    "SettingsStore",
 
     # Core-Module
     "DataProcessor",

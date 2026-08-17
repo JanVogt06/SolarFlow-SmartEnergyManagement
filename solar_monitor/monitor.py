@@ -6,10 +6,11 @@ import logging
 import threading
 import time
 import sys
-from typing import Optional
+from typing import Any, Dict, Optional
 from .api import FroniusAPI
 from .config import Config
 from .models import SolarData
+from .settings import SettingsStore
 from display import DisplayManager
 from .core import (
     DataProcessor,
@@ -22,14 +23,17 @@ from .core import (
 class SolarMonitor:
     """Hauptklasse für den Solar Monitor"""
 
-    def __init__(self, config: Optional[Config] = None) -> None:
+    def __init__(self, config: Optional[Config] = None,
+                 settings: Optional[SettingsStore] = None) -> None:
         """
         Initialisiert den SolarMonitor.
 
         Args:
             config: Konfigurationsobjekt (optional)
+            settings: Store für persistente Laufzeit-Einstellungen (optional)
         """
         self.config = config or Config()
+        self.settings = settings or SettingsStore(self.config)
         self.config.validate()
 
         # API initialisieren
@@ -318,6 +322,21 @@ class SolarMonitor:
             Tagesstatistiken
         """
         return self.stats_manager.get_current_stats()
+
+    def apply_settings(self, changes: Dict[str, Any]) -> bool:
+        """
+        Übernimmt geänderte Einstellungen zur Laufzeit und speichert sie.
+
+        Args:
+            changes: Zu ändernde Einstellungen
+
+        Returns:
+            True wenn die Einstellungen gespeichert werden konnten
+        """
+        saved = self.settings.save(changes)
+        self.api.set_ip(self.config.connection.fronius_ip)
+        self.device_controller.apply_config()
+        return saved
 
     def get_device_manager(self):
         """

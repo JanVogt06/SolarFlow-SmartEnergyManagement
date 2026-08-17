@@ -23,7 +23,7 @@ if not check_dependencies(args.skip_check, with_api=api_enabled):
     sys.exit(1)
 
 # Erst jetzt die anderen Imports (nachdem Dependencies geprüft wurden)
-from solar_monitor import SolarMonitor, Config
+from solar_monitor import SolarMonitor, Config, SettingsStore
 
 # API Import nur wenn benötigt
 APIServer = None  # Standardwert falls Import fehlschlägt
@@ -37,10 +37,10 @@ if api_enabled:
 
 def main():
     """Hauptfunktion"""
-    # Konfiguration erstellen
+    # Konfiguration erstellen: Umgebung < gespeicherte Einstellungen < CLI-Argumente
     config = Config()
-
-    # Kommandozeilen-Argumente anwenden
+    settings = SettingsStore(config)
+    settings.load()
     apply_args_to_config(config, args)
 
     # API-Status explizit aus args übernehmen (falls --no-api gesetzt wurde)
@@ -58,7 +58,7 @@ def main():
 
     try:
         # Monitor erstellen
-        monitor = SolarMonitor(config)
+        monitor = SolarMonitor(config, settings)
 
         # API Server starten wenn aktiviert
         if config.api.enabled and api_enabled and APIServer is not None:

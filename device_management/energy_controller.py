@@ -143,6 +143,17 @@ class EnergyController:
 
         return changes
 
+    def set_device_interface(self, device_interface: Optional[ISmartDeviceInterface]) -> None:
+        """
+        Tauscht das Hardware-Interface, z.B. nach geänderter Hue-Konfiguration.
+
+        Args:
+            device_interface: Neues Interface
+        """
+        self.device_interface = device_interface
+        self._recent_switches.clear()
+        self._sync_warned_devices.clear()
+
     @staticmethod
     def _controllable_consumption(devices: List[Device]) -> float:
         """
@@ -231,7 +242,8 @@ class EnergyController:
         if current_time is None:
             current_time = datetime.now()
 
-        self.device_interface.refresh()
+        # Einmal frisch von der Hardware lesen, die Einzelabfragen unten treffen den Cache
+        self.device_interface.refresh(force=True)
 
         # Snapshot statt direktem Zugriff: schützt vor parallelen API-Mutationen
         for device in self.device_manager.snapshot_devices():

@@ -29,17 +29,19 @@ class HueInterface(ISmartDeviceInterface):
     LINK_BUTTON_RETRIES = 3
     LINK_BUTTON_WAIT = 10
 
-    def __init__(self, bridge_ip: str, cache_ttl: float = 2.0):
+    def __init__(self, bridge_ip: str, cache_ttl: float = 2.0, wait_for_link: bool = True):
         """
         Initialisiert die Hue-Verbindung.
 
         Args:
             bridge_ip: IP-Adresse der Hue Bridge
             cache_ttl: Maximales Alter der Zustandsdaten in Sekunden
+            wait_for_link: Bei fehlender Registrierung auf den Bridge-Knopf warten
         """
         super().__init__({'bridge_ip': bridge_ip})
         self.bridge_ip = bridge_ip
         self.cache_ttl = cache_ttl
+        self.wait_for_link = wait_for_link
         self.bridge: Optional[Any] = None
 
         self._lights: Dict[str, HueLight] = {}
@@ -79,6 +81,10 @@ class HueInterface(ISmartDeviceInterface):
             if "link button has not been pressed" not in str(e):
                 self.logger.error(f"Fehler bei Hue-Verbindung: {e}")
                 return False
+
+        if not self.wait_for_link:
+            self.logger.error("Hue Bridge nicht registriert - Knopf drücken und neu starten")
+            return False
 
         self.logger.warning("Bitte JETZT den Knopf auf der Hue Bridge drücken!")
         for attempt in range(1, self.LINK_BUTTON_RETRIES + 1):

@@ -10,33 +10,45 @@ export class ApiClient {
     }
 
     async request(endpoint, options = {}) {
+        const { timeout = this.timeout, ...fetchOptions } = options;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         try {
             const response = await fetch(`${this.baseUrl}${endpoint}`, {
-                ...options,
+                ...fetchOptions,
                 signal: controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
-                    ...options.headers
+                    ...fetchOptions.headers
                 }
             });
 
-            clearTimeout(timeoutId);
-
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(await this.readError(response));
             }
 
             return await response.json();
         } catch (error) {
             if (error.name === 'AbortError') {
-                throw new Error('Request timeout');
+                throw new Error('Zeitüberschreitung bei der Serveranfrage');
             }
             console.error(`API Error (${endpoint}):`, error);
             throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
+    }
+
+    async readError(response) {
+        try {
+            const body = await response.json();
+            if (typeof body.detail === 'string') return body.detail;
+            if (Array.isArray(body.detail)) return body.detail.map(d => d.msg).join(', ');
+        } catch {
+            // Kein JSON-Body - Statuszeile reicht
+        }
+        return `HTTP ${response.status}: ${response.statusText}`;
     }
 
     // API Endpoints
@@ -54,6 +66,19 @@ export class ApiClient {
 
     async getHueConfig() {
         return this.request('/api/hue');
+    }
+
+    async getSettings() {
+        return this.request('/api/settings');
+    }
+
+    async updateSettings(settings) {
+        // Längerer Timeout: ein Wechsel der Hue-Bridge braucht einen Verbindungsaufbau
+        return this.request('/api/settings', {
+            method: 'PUT',
+            body: JSON.stringify(settings),
+            timeout: 20000
+        });
     }
 
     async createDevice(device) {
