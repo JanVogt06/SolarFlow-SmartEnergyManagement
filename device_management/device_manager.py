@@ -6,11 +6,11 @@ import json
 import logging
 import threading
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 from datetime import time, datetime
 
 from utils import read_json, write_json
-from .device import Device, DeviceState
+from .device import Device, DeviceState, find_time_range_overlaps
 
 
 class DeviceManager:
@@ -188,56 +188,15 @@ class DeviceManager:
                     f"Das Gerät würde nur zu dieser exakten Zeit laufen."
                 )
 
-            valid_ranges.append((start_time, end_time, i))
+            valid_ranges.append((start_time, end_time))
 
-        if len(valid_ranges) >= 2:
-            overlap_warnings = self._check_time_overlaps(valid_ranges)
-            if overlap_warnings:
-                for warning in overlap_warnings:
-                    self.logger.warning(warning)
+        for i, j in find_time_range_overlaps(valid_ranges):
+            self.logger.warning(
+                f"Zeitbereiche {i + 1} und {j + 1} überlappen sich. "
+                f"Das kann zu unerwartetem Verhalten führen."
+            )
 
         return errors
-
-    def _check_time_overlaps(self, valid_ranges: List[Tuple[time, time, int]]) -> List[str]:
-        """
-        Prüft auf überlappende Zeitbereiche.
-
-        Args:
-            valid_ranges: Liste von (start, end, original_index) Tupeln
-
-        Returns:
-            Liste von Warnmeldungen
-        """
-        warnings = []
-
-        intervals = []
-        for start, end, idx in valid_ranges:
-            start_min = start.hour * 60 + start.minute
-            end_min = end.hour * 60 + end.minute
-
-            if start <= end:
-                intervals.append([(start_min, end_min, idx)])
-            else:
-                intervals.append([
-                    (start_min, 24 * 60, idx),
-                    (0, end_min, idx)
-                ])
-
-        for i in range(len(intervals)):
-            for j in range(i + 1, len(intervals)):
-                for int1 in intervals[i]:
-                    for int2 in intervals[j]:
-                        if Device._check_interval_overlap(int1[:2], int2[:2]):
-                            idx1, idx2 = int1[2], int2[2]
-                            warnings.append(
-                                f"Zeitbereiche {idx1 + 1} und {idx2 + 1} überlappen sich. "
-                                f"Das kann zu unerwartetem Verhalten führen."
-                            )
-                            break
-                    if warnings:
-                        break
-
-        return warnings
 
     def save_devices(self) -> bool:
         """Speichert Geräte in die JSON-Datei.

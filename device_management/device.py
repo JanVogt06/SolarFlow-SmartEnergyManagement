@@ -48,6 +48,38 @@ class DevicePriority(IntEnum):
         return labels.get(self, f"Priorität {self.value}")
 
 
+def find_time_range_overlaps(ranges: List[Tuple[time, time]]) -> List[Tuple[int, int]]:
+    """
+    Findet überlappende Zeitbereiche.
+
+    Bereiche über Mitternacht werden dafür in zwei Teilintervalle zerlegt.
+
+    Args:
+        ranges: Liste von (Start, Ende)-Paaren
+
+    Returns:
+        Liste von Indexpaaren, die sich überlappen
+    """
+    intervals: List[List[Tuple[int, int]]] = []
+    for start, end in ranges:
+        start_minutes = start.hour * 60 + start.minute
+        end_minutes = end.hour * 60 + end.minute
+
+        if start <= end:
+            intervals.append([(start_minutes, end_minutes)])
+        else:
+            intervals.append([(start_minutes, 24 * 60), (0, end_minutes)])
+
+    overlaps = []
+    for i in range(len(intervals)):
+        for j in range(i + 1, len(intervals)):
+            if any(not (a[1] <= b[0] or b[1] <= a[0])
+                   for a in intervals[i] for b in intervals[j]):
+                overlaps.append((i, j))
+
+    return overlaps
+
+
 @dataclass
 class Device:
     """Repräsentiert ein steuerbares Gerät"""
@@ -105,64 +137,11 @@ class Device:
                 raise ValueError(f"Zeitbereich {i+1}: Start und Ende müssen time-Objekte sein")
 
         if len(self.allowed_time_ranges) > 1:
-            overlaps = self._find_time_range_overlaps()
+            overlaps = find_time_range_overlaps(self.allowed_time_ranges)
             if overlaps:
                 self.logger.warning(
                     f"Überlappende Zeitbereiche gefunden für Gerät '{self.name}': {overlaps}"
                 )
-
-    def _find_time_range_overlaps(self) -> List[Tuple[int, int]]:
-        """
-        Findet überlappende Zeitbereiche.
-
-        Returns:
-            Liste von Tupeln mit den Indizes überlappender Bereiche
-        """
-        overlaps = []
-
-        intervals = []
-        for start, end in self.allowed_time_ranges:
-            start_minutes = start.hour * 60 + start.minute
-            end_minutes = end.hour * 60 + end.minute
-
-            if start <= end:
-                intervals.append([(start_minutes, end_minutes)])
-            else:
-                intervals.append([
-                    (start_minutes, 24 * 60),
-                    (0, end_minutes)
-                ])
-
-        for i in range(len(intervals)):
-            for j in range(i + 1, len(intervals)):
-                for interval_i in intervals[i]:
-                    for interval_j in intervals[j]:
-                        if self._check_interval_overlap(interval_i, interval_j):
-                            overlaps.append((i, j))
-                            break
-                    if (i, j) in overlaps:
-                        break
-
-        return overlaps
-
-    @staticmethod
-    def _check_interval_overlap(interval1: Tuple[int, int], interval2: Tuple[int, int]) -> bool:
-        """
-        Prüft ob zwei Zeitintervalle überlappen.
-
-        Diese Methode ist statisch und kann von anderen Klassen verwendet werden.
-
-        Args:
-            interval1: Erstes Intervall (start_minuten, end_minuten)
-            interval2: Zweites Intervall (start_minuten, end_minuten)
-
-        Returns:
-            True wenn Überlappung vorhanden
-        """
-        start1, end1 = interval1
-        start2, end2 = interval2
-
-        return not (end1 <= start2 or end2 <= start1)
 
     def is_time_allowed(self, current_time: datetime) -> bool:
         """
