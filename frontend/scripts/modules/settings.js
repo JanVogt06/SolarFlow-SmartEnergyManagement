@@ -34,8 +34,8 @@ export class SettingsController {
     }
 
     loadSettings() {
-        // Load saved settings
-        const apiUrl = localStorage.getItem('apiUrl') || 'http://localhost:8000';
+        // Standard ist die Adresse, unter der das Dashboard selbst geladen wurde
+        const apiUrl = localStorage.getItem('apiUrl') || window.location.origin;
         const updateInterval = localStorage.getItem('updateInterval') || '5000';
 
         if (this.elements.apiUrl) {
@@ -66,12 +66,11 @@ export class SettingsController {
                 throw new Error('Ungültige Einstellungen');
             }
 
-            // Save to localStorage
+            // Erst testen, dann speichern - sonst blockiert eine falsche URL die ganze App
+            await this.testConnection(settings.apiUrl);
+
             localStorage.setItem('apiUrl', settings.apiUrl);
             localStorage.setItem('updateInterval', settings.updateInterval);
-
-            // Test connection
-            await this.testConnection(settings.apiUrl);
 
             // Notify parent
             if (this.onSettingsChange) {
@@ -126,14 +125,18 @@ export class SettingsController {
     }
 
     async testConnection(url) {
-        const testUrl = `${url}/api/status`;
-        const response = await fetch(testUrl, {
-            method: 'GET',
-            signal: AbortSignal.timeout(5000)
-        });
+        let response;
+        try {
+            response = await fetch(`${url}/api/status`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(5000)
+            });
+        } catch {
+            throw new Error(`Server unter ${url} nicht erreichbar`);
+        }
 
         if (!response.ok) {
-            throw new Error('Verbindung fehlgeschlagen');
+            throw new Error(`Server antwortet mit HTTP ${response.status}`);
         }
     }
 
