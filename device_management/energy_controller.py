@@ -66,9 +66,6 @@ class EnergyController:
 
         changes: Dict[str, str] = {}
 
-        # Synchronisiere Gerätestatus mit Hardware (falls manuell geschaltet wurde)
-        self._sync_device_states(current_time)
-
         # Sortiere Geräte nach Priorität (niedrigere Zahl = höhere Priorität)
         devices = self.device_manager.get_devices_by_priority()
 
@@ -144,81 +141,122 @@ class EnergyController:
 
         return changes
 
-    def _sync_device_states(self, current_time: datetime) -> None:
+    def sync_states(self, current_time: Optional[datetime] = None) -> None:
         """
         Synchronisiert den internen Gerätestatus mit dem tatsächlichen Hardware-Status.
 
-        Dies ist wichtig, falls Geräte manuell (z.B. über die Hue-App) geschaltet wurden.
+        Erkennt sowohl extern (z.B. über die Hue-App) geschaltete Geräte als auch
+        Geräte, die gar nicht mehr antworten - etwa weil sie nicht eingesteckt sind.
+
+        Args:
+            current_time: Aktuelle Zeit (optional, für Tests)
         """
-        if not self.device_interface or not self.device_interface.connected:
+        if not self._has_hardware_interface():
             return
+
+        if current_time is None:
+            current_time = datetime.now()
+
+        self.device_interface.refresh()
 
         # Snapshot statt direktem Zugriff: schützt vor parallelen API-Mutationen
         for device in self.device_manager.snapshot_devices():
-            # Nur Geräte synchronisieren, die im Hardware-Interface verfügbar sind
-            if not self.device_interface.is_device_available(device.name):
-                if device.name not in self._sync_warned_devices:
-                    self.logger.warning(
-                        f"Gerät '{device.name}' nicht im Hardware-Interface gefunden - "
-                        f"Sync übersprungen. Prüfe ob der Name exakt mit dem Hue-Gerätenamen übereinstimmt."
-                    )
-                    self._sync_warned_devices.add(device.name)
+            status = self.device_interface.get_status(device.name)
+            if status is None:
+                self._warn_device_missing(device)
                 continue
 
-            # Aktuellen Hardware-Status abfragen
-            hw_state = self.device_interface.get_state(device.name)
-            if hw_state is None:
-                # Konnte Status nicht abfragen - überspringen
+            self._sync_warned_devices.discard(device.name)
+            hw_on, reachable = status
+
+            if not reachable:
+                self._mark_unreachable(device, current_time)
                 continue
 
-            # Tracking für kürzlich geschaltete Geräte: Bridge-Latenz vs. manuelle Änderung
-            if device.name in self._recent_switches:
-                switch_time, expected_state = self._recent_switches[device.name]
-                time_since_switch = current_time - switch_time
+            if self._is_switch_settling(device, hw_on, current_time):
+                continue
 
-                if hw_state == expected_state:
-                    # Bridge hat unseren Befehl übernommen - Tracking nicht mehr nötig.
-                    # Ab jetzt werden manuelle Änderungen wieder sofort erkannt.
-                    del self._recent_switches[device.name]
-                elif time_since_switch < self._switch_settle_time:
-                    # Bridge hat unseren Befehl noch nicht reflektiert (Latenz) - skippen
-                    self.logger.debug(
-                        f"Überspringe Sync für '{device.name}' - Bridge-Latenz "
-                        f"({time_since_switch.total_seconds():.0f}s, hw={'ON' if hw_state else 'OFF'}, "
-                        f"erwartet={'ON' if expected_state else 'OFF'})"
-                    )
-                    continue
-                else:
-                    # Settle-Time abgelaufen UND Hardware zeigt anderen Status als erwartet
-                    # → Manuelle Änderung in der Settle-Phase
-                    self.logger.info(
-                        f"Manuelle Änderung für '{device.name}' während Settle-Phase erkannt"
-                    )
-                    del self._recent_switches[device.name]
+            self._adopt_hardware_state(device, hw_on, current_time)
 
-            # Vergleiche mit internem Status
-            internal_is_on = device.state == DeviceState.ON
-            hw_is_on = hw_state
+    def _has_hardware_interface(self) -> bool:
+        """Prüft ob ein verbundenes Hardware-Interface vorhanden ist."""
+        return (self.device_interface is not None
+                and self.device_interface.connected
+                and self.device_interface.interface_type != "null")
 
-            if hw_is_on and not internal_is_on:
-                # Gerät wurde manuell eingeschaltet
-                self.logger.info(f"Gerät '{device.name}' wurde extern eingeschaltet - synchronisiere Status")
-                device.state = DeviceState.ON
-                device.last_state_change = current_time
+    def _warn_device_missing(self, device: Device) -> None:
+        """Warnt einmalig, wenn ein Gerät im Hardware-Interface fehlt."""
+        if device.name in self._sync_warned_devices:
+            return
 
-            elif not hw_is_on and internal_is_on:
-                # Gerät wurde manuell ausgeschaltet
-                self.logger.info(f"Gerät '{device.name}' wurde extern ausgeschaltet - synchronisiere Status")
+        self.logger.warning(
+            f"Gerät '{device.name}' nicht im Hardware-Interface gefunden - Sync übersprungen. "
+            f"Prüfe ob der Name exakt mit dem Hue-Gerätenamen übereinstimmt."
+        )
+        self._sync_warned_devices.add(device.name)
 
-                # Berechne Laufzeit vor Statusänderung
-                if device.last_state_change:
-                    runtime = int((current_time - device.last_state_change).total_seconds() / 60)
-                    device.runtime_today += runtime
-                    self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten (extern ausgeschaltet)")
+    def _mark_unreachable(self, device: Device, current_time: datetime) -> None:
+        """Setzt ein nicht antwortendes Gerät auf UNREACHABLE."""
+        if device.state == DeviceState.UNREACHABLE:
+            return
 
-                device.state = DeviceState.OFF
-                device.last_state_change = current_time
+        self.logger.warning(
+            f"Gerät '{device.name}' antwortet nicht - vermutlich nicht eingesteckt"
+        )
+        if device.state == DeviceState.ON:
+            self._accumulate_runtime(device, current_time)
+
+        device.state = DeviceState.UNREACHABLE
+        device.last_state_change = current_time
+        self._recent_switches.pop(device.name, None)
+
+    def _is_switch_settling(self, device: Device, hw_on: bool, current_time: datetime) -> bool:
+        """Prüft ob die Bridge einen selbst abgesetzten Schaltbefehl noch nicht zeigt."""
+        pending = self._recent_switches.get(device.name)
+        if pending is None:
+            return False
+
+        switch_time, expected_state = pending
+        if hw_on == expected_state:
+            del self._recent_switches[device.name]
+            return False
+
+        if current_time - switch_time < self._switch_settle_time:
+            self.logger.debug(f"Überspringe Sync für '{device.name}' - Bridge-Latenz")
+            return True
+
+        del self._recent_switches[device.name]
+        return False
+
+    def _adopt_hardware_state(self, device: Device, hw_on: bool, current_time: datetime) -> None:
+        """Übernimmt den Hardware-Status in den internen Gerätezustand."""
+        was_unreachable = device.state == DeviceState.UNREACHABLE
+        if was_unreachable:
+            self.logger.info(f"Gerät '{device.name}' ist wieder erreichbar")
+        elif hw_on == (device.state == DeviceState.ON):
+            return
+
+        if hw_on:
+            if not was_unreachable:
+                self.logger.info(f"Gerät '{device.name}' wurde extern eingeschaltet")
+            device.state = DeviceState.ON
+        else:
+            if not was_unreachable:
+                self.logger.info(f"Gerät '{device.name}' wurde extern ausgeschaltet")
+                self._accumulate_runtime(device, current_time)
                 device.last_switch_off = current_time
+            device.state = DeviceState.OFF
+
+        device.last_state_change = current_time
+
+    @staticmethod
+    def _accumulate_runtime(device: Device, current_time: datetime) -> None:
+        """Rechnet die laufende Session auf die Tageslaufzeit an."""
+        if not device.last_state_change:
+            return
+
+        runtime = int((current_time - device.last_state_change).total_seconds() / 60)
+        device.runtime_today += runtime
 
     def _handle_priority_preemption(self, devices: List[Device], total_available: float,
                                     current_time: datetime, battery_soc: float) -> Dict[str, str]:
@@ -320,6 +358,9 @@ class EnergyController:
         Returns:
             Aktion oder None
         """
+        if device.state == DeviceState.UNREACHABLE:
+            return None
+
         # Prüfe Zeitbeschränkungen
         if not device.is_time_allowed(current_time):
             if device.state == DeviceState.ON:
@@ -366,14 +407,51 @@ class EnergyController:
 
         return None
 
+    def _apply_hardware_switch(self, device: Device, on: bool, current_time: datetime) -> bool:
+        """
+        Schaltet die Hardware und meldet, ob der virtuelle Status nachgezogen werden darf.
+
+        Args:
+            device: Zu schaltendes Gerät
+            on: Zielzustand
+            current_time: Aktuelle Zeit
+
+        Returns:
+            True wenn der Zustandswechsel übernommen werden darf
+        """
+        if self.device_interface is None or self.device_interface.interface_type == "null":
+            return True
+
+        target = "EIN" if on else "AUS"
+
+        if not self.device_interface.connected:
+            self.logger.warning(
+                f"Hardware-Interface nicht verbunden - '{device.name}' bleibt unverändert"
+            )
+            return False
+
+        try:
+            success = (self.device_interface.switch_on(device.name) if on
+                       else self.device_interface.switch_off(device.name))
+        except Exception as e:
+            self.logger.error(
+                f"Hardware-Fehler beim Schalten von '{device.name}' auf {target}: {e}"
+            )
+            return False
+
+        if not success:
+            self.logger.warning(
+                f"'{device.name}' konnte nicht auf {target} geschaltet werden - "
+                f"Status bleibt unverändert"
+            )
+            return False
+
+        self._recent_switches[device.name] = (current_time, on)
+        return True
+
     def _switch_on(self, device: Device, current_time: datetime) -> Optional[str]:
         """
         Schaltet ein Gerät ein.
-
-        Bei echtem Hardware-Interface (z.B. Hue) wird der virtuelle Status
-        nur dann auf ON gesetzt, wenn die Hardware-Schaltung erfolgreich war.
-        Damit bleiben App-Status und Hardware-Status konsistent — auch wenn
-        die Bridge nicht erreichbar ist.
 
         Args:
             device: Einzuschaltendes Gerät
@@ -382,38 +460,8 @@ class EnergyController:
         Returns:
             Aktionsbeschreibung oder None wenn Hardware-Schaltung fehlschlug
         """
-        is_real_hardware = (self.device_interface is not None
-                            and self.device_interface.interface_type != "null")
-
-        if is_real_hardware:
-            if not self.device_interface.connected:
-                self.logger.warning(
-                    f"Hardware-Interface nicht verbunden - '{device.name}' "
-                    f"wird nicht eingeschaltet (Status bleibt unverändert)"
-                )
-                return None
-            try:
-                success = self.device_interface.switch_on(device.name)
-            except Exception as e:
-                self.logger.error(
-                    f"Fehler beim Hardware-Einschalten von '{device.name}': {e} - "
-                    f"Status bleibt unverändert"
-                )
-                return None
-            if not success:
-                self.logger.warning(
-                    f"Hardware '{device.name}' konnte nicht eingeschaltet werden - "
-                    f"Status bleibt unverändert"
-                )
-                return None
-            self.logger.debug(f"Hardware '{device.name}' erfolgreich eingeschaltet")
-            self._recent_switches[device.name] = (current_time, True)
-        elif self.device_interface and self.device_interface.connected:
-            # NullDeviceInterface (virtuelle Steuerung) - schaltet immer durch
-            try:
-                self.device_interface.switch_on(device.name)
-            except Exception as e:
-                self.logger.error(f"Fehler beim virtuellen Einschalten: {e}")
+        if not self._apply_hardware_switch(device, True, current_time):
+            return None
 
         device.state = DeviceState.ON
         device.last_state_change = current_time
@@ -427,9 +475,6 @@ class EnergyController:
         """
         Schaltet ein Gerät aus.
 
-        Bei echtem Hardware-Interface (z.B. Hue) wird der virtuelle Status
-        nur dann auf OFF gesetzt, wenn die Hardware-Schaltung erfolgreich war.
-
         Args:
             device: Auszuschaltendes Gerät
             current_time: Aktuelle Zeit
@@ -438,46 +483,10 @@ class EnergyController:
         Returns:
             Aktionsbeschreibung oder None wenn Hardware-Schaltung fehlschlug
         """
-        is_real_hardware = (self.device_interface is not None
-                            and self.device_interface.interface_type != "null")
+        if not self._apply_hardware_switch(device, False, current_time):
+            return None
 
-        if is_real_hardware:
-            if not self.device_interface.connected:
-                self.logger.warning(
-                    f"Hardware-Interface nicht verbunden - '{device.name}' "
-                    f"wird nicht ausgeschaltet (Status bleibt unverändert)"
-                )
-                return None
-            try:
-                success = self.device_interface.switch_off(device.name)
-            except Exception as e:
-                self.logger.error(
-                    f"Fehler beim Hardware-Ausschalten von '{device.name}': {e} - "
-                    f"Status bleibt unverändert"
-                )
-                return None
-            if not success:
-                self.logger.warning(
-                    f"Hardware '{device.name}' konnte nicht ausgeschaltet werden - "
-                    f"Status bleibt unverändert"
-                )
-                return None
-            self.logger.debug(f"Hardware '{device.name}' erfolgreich ausgeschaltet")
-            self._recent_switches[device.name] = (current_time, False)
-        elif self.device_interface and self.device_interface.connected:
-            # NullDeviceInterface (virtuelle Steuerung)
-            try:
-                self.device_interface.switch_off(device.name)
-            except Exception as e:
-                self.logger.error(f"Fehler beim virtuellen Ausschalten: {e}")
-
-        # Berechne und addiere Laufzeit zur Tagesstatistik
-        if device.last_state_change:
-            runtime = int((current_time - device.last_state_change).total_seconds() / 60)
-            device.runtime_today += runtime
-            self.logger.debug(f"Gerät '{device.name}' lief {runtime} Minuten, "
-                              f"Gesamt heute: {device.runtime_today} Minuten")
-
+        self._accumulate_runtime(device, current_time)
         device.state = DeviceState.OFF
         device.last_state_change = current_time
         device.last_switch_off = current_time

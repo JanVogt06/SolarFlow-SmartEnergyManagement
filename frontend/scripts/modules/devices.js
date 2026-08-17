@@ -247,7 +247,7 @@ export class DevicesController {
         if (!this.container) return;
 
         this.container.innerHTML = this.devices.map((device, index) => `
-            <div class="device-card ${device.state === 'on' ? 'active' : ''}"
+            <div class="device-card ${device.state === 'on' ? 'active' : ''} ${device.state === 'unreachable' ? 'unreachable' : ''}"
                  data-device="${device.name}"
                  style="transition-delay: ${index * 0.1}s">
 
@@ -304,17 +304,17 @@ export class DevicesController {
                     </div>
                 </div>
 
+                ${device.state === 'unreachable' ? `
+                    <div class="device-warning">
+                        <i data-lucide="plug-zap"></i>
+                        <span>Gerät antwortet nicht — steckt es in der Steckdose?</span>
+                    </div>
+                ` : ''}
+
                 ${device.hysteresis_remaining ? `
                     <div class="device-hysteresis">
                         <i data-lucide="timer"></i>
                         <span>Wartet noch ${this.formatHysteresis(device.hysteresis_remaining)}</span>
-                    </div>
-                ` : ''}
-
-                ${device.blocked_reason ? `
-                    <div class="device-warning">
-                        <i data-lucide="alert-triangle"></i>
-                        <span>${device.blocked_reason}</span>
                     </div>
                 ` : ''}
             </div>
@@ -331,7 +331,7 @@ export class DevicesController {
             'on': 'EIN',
             'off': 'AUS',
             'blocked': 'BLOCKIERT',
-            'manual': 'MANUELL'
+            'unreachable': 'NICHT ERREICHBAR'
         };
         return statusMap[status] || status.toUpperCase();
     }

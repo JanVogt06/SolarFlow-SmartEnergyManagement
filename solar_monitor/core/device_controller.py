@@ -160,14 +160,17 @@ class DeviceController:
         self.logger.info("Stelle sauberen Startzustand her - schalte alle verwalteten Geräte aus...")
 
         for device in self.device_manager.snapshot_devices():
-            # Prüfe ob Gerät im Interface verfügbar ist
-            if self.device_interface.is_device_available(device.name):
-                # Schalte aus, egal welcher Status
-                if self.device_interface.switch_off(device.name):
-                    self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
+            status = self.device_interface.get_status(device.name)
 
-            # Setze virtuellen Status (Laufzeit-Zähler bleibt erhalten)
-            device.state = DeviceState.OFF
+            if status is not None and not status[1]:
+                self.logger.warning(f"'{device.name}' ist nicht erreichbar (Startzustand)")
+                device.state = DeviceState.UNREACHABLE
+            else:
+                if status is not None and self.device_interface.switch_off(device.name):
+                    self.logger.info(f"'{device.name}' ausgeschaltet (Startzustand)")
+                device.state = DeviceState.OFF
+
+            # Laufzeit-Zähler bleibt erhalten
             device.last_state_change = datetime.now()
 
     def update(self, data: SolarData) -> None:
@@ -180,7 +183,10 @@ class DeviceController:
         if not self.energy_controller:
             return
 
-        # Prüfe ob Update notwendig
+        # Hardware-Abgleich läuft in jedem Zyklus, damit externe Schaltvorgänge
+        # und nicht erreichbare Geräte ohne Verzögerung sichtbar werden.
+        self.energy_controller.sync_states(data.timestamp)
+
         if not self._should_update_devices(data):
             return
 

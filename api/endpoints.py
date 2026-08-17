@@ -238,6 +238,7 @@ def create_app(monitor: Any) -> FastAPI:
 
             devices.append({
                 "name": device.name,
+                "description": device.description,
                 "state": device.state.value,
                 "power_consumption": device.power_consumption,
                 "priority": device.priority.value if hasattr(device.priority, 'value') else device.priority,

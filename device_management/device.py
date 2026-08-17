@@ -14,6 +14,7 @@ class DeviceState(Enum):
     OFF = "off"
     ON = "on"
     BLOCKED = "blocked"  # Blockiert durch Zeitbeschränkung oder Maximallaufzeit
+    UNREACHABLE = "unreachable"  # Hardware antwortet nicht (z.B. nicht eingesteckt)
 
 
 class DevicePriority(IntEnum):

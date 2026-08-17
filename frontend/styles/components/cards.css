@@ -148,6 +148,16 @@
     color: var(--color-bg-primary);
 }
 
+.device-status.unreachable {
+    background: var(--color-accent-red);
+    color: var(--color-text-primary);
+}
+
+.device-card.unreachable {
+    border-color: var(--color-accent-red);
+    opacity: 0.75;
+}
+
 /* Device Metrics */
 .device-metrics {
     display: flex;
