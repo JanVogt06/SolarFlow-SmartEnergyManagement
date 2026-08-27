@@ -1,32 +1,25 @@
 services:
-    solarflow:
-        build: .
-        container_name: solarflow-monitor
-        restart: unless-stopped
+  solarflow:
+    image: ghcr.io/janvogt06/solarflow:latest
+    build: .
+    container_name: solarflow
+    restart: unless-stopped
+    ports:
+      - "${SOLARFLOW_PORT:-8000}:8000"
+    environment:
+      # IP-Adresse des Fronius Wechselrichters
+      - FRONIUS_IP=${FRONIUS_IP:-192.168.178.90}
+      # Philips Hue (optional)
+      - ENABLE_HUE=${ENABLE_HUE:-False}
+      - HUE_BRIDGE_IP=${HUE_BRIDGE_IP:-192.168.178.26}
+    volumes:
+      # Einstellungen, Geräte, Logs, Datenbank und Hue-Token
+      - solarflow-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-        ports:
-            - "8000:8000"
-
-        environment:
-            - API_ENABLED=True
-            - API_HOST=0.0.0.0
-            - API_PORT=8000
-            - ENABLE_HUE=True
-            - HUE_BRIDGE_IP=192.168.178.26
-
-        # Vor dem ersten Start anlegen, sonst legt Docker Verzeichnisse an:
-        # touch solar_monitor.log devices.json settings.json .python_hue
-        volumes:
-            - ./solar_monitor.log:/app/solar_monitor.log
-            - ./devices.json:/app/devices.json
-            - ./settings.json:/app/settings.json
-            - ./Datalogs:/app/Datalogs
-            # Bridge-Token bleibt nach Restart erhalten
-            - ./.python_hue:/root/.python_hue
-
-        networks:
-            - solarflow-network
-
-networks:
-    solarflow-network:
-        driver: bridge
+volumes:
+  solarflow-data:

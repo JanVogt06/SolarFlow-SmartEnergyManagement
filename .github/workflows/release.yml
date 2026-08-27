@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -120,9 +121,63 @@ jobs:
         name: ${{ matrix.archive_name }}
         path: dist/${{ matrix.archive_name }}
 
+  docker:
+    name: Build image and push to GHCR
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve image name
+        id: image
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/$owner/solarflow" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   release:
     name: Create Release
-    needs: build
+    needs: [build, docker]
     runs-on: ubuntu-latest
 
     steps:
@@ -155,7 +210,7 @@ jobs:
         fi
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           ./artifacts/SolarFlow-windows-x64.exe/SolarFlow-windows-x64.exe
@@ -174,9 +229,44 @@ jobs:
           - 🏠 **Intelligente Gerätesteuerung**: Optimale Nutzung des Solarstroms
           - 📈 **Live Monitoring**: Echtzeit-Daten von Fronius Wechselrichtern
 
+          ## 🐳 Container Image
+
+          ```bash
+          docker pull ${{ needs.docker.outputs.image }}:${{ needs.docker.outputs.version }}
+          ```
+
+          Gebaut für `linux/amd64` und `linux/arm64`.
+
+          ### Starten
+
+          `docker-compose.yml` anlegen:
+
+          ```yaml
+          services:
+            solarflow:
+              image: ${{ needs.docker.outputs.image }}:${{ needs.docker.outputs.version }}
+              container_name: solarflow
+              restart: unless-stopped
+              ports:
+                - "${SOLARFLOW_PORT:-8000}:8000"
+              environment:
+                - FRONIUS_IP=192.168.178.90
+              volumes:
+                - solarflow-data:/data
+
+          volumes:
+            solarflow-data:
+          ```
+
+          ```bash
+          docker compose pull && docker compose up -d
+          ```
+
+          Dashboard danach unter http://localhost:8000
+
           ## 📦 Downloads
 
-          ### Standalone Executables (Empfohlen)
+          ### Standalone Executables
           Einzelne ausführbare Datei mit allem was benötigt wird:
           - **Windows**: [`SolarFlow-windows-x64.exe`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-windows-x64.exe)
           - **macOS**: [`SolarFlow-macos-x64`](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-macos-x64)
@@ -199,17 +289,17 @@ jobs:
           ```bash
           # Herunterladen
           wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/SolarFlow-linux-x64
-          
+
           # Ausführbar machen
           chmod +x SolarFlow-linux-x64
-          
+
           # Starten
           ./SolarFlow-linux-x64
           ```
 
           ## 🔧 Erste Schritte
 
-          1. **Fronius IP konfigurieren**: 
+          1. **Fronius IP konfigurieren**:
              ```bash
              ./SolarFlow --ip 192.168.178.90
              ```
